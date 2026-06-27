@@ -754,11 +754,17 @@ export async function createTeacherResource(input: {
 export async function generateResourceOutput(resourceId: string, type: OutputType) {
   const { user } = await ensureDemoStudent();
   await ensureDemoResources();
+  const membership = await getCurrentUserClass(user.id);
 
   const resource = await prisma.resource.findFirst({
     where: {
       id: resourceId,
-      isAiActionsEnabled: true
+      isAiActionsEnabled: true,
+      ...(membership?.classId
+        ? {
+            OR: [{ classId: membership.classId }, { classId: null }]
+          }
+        : {})
     },
     include: {
       subject: true,

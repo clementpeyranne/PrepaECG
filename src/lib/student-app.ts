@@ -1174,6 +1174,9 @@ export async function getStudentDashboardData() {
       }
     }),
     prisma.resource.findFirst({
+      where: {
+        OR: [{ classId: profile.classId }, { classId: null }]
+      },
       orderBy: { createdAt: "desc" }
     }),
     prisma.essay.findFirst({
@@ -1842,6 +1845,7 @@ export async function createStudentGrade(input: {
 
 export async function getStudentAssistantData() {
   const { user } = await ensureDemoStudent();
+  const membership = await getCurrentUserClass(user.id);
 
   const [weakPoints, latestEssay, latestResource, flashcards] = await Promise.all([
     prisma.weakPoint.findMany({
@@ -1854,6 +1858,11 @@ export async function getStudentAssistantData() {
       orderBy: { createdAt: "desc" }
     }),
     prisma.resource.findFirst({
+      where: membership?.classId
+        ? {
+            OR: [{ classId: membership.classId }, { classId: null }]
+          }
+        : undefined,
       orderBy: { createdAt: "desc" }
     }),
     prisma.flashcard.findMany({

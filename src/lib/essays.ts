@@ -507,8 +507,9 @@ export async function addTeacherEssayFeedback(input: {
   const belongsToSamePrep =
     teacherMembership?.classId &&
     essay?.student.memberships.some((membership) => membership.classId === teacherMembership.classId);
+  const isAssignedTeacher = essay?.teacherId === teacher.id;
 
-  if (!essay || !input.overview.trim() || !belongsToSamePrep || !input.submissionKey.trim()) {
+  if (!essay || !input.overview.trim() || !belongsToSamePrep || !isAssignedTeacher || !input.submissionKey.trim()) {
     return { status: "invalid" };
   }
 

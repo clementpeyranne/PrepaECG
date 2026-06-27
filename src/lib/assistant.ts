@@ -1,4 +1,5 @@
 import { generateAssistantReply } from "./ai";
+import { getCurrentUserClass } from "./auth";
 import { prisma } from "./db";
 import { ensureDemoStudent, getStudentAssistantData } from "./student-app";
 
@@ -34,10 +35,16 @@ export type AssistantReplyData = {
 
 export async function getAssistantWorkspaceData(): Promise<AssistantWorkspaceData> {
   const { user } = await ensureDemoStudent();
+  const membership = await getCurrentUserClass(user.id);
   const snapshot = await getStudentAssistantData();
 
   const [resources, essays] = await Promise.all([
     prisma.resource.findMany({
+      where: membership?.classId
+        ? {
+            OR: [{ classId: membership.classId }, { classId: null }]
+          }
+        : undefined,
       orderBy: { createdAt: "desc" },
       take: 20,
       include: { subject: true }
@@ -75,11 +82,19 @@ export async function askStudentAssistant(input: {
   essayId?: string;
 }): Promise<AssistantReplyData> {
   const { user } = await ensureDemoStudent();
+  const membership = await getCurrentUserClass(user.id);
 
   const [resource, essay, essayFeedback, weakPoints, flashcards] = await Promise.all([
     input.resourceId
       ? prisma.resource.findFirst({
-          where: { id: input.resourceId },
+          where: {
+            id: input.resourceId,
+            ...(membership?.classId
+              ? {
+                  OR: [{ classId: membership.classId }, { classId: null }]
+                }
+              : {})
+          },
           include: {
             subject: true,
             chapter: true
