@@ -14,17 +14,10 @@ export default async function OnboardingPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Configuration eleve"
-        description="Cette version recentre l'onboarding sur ce qui est vraiment utile en prepa : objectifs d'ecoles, volume de travail, pauses, creneaux et premiers resultats."
-      />
+      <PageHeader title="Configuration eleve" />
 
       <form action={submitOnboarding} className="space-y-5">
-        <SectionCard
-          eyebrow="Compte"
-          title="Informations de base"
-          description="On configure ici le profil de travail de l'eleve deja connecte a son environnement."
-        >
+        <SectionCard eyebrow="Compte" title="Informations de base">
           <div className="grid gap-4 lg:grid-cols-2">
             <InputField label="Prenom" name="firstName" defaultValue={options.user.firstName} />
             <InputField label="Nom" name="lastName" defaultValue={options.user.lastName} />
@@ -48,12 +41,7 @@ export default async function OnboardingPage() {
           </div>
         </SectionCard>
 
-        <SectionCard
-          eyebrow="Langues"
-          title="Langues vivantes"
-          description="L'onglet Actualites proposera automatiquement un article britannique, un article americain et un article de LV2 adaptes a ta langue."
-          accent="soft"
-        >
+        <SectionCard eyebrow="Langues" title="Langues vivantes" accent="soft">
           <div className="grid gap-4 lg:grid-cols-2">
             <SelectField label="LV1" name="lv1Language" defaultValue="ANGLAIS" disabled>
               <option value="ANGLAIS">Anglais</option>
@@ -71,23 +59,14 @@ export default async function OnboardingPage() {
           </div>
         </SectionCard>
 
-        <SectionCard
-          eyebrow="Objectifs"
-          title="Ecoles visees"
-          description="Plutot que choisir une etiquette vague, l'eleve cible ici les vraies ecoles qui orientent son niveau d'exigence."
-          accent="soft"
-        >
+        <SectionCard eyebrow="Objectifs" title="Ecoles visees" accent="soft">
           <AdaptiveOnboardingFields
             bceSchools={options.bceSchools}
             ecricomeSchools={options.ecricomeSchools}
           />
         </SectionCard>
 
-        <SectionCard
-          eyebrow="Creneaux"
-          title="Horaires types"
-          description="Ces horaires servent de base. Plus tard, l'application pourra les deplacer si elle detecte que d'autres moments te reussissent mieux."
-        >
+        <SectionCard eyebrow="Creneaux" title="Horaires types">
           <div className="grid gap-4 lg:grid-cols-2">
             <InputField label="Debut type en semaine" name="weekdayStart" type="time" defaultValue="18:00" />
             <InputField label="Fin type en semaine" name="weekdayEnd" type="time" defaultValue="21:30" />
@@ -96,11 +75,7 @@ export default async function OnboardingPage() {
           </div>
         </SectionCard>
 
-        <SectionCard
-          eyebrow="Rythme"
-          title="Blocs de travail et pauses"
-          description="Le planning devra ensuite pouvoir se remodeler si l'application detecte qu'un autre rythme ou d'autres horaires te conviennent mieux."
-        >
+        <SectionCard eyebrow="Rythme" title="Blocs de travail et pauses">
           <div className="grid gap-4 lg:grid-cols-2">
             <InputField
               label="Duree cible d'un bloc de travail (min)"
@@ -135,11 +110,7 @@ export default async function OnboardingPage() {
           </div>
         </SectionCard>
 
-        <SectionCard
-          eyebrow="Resultats"
-          title="Notes deja obtenues"
-          description="On remplace la photo rapide subjective par des signaux plus concrets : notes de concours blancs ou, pour une entree en 1ere annee, repere bac."
-        >
+        <SectionCard eyebrow="Resultats" title="Notes deja obtenues">
           <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
             <div className="space-y-4 rounded-[24px] bg-white/70 p-5">
               <p className="text-sm font-semibold text-ink">Notes de concours blancs ou devoirs significatifs</p>
@@ -154,10 +125,6 @@ export default async function OnboardingPage() {
 
             <div className="space-y-4 rounded-[24px] bg-sand p-5">
               <p className="text-sm font-semibold text-ink">Si l'eleve arrive en 1ere annee</p>
-              <p className="text-sm leading-7 text-pine/80">
-                Il peut ne pas avoir de notes de concours blancs. Dans ce cas, ces repères bac
-                servent seulement de point de depart avant que l'app apprenne progressivement.
-              </p>
               <InputField label="Moyenne au bac ou moyenne generale" name="bacAverage" type="number" />
               <SelectField label="Mention au bac" name="bacMention" defaultValue="">
                 <option value="">Pas renseignee</option>

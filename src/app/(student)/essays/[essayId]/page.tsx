@@ -21,16 +21,12 @@ export default async function EssayDetailPage({
 
   return (
     <div>
-      <PageHeader
-        title={data.essay.title}
-        description="Le feedback doit orienter le travail suivant : ressources, deck de cartes, ou nouvelle session ciblee."
-      />
+      <PageHeader title={data.essay.title} />
 
       <div className="grid gap-5 xl:grid-cols-[0.8fr_1.2fr]">
         <SectionCard
           eyebrow="Synthese"
           title={data.aiFeedback[0] ? `Fourchette indicative : ${data.aiFeedback[0].scoreRange}` : "Copie deposee"}
-          description={`${data.essay.subject} - ${data.essay.examType} - ${data.essay.targetExam}`}
           accent="soft"
         >
           <p className="text-sm leading-7 text-pine/80">
@@ -51,7 +47,6 @@ export default async function EssayDetailPage({
         <SectionCard
           eyebrow="Copie"
           title="Copie deposee"
-          description={`Envoyee le ${data.essay.createdAtLabel}`}
         >
           {data.essay.fileUrl ? (
             <div className="space-y-4">
@@ -90,7 +85,6 @@ export default async function EssayDetailPage({
             key={feedback.id}
             eyebrow="Feedback IA"
             title={feedback.scoreRange}
-            description={`Genere le ${feedback.createdAtLabel}`}
           >
             <p className="text-sm leading-7 text-pine/82">{feedback.overview}</p>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -107,7 +101,6 @@ export default async function EssayDetailPage({
             key={feedback.id}
             eyebrow="Feedback professeur"
             title={feedback.scoreRange}
-            description={`Ajoute le ${feedback.createdAtLabel}`}
             accent="dark"
           >
             <p className="text-sm leading-7 text-sand/85">{feedback.overview}</p>

@@ -13,20 +13,12 @@ export default async function PlanningPage() {
       <div>
         <PageHeader
           title="Planning intelligent"
-          description="Configure ton profil pour generer ton planning."
           actionLabel="Configurer mon profil"
           actionHref="/onboarding"
         />
 
-        <SectionCard
-          eyebrow="Configuration"
-          title="Activer le profil"
-          description="Le planning a besoin de tes horaires et de tes objectifs."
-          accent="soft"
-        >
-          <div className="rounded-[24px] bg-white/75 p-6 text-sm leading-7 text-pine/80">
-            Une fois la configuration remplie, la semaine de travail se construit automatiquement.
-          </div>
+        <SectionCard eyebrow="Configuration" title="Activer le profil" accent="soft">
+          <div className="rounded-[24px] bg-white/75 p-6 text-sm leading-7 text-pine/80">Complete ton profil pour activer cette page.</div>
         </SectionCard>
       </div>
     );

@@ -46,7 +46,6 @@ export default async function FlashcardsPage({
       <FlashcardMathProvider />
       <PageHeader
         title="Flashcards"
-        description="Un module Anki-like simple et pratique, avec des decks puis des sous-decks a l'interieur de chaque matiere."
         actionLabel="Reviser maintenant"
         actionHref={reviewHref}
       />
@@ -75,7 +74,6 @@ export default async function FlashcardsPage({
         <SectionCard
           eyebrow="Organisation"
           title="Matieres, decks et sous-decks"
-          description="Chaque matiere regroupe ses decks. Chaque deck peut ensuite contenir des sous-decks plus precis par chapitre."
         >
           <div className="max-h-[860px] space-y-4 overflow-y-auto pr-2">
             {data.subjectGroups.map((group) => (
@@ -103,7 +101,6 @@ export default async function FlashcardsPage({
         <SectionCard
           eyebrow="Synthese"
           title="Etat global"
-          description="Juste l'essentiel pour te situer et laisser le moteur suivre ta progression."
           accent="soft"
         >
           <div className="grid gap-3 sm:grid-cols-3">
@@ -127,7 +124,6 @@ export default async function FlashcardsPage({
         <SectionCard
           eyebrow="Creation"
           title="Nouveau deck"
-          description="Tu peux creer soit un deck principal, soit directement un sous-deck."
         >
           <form action={createDeckAction} className="space-y-4">
             <label className="block">
@@ -194,7 +190,6 @@ export default async function FlashcardsPage({
         <SectionCard
           eyebrow="Creation"
           title="Nouvelle carte"
-          description="Ajout manuel rapide, simplement en recto/verso pour rester aussi pratique qu'Anki."
         >
           <form action={createCardAction} className="space-y-4">
             <label className="block">
@@ -245,7 +240,6 @@ export default async function FlashcardsPage({
         <SectionCard
           eyebrow="Transfert"
           title="Partager ou exporter un deck"
-          description="Tu peux partager un deck avec un code simple entre etudiants ou l'exporter en fichier pour le conserver."
         >
           <div className="max-h-[860px] space-y-3 overflow-y-auto pr-2">
             {data.transferDecks.map((deck) => (
@@ -309,7 +303,6 @@ export default async function FlashcardsPage({
         <SectionCard
           eyebrow="Import"
           title="Recuperer un deck"
-          description="Importe soit un code de partage du site, soit un fichier exporte, soit un paquet Anki au format .apkg en conservant la structure des decks."
           accent="soft"
         >
           <div className="space-y-5">

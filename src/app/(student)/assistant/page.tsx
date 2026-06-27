@@ -9,10 +9,7 @@ export default async function AssistantPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Assistant IA"
-        description="Un vrai chat de travail centre sur les cours, les copies et la methode. Le planning reste gere dans son onglet dedie."
-      />
+      <PageHeader title="Assistant IA" />
 
       <div className="mt-5">
         <AssistantConsole

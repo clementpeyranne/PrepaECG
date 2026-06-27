@@ -24,10 +24,7 @@ export default async function DeckDetailPage({
   return (
     <div>
       <FlashcardMathProvider />
-      <PageHeader
-        title={data.deck.title}
-        description={`Revision du deck ${data.deck.subject} - ${data.deck.chapter}. Ici, on se concentre uniquement sur la carte en cours et la progression du deck.`}
-      />
+      <PageHeader title={data.deck.title} />
 
       <div className="space-y-5">
         <ReviewCardPanel
@@ -39,7 +36,6 @@ export default async function DeckDetailPage({
         <SectionCard
           eyebrow="Progression"
           title="Ou en est ce deck ?"
-          description="Sous la carte, tu retrouves l'essentiel : ton taux de reussite, combien de cartes ont deja ete revisees et la pression du jour."
         >
           <div className="grid gap-3 md:grid-cols-4">
             <div className="rounded-2xl bg-sand p-4 text-sm">
@@ -67,11 +63,7 @@ export default async function DeckDetailPage({
       </div>
 
       <div className="mt-5">
-        <FlashcardBrowser
-          cards={data.browserCards}
-          title="Cartes du deck"
-          description="Toutes les cartes du deck restent consultables et recherchables, meme hors session de revision."
-        />
+        <FlashcardBrowser cards={data.browserCards} title="Cartes du deck" />
       </div>
     </div>
   );

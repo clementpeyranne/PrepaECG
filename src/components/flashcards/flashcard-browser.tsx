@@ -30,7 +30,7 @@ type FlashcardBrowserProps = {
 export function FlashcardBrowser({
   cards,
   title = "Toutes les cartes",
-  description = "Parcours, filtre et retrouve n'importe quelle carte via une recherche simple."
+  description
 }: FlashcardBrowserProps) {
   const [query, setQuery] = useState("");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -67,7 +67,7 @@ export function FlashcardBrowser({
         <div>
           <p className="text-xs uppercase tracking-[0.25em] text-pine/55">Navigateur</p>
           <h2 className="mt-3 font-display text-2xl text-ink">{title}</h2>
-          <p className="mt-2 text-sm leading-6 text-pine/75">{description}</p>
+          {description ? <p className="mt-2 text-sm leading-6 text-pine/75">{description}</p> : null}
           <p className="mt-3 text-xs uppercase tracking-[0.18em] text-pine/55">
             {visibleCards.length} sur {filteredCards.length} carte
             {filteredCards.length > 1 ? "s" : ""} affichee

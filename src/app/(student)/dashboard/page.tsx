@@ -10,24 +10,11 @@ export default async function DashboardPage() {
   if (!data.hasProfile) {
     return (
       <div>
-        <PageHeader
-          title="Tableau de bord"
-          description="Configure ton profil pour activer ton espace de travail."
-          actionLabel="Configurer mon profil"
-          actionHref="/onboarding"
-        />
+        <PageHeader title="Tableau de bord" actionLabel="Configurer mon profil" actionHref="/onboarding" />
 
-        <SectionCard
-          eyebrow="Configuration"
-          title="Activer le profil"
-          description="Renseigne ta configuration pour faire apparaitre ton tableau de bord."
-          accent="soft"
-        >
+        <SectionCard eyebrow="Configuration" title="Activer le profil" accent="soft">
           <div className="rounded-[24px] bg-white/75 p-6">
-            <p className="text-sm leading-7 text-pine/80">
-              Une fois le profil rempli, tu retrouveras ici ton rythme de travail, tes priorites et
-              tes points de vigilance.
-            </p>
+            <p className="text-sm leading-7 text-pine/80">Complete ton profil pour activer cette page.</p>
           </div>
         </SectionCard>
       </div>
@@ -46,7 +33,6 @@ export default async function DashboardPage() {
         <SectionCard
           eyebrow="Classement anonyme"
           title={data.anonymousRanking.title}
-          description={data.anonymousRanking.subtitle}
           accent="dark"
         >
           <div className="grid gap-3">
@@ -72,7 +58,6 @@ export default async function DashboardPage() {
         <SectionCard
           eyebrow="Metriques utiles"
           title="Progression de la semaine"
-          description="Des signaux qui aident a reajuster le travail, pas a culpabiliser."
         >
           <div className="grid gap-3 sm:grid-cols-2">
             {data.stats.map((stat) => (

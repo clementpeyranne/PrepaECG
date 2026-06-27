@@ -11,23 +11,10 @@ export default async function ProgressPage() {
   if (!data.hasProfile) {
     return (
       <div>
-        <PageHeader
-          title="Progression"
-          description="Configure ton profil pour activer le suivi de progression."
-          actionLabel="Configurer mon profil"
-          actionHref="/onboarding"
-        />
+        <PageHeader title="Progression" actionLabel="Configurer mon profil" actionHref="/onboarding" />
 
-        <SectionCard
-          eyebrow="Configuration"
-          title="Activer le profil"
-          description="Les notes et les revisions s'afficheront ici."
-          accent="soft"
-        >
-          <div className="rounded-[24px] bg-white/75 p-6 text-sm leading-7 text-pine/80">
-            Une fois le profil rempli, tu retrouveras tes notes, leur evolution et les matieres a
-            consolider.
-          </div>
+        <SectionCard eyebrow="Configuration" title="Activer le profil" accent="soft">
+          <div className="rounded-[24px] bg-white/75 p-6 text-sm leading-7 text-pine/80">Complete ton profil pour activer cette page.</div>
         </SectionCard>
       </div>
     );

@@ -47,16 +47,9 @@ export default async function NewEssayPage({
 
   return (
     <div>
-      <PageHeader
-        title="Nouvelle copie"
-        description="Le formulaire de depot doit etre tres court pour eviter que l'etudiant reporte l'envoi de ses productions."
-      />
+      <PageHeader title="Nouvelle copie" />
 
-      <SectionCard
-        eyebrow="Soumission"
-        title="Deposer un document"
-        description="Cette page prefigure l'upload, le choix du contexte et le type de relecture souhaite."
-      >
+      <SectionCard eyebrow="Soumission" title="Deposer un document">
         {message ? (
           <div
             className={`mb-5 rounded-[20px] px-4 py-3 text-sm ${
@@ -182,9 +175,6 @@ export default async function NewEssayPage({
               accept="application/pdf,image/*"
               className="mt-3 block w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none transition file:mr-4 file:rounded-full file:border-0 file:bg-ink file:px-4 file:py-2 file:text-sm file:font-semibold file:text-sand focus:border-pine"
             />
-            <p className="mt-3 text-sm leading-7 text-pine/75">
-              Tu peux maintenant deposer directement un PDF ou prendre la copie en photo.
-            </p>
           </label>
 
           <PendingSubmitButton

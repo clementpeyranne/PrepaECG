@@ -12,22 +12,13 @@ export default async function ActualitesPage() {
       <div>
         <PageHeader
           title="Actualites"
-          description="L'onglet selectionnera ensuite automatiquement de bons articles de presse pour les langues."
           actionLabel="Configurer mon profil"
           actionHref="/onboarding"
         />
 
-        <SectionCard
-          eyebrow="Avant de commencer"
-          title="Choisis d'abord ta LV2"
-          description="La rubrique depend de ton profil : anglais britannique, anglais americain et langue vivante 2."
-          accent="soft"
-        >
+        <SectionCard eyebrow="Avant de commencer" title="Choisis d'abord ta LV2" accent="soft">
           <div className="rounded-[24px] bg-white/75 p-6">
-            <p className="text-sm leading-7 text-pine/80">
-              Une fois la configuration eleve remplie, cette page pourra adapter automatiquement
-              la troisieme actualite a ta LV2.
-            </p>
+            <p className="text-sm leading-7 text-pine/80">Configure ton profil pour activer cette rubrique.</p>
           </div>
         </SectionCard>
       </div>
@@ -36,10 +27,7 @@ export default async function ActualitesPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Actualites"
-        description={`LV1 anglais et LV2 ${data.lv2Label.toLowerCase()}.`}
-      />
+      <PageHeader title="Actualites" />
 
       <div className="grid gap-5 xl:grid-cols-3">
         {data.sections.map((section) => (
@@ -47,19 +35,23 @@ export default async function ActualitesPage() {
             key={section.id}
             eyebrow={section.sourceLabel}
             title={section.sourceName}
-            description={`${section.languageLabel} - ${section.publishedAtLabel}`}
             accent={section.id === "lv2" ? "soft" : undefined}
           >
             <div className="space-y-4">
               <div className="rounded-[22px] bg-sand p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <p className="text-xs uppercase tracking-[0.18em] text-pine/55">
-                    {section.hasFreshArticle
-                      ? section.isLive
-                        ? "Article recent"
-                        : "Article memorise"
-                      : "Aucune nouveaute recente"}
-                  </p>
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.18em] text-pine/55">
+                      {section.languageLabel} - {section.publishedAtLabel}
+                    </p>
+                    <p className="mt-1 text-xs uppercase tracking-[0.18em] text-pine/45">
+                      {section.hasFreshArticle
+                        ? section.isLive
+                          ? "Article recent"
+                          : "Article memorise"
+                        : "Aucune nouveaute recente"}
+                    </p>
+                  </div>
                   <a
                     href={section.articleUrl}
                     target="_blank"

@@ -183,7 +183,7 @@ export function ProgressDashboard({
     <div>
       <div className="grid gap-5 lg:grid-cols-4">
         {averageSummaryCards.map((card) => (
-          <SectionCard key={card.label} eyebrow="Signal" title={card.value} description={card.label}>
+          <SectionCard key={card.label} eyebrow="Signal" title={card.value}>
             <div className="rounded-2xl bg-sand p-4 text-sm leading-7 text-pine/78">{card.helper}</div>
           </SectionCard>
         ))}
@@ -193,7 +193,6 @@ export function ProgressDashboard({
         <SectionCard
           eyebrow="Notes"
           title="Evolution par matiere"
-          description="Chaque graphique montre l'evolution des notes. Le chiffre a droite correspond a la moyenne de la matiere."
         >
           <div className="space-y-4">
             {subjectCharts.map((subject) => {
@@ -234,7 +233,6 @@ export function ProgressDashboard({
           <SectionCard
             eyebrow="Filtre"
             title="Quelle moyenne afficher ?"
-            description={`${profile.className} - ${profile.targetExamSummary}`}
             accent="soft"
           >
             <div className="flex flex-wrap gap-3">
@@ -256,7 +254,6 @@ export function ProgressDashboard({
           <SectionCard
             eyebrow="Saisie"
             title="Ajouter une note"
-            description="Saisie d'une note entree par un professeur au fil de l'annee."
             accent="soft"
           >
             <form action={createGradeAction} className="space-y-4">
@@ -340,7 +337,6 @@ export function ProgressDashboard({
           <SectionCard
             eyebrow="Lecture simple"
             title="Ou ca va, ou ca coince"
-            description="Une synthese rapide, sans surcharger la page."
           >
             <div className="space-y-4">
               <div className="rounded-2xl bg-sand p-4">
@@ -382,7 +378,6 @@ export function ProgressDashboard({
         <SectionCard
           eyebrow="Carnet de notes"
           title="Notes repertoriees"
-          description="Vue type carnet : une ligne par note, avec le detail qui s'ouvre quand on clique."
         >
           <div className="overflow-hidden rounded-[24px] border border-ink/8">
             <div className="grid grid-cols-[1.1fr_0.7fr_0.5fr_0.7fr] bg-ink px-4 py-3 text-xs uppercase tracking-[0.2em] text-sand/75">
@@ -427,7 +422,6 @@ export function ProgressDashboard({
         <SectionCard
           eyebrow="Copies"
           title="Retours les plus utiles"
-          description="Les copies restent visibles ici seulement pour ce qu'elles apportent a la lecture de la progression."
         >
           <div className="grid gap-4 lg:grid-cols-3">
             {essayProgress.map((essay) => (

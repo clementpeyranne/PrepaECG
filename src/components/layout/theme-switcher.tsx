@@ -73,9 +73,6 @@ export function ThemeSwitcher() {
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-[0.24em] text-pine/60">Ambiance</p>
-          <p className="mt-2 text-sm leading-6 text-pine/78">
-            Tu peux tester plusieurs palettes puis revenir a l&apos;originale.
-          </p>
         </div>
       </div>
 
@@ -97,10 +94,7 @@ export function ThemeSwitcher() {
                   : "border-white/75 bg-white/75 text-ink hover:border-pine/18 hover:bg-white"
               }`}
             >
-              <div>
-                <p className="text-sm font-semibold">{theme.label}</p>
-                <p className={`mt-1 text-xs ${isActive ? "text-sand/70" : "text-pine/68"}`}>{theme.helper}</p>
-              </div>
+              <p className="text-sm font-semibold">{theme.label}</p>
               <div className="flex items-center gap-2">
                 {theme.swatches.map((color) => (
                   <span

@@ -89,7 +89,6 @@ export function AdaptiveOnboardingFields({
       <div className="grid gap-5 xl:grid-cols-2">
         <SchoolPicker
           title="Banque BCE"
-          description="Selectionne les ecoles BCE visees."
           name="bceSchools"
           options={bceSchools}
           selected={selectedBce}
@@ -97,7 +96,6 @@ export function AdaptiveOnboardingFields({
         />
         <SchoolPicker
           title="Banque Ecricome"
-          description="Selectionne les ecoles Ecricome visees."
           name="ecricomeSchools"
           options={ecricomeSchools}
           selected={selectedEcricome}
@@ -153,18 +151,16 @@ export function AdaptiveOnboardingFields({
 
 type SchoolPickerProps = {
   title: string;
-  description: string;
   name: string;
   options: string[];
   selected: string[];
   onToggle: (next: string[]) => void;
 };
 
-function SchoolPicker({ title, description, name, options, selected, onToggle }: SchoolPickerProps) {
+function SchoolPicker({ title, name, options, selected, onToggle }: SchoolPickerProps) {
   return (
     <div className="rounded-[24px] bg-white/70 p-5">
       <p className="font-semibold text-ink">{title}</p>
-      <p className="mt-2 text-sm leading-7 text-pine/78">{description}</p>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         {options.map((option) => {
           const isChecked = selected.includes(option);

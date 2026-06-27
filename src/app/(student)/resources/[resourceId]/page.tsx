@@ -25,17 +25,10 @@ export default async function ResourceDetailPage({
 
   return (
     <div>
-      <PageHeader
-        title={resource.title}
-        description={`${resource.type} - ${resource.subject}`}
-      />
+      <PageHeader title={resource.title} />
 
       <div className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
-        <SectionCard
-          eyebrow="Document"
-          title={resource.chapter}
-          description={`${resource.chapter} - Depose par ${resource.teacher}`}
-        >
+        <SectionCard eyebrow="Document" title={resource.chapter}>
           <div className="rounded-[26px] bg-sand p-6">
             <p className="text-sm leading-8 text-pine/80">{resource.summary}</p>
           </div>
@@ -91,7 +84,6 @@ export default async function ResourceDetailPage({
         <SectionCard
           eyebrow="Actions IA"
           title="Transformer le document"
-          description={resource.aiEnabled ? "Resume, fiche ou flashcards." : "Actions IA indisponibles pour ce format."}
           accent="dark"
         >
           {resource.aiEnabled ? (
@@ -125,7 +117,6 @@ export default async function ResourceDetailPage({
         <SectionCard
           eyebrow="Sorties"
           title="Ce que l'IA a deja produit"
-          description="Les sorties restent accessibles ici pour etre relues, reutilisees ou transformer le cours en revision active."
         >
           {resource.outputs.length === 0 ? (
             <div className="rounded-[24px] bg-sand p-6 text-sm leading-7 text-pine/75">

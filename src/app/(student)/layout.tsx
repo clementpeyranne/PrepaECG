@@ -28,7 +28,6 @@ export default async function StudentLayout({ children }: { children: ReactNode 
       audience="student"
       navigation={studentNavigation}
       title={shell.title}
-      subtitle={shell.subtitle}
       userLabel={`${user.firstName} ${user.lastName}`}
     >
       {children}

@@ -10,7 +10,7 @@ type AppShellProps = {
   audience: "student" | "teacher";
   navigation: NavItem[];
   title: string;
-  subtitle: string;
+  subtitle?: string;
   userLabel?: string;
   children: ReactNode;
 };
@@ -34,7 +34,9 @@ export function AppShell({
             <h1 className="mt-4 font-display text-3xl tracking-[-0.04em] text-ink lg:text-[2.15rem]">
               {title}
             </h1>
-            <p className="mt-3 max-w-[24rem] text-sm leading-7 text-pine/78">{subtitle}</p>
+            {subtitle ? (
+              <p className="mt-3 max-w-[24rem] text-sm leading-7 text-pine/78">{subtitle}</p>
+            ) : null}
           </div>
 
           <SidebarNav items={navigation} />
@@ -42,16 +44,9 @@ export function AppShell({
           <ThemeSwitcher />
 
           <div className="panel-dark hero-glow mt-8 rounded-[28px] p-5 text-sand lg:p-6">
-            <p className="text-xs uppercase tracking-[0.25em] text-sand/58">Vision</p>
-            <p className="mt-4 font-display text-2xl tracking-[-0.04em] text-white">
-              Travailler avec plus de clarte, plus de constance, plus d&apos;ambition.
-            </p>
-            <p className="mt-3 text-sm leading-7 text-sand/84">
-              Un espace unique pour garder le rythme, mesurer les efforts reels et transformer le
-              volume de travail en progression visible.
-            </p>
+            <p className="text-xs uppercase tracking-[0.25em] text-sand/58">Compte</p>
             {userLabel ? (
-              <p className="mt-5 text-xs uppercase tracking-[0.22em] text-sand/58">{userLabel}</p>
+              <p className="mt-4 text-sm font-semibold text-white">{userLabel}</p>
             ) : null}
             <div className="mt-5 flex flex-wrap gap-3">
               <Link
