@@ -1,0 +1,45 @@
+{
+  "name": "prepa-ecg-os",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "ai:check": "node scripts/check-openai.mjs",
+    "deploy:check": "node scripts/check-deployment.mjs",
+    "env:prepare:prod": "node scripts/prepare-production-env.mjs",
+    "lint": "next lint",
+    "db:init": "sqlite3 prisma/dev.db < prisma/init.sql",
+    "db:init:demo": "sqlite3 prisma/dev.db < prisma/init.sql",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio",
+    "prisma:prepare:prod": "node scripts/prepare-production-prisma.mjs",
+    "prisma:generate:prod": "npm run prisma:prepare:prod && node scripts/run-production-prisma.mjs generate",
+    "db:push:prod": "npm run prisma:prepare:prod && node scripts/run-production-prisma.mjs db push",
+    "storage:init:prod": "node scripts/init-supabase-storage.mjs",
+    "establishment:create": "node scripts/create-establishment.mjs",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.0.0",
+    "@supabase/supabase-js": "^2.104.0",
+    "lucide-react": "^0.468.0",
+    "next": "^15.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.16.0",
+    "eslint-config-next": "^15.0.0",
+    "postcss": "^8.4.49",
+    "prisma": "^6.0.0",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.2"
+  }
+}
