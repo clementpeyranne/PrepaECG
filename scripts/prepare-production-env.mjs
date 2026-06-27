@@ -28,6 +28,7 @@ writeFileSync(targetPath, prepared, "utf8");
 console.log(`${targetPath} a ete cree.`);
 console.log("Valeurs encore a renseigner avant deploiement :");
 console.log('- DATABASE_URL');
+console.log('- DIRECT_URL');
 console.log('- NEXT_PUBLIC_APP_URL');
 console.log('- SUPABASE_URL');
 console.log('- SUPABASE_SERVICE_ROLE_KEY');

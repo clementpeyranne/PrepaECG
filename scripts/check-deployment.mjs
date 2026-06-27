@@ -7,6 +7,7 @@ const env = {
 
 const appMode = (env.APP_MODE || "demo").trim().toLowerCase();
 const databaseUrl = (env.DATABASE_URL || "").trim();
+const directUrl = (env.DIRECT_URL || "").trim();
 const authSecret = (env.AUTH_SECRET || "").trim();
 const appUrl = (env.NEXT_PUBLIC_APP_URL || "").trim();
 const fileStorageDriver = (env.FILE_STORAGE_DRIVER || "local").trim().toLowerCase();
@@ -31,6 +32,18 @@ if (!databaseUrl) {
   errors.push("DATABASE_URL pointe encore vers SQLite local. Pour la prod, prevois une base PostgreSQL en ligne.");
 } else if (usesPlaceholder(databaseUrl, ["USER", "PASSWORD", "HOST"])) {
   errors.push("DATABASE_URL contient encore des valeurs d'exemple.");
+} else if (databaseUrl.includes("pooler.supabase.com:5432")) {
+  warnings.push(
+    "DATABASE_URL semble utiliser le pooler Supabase en mode session. Pour Vercel + Prisma, prevois plutot une URL runtime moins fragile et garde DIRECT_URL pour les operations Prisma."
+  );
+}
+
+if (!directUrl) {
+  warnings.push("DIRECT_URL n'est pas defini. Il est recommande pour les operations Prisma de schema et migration.");
+} else if (directUrl.startsWith("file:")) {
+  warnings.push("DIRECT_URL pointe encore vers SQLite local.");
+} else if (usesPlaceholder(directUrl, ["USER", "PASSWORD", "HOST"])) {
+  warnings.push("DIRECT_URL contient encore des valeurs d'exemple.");
 }
 
 if (!authSecret || authSecret === "dev-prepa-ecg-os-secret-change-me") {
