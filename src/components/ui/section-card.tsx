@@ -22,17 +22,17 @@ export function SectionCard({
   };
 
   return (
-    <section className={`rounded-[30px] p-5 lg:p-6 ${accents[accent]}`}>
+    <section className={`rounded-[26px] p-4 sm:p-5 lg:rounded-[30px] lg:p-6 ${accents[accent]}`}>
       {eyebrow ? (
         <div className="inline-flex rounded-full border border-current/10 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-current/60">
           {eyebrow}
         </div>
       ) : null}
       <div className="mt-4">
-        <h2 className="font-display text-[1.9rem] tracking-[-0.04em]">{title}</h2>
+        <h2 className="font-display text-[1.65rem] tracking-[-0.04em] sm:text-[1.9rem]">{title}</h2>
         {description ? <p className="mt-3 max-w-3xl text-sm leading-7 text-current/76">{description}</p> : null}
       </div>
-      <div className="mt-6">{children}</div>
+      <div className="mt-5 lg:mt-6">{children}</div>
     </section>
   );
 }

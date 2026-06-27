@@ -36,11 +36,11 @@ export default async function PlanningPage() {
         eyebrow="Vue semaine"
         title="Semaine proposee"
       >
-        <div className="grid gap-3 md:grid-cols-7">
+        <div className="scrollbar-none flex gap-3 overflow-x-auto pb-2 md:grid md:overflow-visible md:pb-0 md:[grid-template-columns:repeat(7,minmax(0,1fr))]">
           {data.week.map((day) => (
             <div
               key={`${day.dayLabel}-${day.dateLabel}`}
-              className={`rounded-[22px] p-4 ${day.isToday ? "bg-ink text-sand" : "bg-sand text-ink"}`}
+              className={`min-w-[268px] rounded-[22px] p-4 md:min-w-0 ${day.isToday ? "bg-ink text-sand" : "bg-sand text-ink"}`}
             >
               <p className="text-sm font-semibold">{day.dayLabel}</p>
               <p className={`mt-1 text-xs ${day.isToday ? "text-sand/60" : "text-pine/60"}`}>

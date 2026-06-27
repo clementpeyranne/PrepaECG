@@ -58,7 +58,7 @@ function isThemeId(value: string | null): value is ThemeId {
   return THEMES.some((entry) => entry.id === value);
 }
 
-export function ThemeSwitcher() {
+export function ThemeSwitcher({ compact = false }: { compact?: boolean }) {
   const [activeTheme, setActiveTheme] = useState<ThemeId>("original");
 
   useEffect(() => {
@@ -69,14 +69,14 @@ export function ThemeSwitcher() {
   }, []);
 
   return (
-    <section className="mt-8 rounded-[28px] border border-white/65 bg-white/50 p-4 backdrop-blur">
+    <section className={`${compact ? "" : "mt-8"} rounded-[28px] border border-white/65 bg-white/50 p-4 backdrop-blur`}>
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-[0.24em] text-pine/60">Ambiance</p>
         </div>
       </div>
 
-      <div className="mt-4 space-y-2">
+      <div className={compact ? "scrollbar-none mt-3 flex gap-2 overflow-x-auto pb-1" : "mt-4 space-y-2"}>
         {THEMES.map((theme) => {
           const isActive = activeTheme === theme.id;
 
@@ -88,18 +88,26 @@ export function ThemeSwitcher() {
                 setActiveTheme(theme.id);
                 applyTheme(theme.id);
               }}
-              className={`flex w-full items-center justify-between rounded-[20px] border px-4 py-3 text-left transition ${
-                isActive
-                  ? "border-ink bg-ink text-sand shadow-[0_14px_30px_rgba(20,34,29,0.16)]"
-                  : "border-white/75 bg-white/75 text-ink hover:border-pine/18 hover:bg-white"
-              }`}
+              className={
+                compact
+                  ? `flex shrink-0 items-center gap-2 rounded-full border px-3 py-2.5 text-left transition ${
+                      isActive
+                        ? "border-ink bg-ink text-sand shadow-[0_14px_30px_rgba(20,34,29,0.16)]"
+                        : "border-white/75 bg-white/75 text-ink hover:border-pine/18 hover:bg-white"
+                    }`
+                  : `flex w-full items-center justify-between rounded-[20px] border px-4 py-3 text-left transition ${
+                      isActive
+                        ? "border-ink bg-ink text-sand shadow-[0_14px_30px_rgba(20,34,29,0.16)]"
+                        : "border-white/75 bg-white/75 text-ink hover:border-pine/18 hover:bg-white"
+                    }`
+              }
             >
-              <p className="text-sm font-semibold">{theme.label}</p>
+              <p className={`${compact ? "text-[13px]" : "text-sm"} font-semibold`}>{theme.label}</p>
               <div className="flex items-center gap-2">
                 {theme.swatches.map((color) => (
                   <span
                     key={color}
-                    className="h-4 w-4 rounded-full border border-black/10"
+                    className={`${compact ? "h-3.5 w-3.5" : "h-4 w-4"} rounded-full border border-black/10`}
                     style={{ backgroundColor: color }}
                   />
                 ))}

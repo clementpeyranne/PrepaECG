@@ -45,7 +45,7 @@ export function SidebarNav({ items }: SidebarNavProps) {
         })}
       </nav>
 
-      <nav className="scrollbar-none flex gap-3 overflow-x-auto pb-2 lg:hidden">
+      <nav className="scrollbar-none -mx-1 flex gap-2 overflow-x-auto px-1 pb-2 lg:hidden">
         {items.map((item) => {
           const isActive = pathname === item.href;
           return (
@@ -53,7 +53,7 @@ export function SidebarNav({ items }: SidebarNavProps) {
               key={item.href}
               href={item.href}
               className={cn(
-                "whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition",
+                "shrink-0 whitespace-nowrap rounded-full border px-3 py-2 text-[13px] font-medium transition",
                 isActive
                   ? "border-ink bg-ink text-sand shadow-[0_12px_24px_rgba(20,34,29,0.15)]"
                   : "border-white/70 bg-white/78 text-ink"
