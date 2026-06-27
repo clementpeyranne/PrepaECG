@@ -175,9 +175,26 @@ export async function registerUser(input: {
   }
 
   await ensureReferenceData();
-  const prepClass = await prisma.class.findUnique({
-    where: { accessCode: input.accessCode.trim().toUpperCase() }
+  const normalizedAccessCode = input.accessCode.trim().toUpperCase();
+
+  let prepClass = await prisma.class.findUnique({
+    where: { accessCode: normalizedAccessCode }
   });
+
+  if (!prepClass && !isDemoModeEnabled()) {
+    const classCount = await prisma.class.count();
+
+    if (classCount === 0 && normalizedAccessCode) {
+      prepClass = await prisma.class.create({
+        data: {
+          name: "Prepa ECG",
+          yearLabel: String(new Date().getFullYear()),
+          track: "ECG",
+          accessCode: normalizedAccessCode
+        }
+      });
+    }
+  }
 
   if (!prepClass) {
     return {

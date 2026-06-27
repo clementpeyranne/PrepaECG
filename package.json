@@ -19,6 +19,7 @@
     "db:push:prod": "npm run prisma:prepare:prod && node scripts/run-production-prisma.mjs db push",
     "storage:init:prod": "node scripts/init-supabase-storage.mjs",
     "establishment:create": "node scripts/create-establishment.mjs",
+    "establishment:create:prod": "node scripts/create-establishment.mjs --prod",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev"
   },

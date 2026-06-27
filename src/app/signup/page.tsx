@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { signupAction } from "@/app/actions/auth";
+import { isDemoModeEnabled } from "@/lib/app-config";
 import { getCurrentUser, getUserLandingPath } from "@/lib/auth";
 import { DEFAULT_CLASS_ACCESS_CODE } from "@/lib/reference-data";
 
@@ -20,6 +21,7 @@ export default async function SignupPage({
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const message =
     typeof resolvedSearchParams.message === "string" ? resolvedSearchParams.message : null;
+  const defaultAccessCode = isDemoModeEnabled() ? DEFAULT_CLASS_ACCESS_CODE : "";
 
   return (
     <main className="bg-app-gradient">
@@ -94,7 +96,8 @@ export default async function SignupPage({
                 </span>
                 <input
                   name="accessCode"
-                  defaultValue={DEFAULT_CLASS_ACCESS_CODE}
+                  defaultValue={defaultAccessCode}
+                  placeholder={isDemoModeEnabled() ? DEFAULT_CLASS_ACCESS_CODE : "Ex: PREPA-ECG"}
                   className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm uppercase outline-none transition focus:border-pine"
                 />
               </label>
@@ -130,6 +133,9 @@ export default async function SignupPage({
               <p>1. Un compte rejoint un environnement de prepa</p>
               <p>2. Les ressources restent visibles dans cet environnement</p>
               <p>3. Les copies sont adressees aux professeurs de cette meme prepa</p>
+              {isDemoModeEnabled() ? null : (
+                <p>4. Au tout premier lancement, le premier code saisi initialise l&apos;etablissement</p>
+              )}
             </div>
           </section>
         </div>
