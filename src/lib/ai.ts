@@ -122,18 +122,22 @@ async function recordAIGeneration(input: {
   inputSummary: string;
   outputSummary?: string;
 }) {
-  await prisma.aIGeneration.create({
-    data: {
-      userId: input.userId,
-      featureName: input.featureName,
-      sourceEntityType: input.sourceEntityType,
-      sourceEntityId: input.sourceEntityId,
-      modelName: input.modelName,
-      status: input.status,
-      inputSummary: truncate(input.inputSummary),
-      outputSummary: input.outputSummary ? truncate(input.outputSummary) : null
-    }
-  });
+  try {
+    await prisma.aIGeneration.create({
+      data: {
+        userId: input.userId,
+        featureName: input.featureName,
+        sourceEntityType: input.sourceEntityType,
+        sourceEntityId: input.sourceEntityId,
+        modelName: input.modelName,
+        status: input.status,
+        inputSummary: truncate(input.inputSummary),
+        outputSummary: input.outputSummary ? truncate(input.outputSummary) : null
+      }
+    });
+  } catch (error) {
+    console.error("AI_GENERATION_LOG_FAILED", error);
+  }
 }
 
 async function callOpenAIJson<T>(input: {
