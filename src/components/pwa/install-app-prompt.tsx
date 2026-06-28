@@ -81,7 +81,10 @@ export function InstallAppPrompt() {
   }
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex justify-center px-4">
+    <div
+      className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex justify-center px-4"
+      style={{ paddingBottom: "max(0px, env(safe-area-inset-bottom))" }}
+    >
       <div className="pointer-events-auto panel-dark flex w-full max-w-xl flex-col gap-3 rounded-[24px] px-5 py-4 text-sand shadow-panel">
         <div>
           <p className="text-xs uppercase tracking-[0.25em] text-sand/55">Application</p>

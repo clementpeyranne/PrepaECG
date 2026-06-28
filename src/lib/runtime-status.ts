@@ -3,7 +3,7 @@ import {
   getAppMode,
   getFileStorageDriver,
   getPasswordResetMode,
-  getPublicAppUrl,
+  getPublicAppUrlDetails,
   getSupabaseServiceRoleKey,
   getSupabaseUrl,
   isDemoModeEnabled
@@ -78,9 +78,9 @@ function getStorageStatus(): RuntimeCheck {
 }
 
 function getAppUrlStatus(): RuntimeCheck {
-  const publicUrl = getPublicAppUrl();
+  const { url: publicUrl, source } = getPublicAppUrlDetails();
 
-  if (!publicUrl || publicUrl.includes("localhost")) {
+  if (!publicUrl || source === "local" || publicUrl.includes("localhost")) {
     return {
       label: "app_url",
       state: getAppMode() === "production" ? "fail" : "pass",
@@ -96,6 +96,17 @@ function getAppUrlStatus(): RuntimeCheck {
       label: "app_url",
       state: "warn",
       detail: "L'URL publique est definie mais n'utilise pas HTTPS."
+    };
+  }
+
+  if (getAppMode() === "production" && source !== "explicit") {
+    return {
+      label: "app_url",
+      state: "warn",
+      detail:
+        source === "vercel-production"
+          ? "L'URL publique est deduite automatiquement depuis Vercel. Definir NEXT_PUBLIC_APP_URL reste preferable."
+          : "L'URL publique repose sur une URL Vercel de preview. Definir NEXT_PUBLIC_APP_URL est recommande."
     };
   }
 

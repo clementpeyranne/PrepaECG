@@ -1,6 +1,7 @@
 export type AppMode = "demo" | "production";
 export type FileStorageDriver = "local" | "supabase";
 export type PasswordResetMode = "support" | "direct-link";
+export type PublicAppUrlSource = "explicit" | "vercel-production" | "vercel-preview" | "local";
 
 function normalize(value: string | undefined) {
   return value?.trim().toLowerCase() ?? "";
@@ -18,8 +19,52 @@ export function getFileStorageDriver(): FileStorageDriver {
   return normalize(process.env.FILE_STORAGE_DRIVER) === "supabase" ? "supabase" : "local";
 }
 
+function normalizeAppUrl(raw: string) {
+  const value = raw.trim();
+  if (!value) {
+    return "";
+  }
+
+  if (value.startsWith("http://") || value.startsWith("https://")) {
+    return value.replace(/\/+$/, "");
+  }
+
+  return `https://${value.replace(/\/+$/, "")}`;
+}
+
+export function getPublicAppUrlDetails() {
+  const explicit = normalizeAppUrl(process.env.NEXT_PUBLIC_APP_URL || "");
+  if (explicit) {
+    return {
+      url: explicit,
+      source: "explicit" as PublicAppUrlSource
+    };
+  }
+
+  const vercelProduction = normalizeAppUrl(process.env.VERCEL_PROJECT_PRODUCTION_URL || "");
+  if (vercelProduction) {
+    return {
+      url: vercelProduction,
+      source: "vercel-production" as PublicAppUrlSource
+    };
+  }
+
+  const vercelPreview = normalizeAppUrl(process.env.VERCEL_URL || "");
+  if (vercelPreview) {
+    return {
+      url: vercelPreview,
+      source: "vercel-preview" as PublicAppUrlSource
+    };
+  }
+
+  return {
+    url: "http://localhost:3000",
+    source: "local" as PublicAppUrlSource
+  };
+}
+
 export function getPublicAppUrl() {
-  return process.env.NEXT_PUBLIC_APP_URL?.trim() || "http://localhost:3000";
+  return getPublicAppUrlDetails().url;
 }
 
 export function getPasswordResetMode(): PasswordResetMode {

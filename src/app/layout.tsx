@@ -3,16 +3,17 @@ import type { Metadata, Viewport } from "next";
 
 import { InstallAppPrompt } from "@/components/pwa/install-app-prompt";
 import { RegisterServiceWorker } from "@/components/pwa/register-service-worker";
+import { getPublicAppUrlDetails } from "@/lib/app-config";
 import "./globals.css";
 
 function getMetadataBase() {
-  const raw = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  if (!raw || raw.includes("localhost")) {
+  const { url, source } = getPublicAppUrlDetails();
+  if (source === "local") {
     return undefined;
   }
 
   try {
-    return new URL(raw);
+    return new URL(url);
   } catch {
     return undefined;
   }
@@ -35,7 +36,8 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#14221d"
+  themeColor: "#14221d",
+  viewportFit: "cover"
 };
 
 export default function RootLayout({

@@ -10,6 +10,8 @@ const databaseUrl = (env.DATABASE_URL || "").trim();
 const directUrl = (env.DIRECT_URL || "").trim();
 const authSecret = (env.AUTH_SECRET || "").trim();
 const appUrl = (env.NEXT_PUBLIC_APP_URL || "").trim();
+const vercelProductionUrl = (env.VERCEL_PROJECT_PRODUCTION_URL || "").trim();
+const vercelPreviewUrl = (env.VERCEL_URL || "").trim();
 const passwordResetMode = (env.PASSWORD_RESET_MODE || "support").trim().toLowerCase();
 const supportEmail = (env.NEXT_PUBLIC_SUPPORT_EMAIL || "").trim();
 const fileStorageDriver = (env.FILE_STORAGE_DRIVER || "local").trim().toLowerCase();
@@ -53,7 +55,17 @@ if (!authSecret || authSecret === "dev-prepa-ecg-os-secret-change-me") {
 }
 
 if (!appUrl) {
-  errors.push("NEXT_PUBLIC_APP_URL n'est pas defini.");
+  if (vercelProductionUrl) {
+    warnings.push(
+      "NEXT_PUBLIC_APP_URL n'est pas defini. Vercel pourra deduire l'URL publique, mais il vaut mieux la fixer explicitement."
+    );
+  } else if (vercelPreviewUrl) {
+    warnings.push(
+      "NEXT_PUBLIC_APP_URL n'est pas defini. L'application risque de s'appuyer sur une URL de preview Vercel."
+    );
+  } else {
+    errors.push("NEXT_PUBLIC_APP_URL n'est pas defini.");
+  }
 } else if (appUrl.includes("localhost")) {
   errors.push("NEXT_PUBLIC_APP_URL pointe encore vers localhost.");
 } else if (appUrl.includes("ton-domaine.fr")) {

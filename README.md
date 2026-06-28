@@ -224,3 +224,8 @@ Les fichiers relies a cette installation sont :
 - [public/sw.js](/Users/clementpeyranne/Documents/Codex/2026-04-18-salut-je-viens-de-finir-classe/public/sw.js)
 - [src/components/pwa/register-service-worker.tsx](/Users/clementpeyranne/Documents/Codex/2026-04-18-salut-je-viens-de-finir-classe/src/components/pwa/register-service-worker.tsx)
 - [src/components/pwa/install-app-prompt.tsx](/Users/clementpeyranne/Documents/Codex/2026-04-18-salut-je-viens-de-finir-classe/src/components/pwa/install-app-prompt.tsx)
+
+Preparation d'une future vraie application mobile/desktop :
+
+- [docs/native-apps.md](/Users/clementpeyranne/Documents/Codex/2026-04-18-salut-je-viens-de-finir-classe/docs/native-apps.md)
+- [capacitor.config.example.ts](/Users/clementpeyranne/Documents/Codex/2026-04-18-salut-je-viens-de-finir-classe/capacitor.config.example.ts)
