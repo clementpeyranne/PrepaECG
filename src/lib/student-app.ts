@@ -1,9 +1,9 @@
 import { Prisma, SessionStatus, SessionType, UserRole } from "@prisma/client";
+import { cache } from "react";
 
 import { getCurrentUserClass, requireRole } from "./auth";
-import { generateAssistantSnapshot, generatePlanningGuidance, getAIStatusMeta } from "./ai";
+import { generateAssistantSnapshot, getAIStatusMeta } from "./ai";
 import { prisma } from "./db";
-import { getLatestEssaySignals } from "./essays";
 import { isDemoModeEnabled } from "./app-config";
 import { ensureReferenceData, SUBJECT_REFERENCES } from "./reference-data";
 
@@ -434,7 +434,7 @@ async function ensureDemoGrades(studentId: string) {
   });
 }
 
-export async function ensureDemoStudent() {
+export const ensureDemoStudent = cache(async () => {
   const { prepClass, subjects } = await ensureReferenceData();
   const user = await requireRole([UserRole.STUDENT, UserRole.ADMIN]);
   const membership = await getCurrentUserClass(user.id);
@@ -472,7 +472,7 @@ export async function ensureDemoStudent() {
     prepClass,
     subjects
   };
-}
+});
 
 async function ensureDemoBenchmarkStudents() {
   if (!isDemoModeEnabled()) {
@@ -1136,7 +1136,7 @@ export async function getStudentDashboardData() {
   const languagePreferences = getLanguagePreferences(energyProfile);
   const anonymousRanking = await getAnonymousWorkRanking(user.id, targetExams, profile.prepYear);
 
-  const [tasks, sessions, weakPoints, flashcards, latestResource, latestEssay] = await Promise.all([
+  const [tasks, sessions, weakPoints, flashcards] = await Promise.all([
     prisma.task.findMany({
       where: { studentId: user.id },
       orderBy: [{ dueAt: "asc" }, { priorityScore: "desc" }],
@@ -1172,16 +1172,6 @@ export async function getStudentDashboardData() {
           where: { userId: user.id }
         }
       }
-    }),
-    prisma.resource.findFirst({
-      where: {
-        OR: [{ classId: profile.classId }, { classId: null }]
-      },
-      orderBy: { createdAt: "desc" }
-    }),
-    prisma.essay.findFirst({
-      where: { studentId: user.id },
-      orderBy: { createdAt: "desc" }
     })
   ]);
 
@@ -1195,14 +1185,6 @@ export async function getStudentDashboardData() {
     const state = card.states[0];
     return !state?.nextReviewAt || state.nextReviewAt <= today;
   }).length;
-  const assistant = await generateAssistantSnapshot({
-    userId: user.id,
-    weakPointLabels: weakPoints.map((point) => point.label),
-    dueFlashcards,
-    resourceTitle: latestResource?.title,
-    essayTitle: latestEssay?.title
-  });
-  const aiStatus = getAIStatusMeta();
 
   return {
     hasProfile: true as const,
@@ -1216,17 +1198,6 @@ export async function getStudentDashboardData() {
       languagePreferences
     },
     anonymousRanking,
-    todayFocus: {
-      title: assistant.headline,
-      subtitle: assistant.summary,
-      tasks: [
-        tasks[0]?.title ?? "Lancer ton premier bloc equilibre",
-        `${weekdayDailyHours}h ciblees en semaine, ${weekendDailyHours}h le week-end`,
-        dueFlashcards > 0
-          ? `${dueFlashcards} cartes attendent une revision`
-          : `Blocs de ${blockMinutes} min avec pause courte de ${shortBreakMinutes} min`
-      ]
-    },
     stats: [
       {
         label: "Cible semaine",
@@ -1273,9 +1244,7 @@ export async function getStudentDashboardData() {
         when: task.dueAt
           ? task.dueAt.toLocaleDateString("fr-FR", { day: "numeric", month: "short" })
           : "sans date"
-      })),
-    assistant,
-    aiStatus
+      }))
   };
 }
 
@@ -1302,7 +1271,7 @@ export async function getStudentPlanningData() {
   };
   const energyProfile = (profile.energyProfile as EnergyProfilePayload | null) ?? null;
 
-  const [sessions, weakPoints, tasks, subjects, flashcards] = await Promise.all([
+  const [sessions, weakPoints, tasks, subjects] = await Promise.all([
     prisma.studySession.findMany({
       where: { studentId: user.id },
       include: {
@@ -1326,18 +1295,6 @@ export async function getStudentPlanningData() {
     }),
     prisma.subject.findMany({
       orderBy: { name: "asc" }
-    }),
-    prisma.flashcard.findMany({
-      where: {
-        deck: {
-          ownerUserId: user.id
-        }
-      },
-      include: {
-        states: {
-          where: { userId: user.id }
-        }
-      }
     })
   ]);
 
@@ -1349,12 +1306,6 @@ export async function getStudentPlanningData() {
   const blockMinutes = energyProfile?.sessionBlockMinutes ?? 50;
   const weekdayStart = energyProfile?.weekdayStart ?? "18:00";
   const weekendStart = energyProfile?.weekendStart ?? "09:30";
-  const coherence = getCoherenceFeedback(targetExams, weekdayDailyHours, weekendDailyHours);
-  const dueFlashcards = flashcards.filter((card) => {
-    const state = card.states[0];
-    return !state?.nextReviewAt || state.nextReviewAt <= new Date();
-  }).length;
-  const recentEssayMistakes = await getLatestEssaySignals(user.id);
 
   const prioritizedSubjects = [
     ...weakPoints
@@ -1446,23 +1397,10 @@ export async function getStudentPlanningData() {
 
   const todayPlan = week.find((day) => day.isToday) ?? week[0];
 
-  const planningGuidance = await generatePlanningGuidance({
-    userId: user.id,
-    targetExamSummary: getTargetExamSummary(targetExams),
-    coherenceTitle: coherence.title,
-    coherenceHelper: coherence.helper,
-    weakPointLabels: weakPoints.map((point) => point.label),
-    recentEssayMistakes,
-    dueFlashcards,
-    completedSessions: sessions.filter((session) => session.status === "COMPLETED").length
-  });
-  const aiStatusMeta = getAIStatusMeta();
-
   return {
     hasProfile: true as const,
     week,
     todayPlan,
-    reasoning: planningGuidance.reasoning,
     adjustments: [
       {
         label: "Charge quotidienne cible",
@@ -1487,13 +1425,7 @@ export async function getStudentPlanningData() {
       dueLabel: task.dueAt
         ? task.dueAt.toLocaleDateString("fr-FR", { day: "numeric", month: "short" })
         : "sans date"
-    })),
-    aiStatus: {
-      isLive: aiStatusMeta.isLive,
-      title: planningGuidance.title || aiStatusMeta.title,
-      description: planningGuidance.description || aiStatusMeta.description,
-      nextStep: planningGuidance.nextStep || aiStatusMeta.nextStep
-    }
+    }))
   };
 }
 

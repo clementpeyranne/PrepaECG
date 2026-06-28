@@ -1001,17 +1001,6 @@ export async function generatePlanningGuidance(input: {
     return remote;
   }
 
-  await recordAIGeneration({
-    userId: input.userId,
-    featureName: "planning_guidance",
-    sourceEntityType: "Student",
-    sourceEntityId: input.userId,
-    modelName: "local-rules",
-    status: "COMPLETED",
-    inputSummary: JSON.stringify(input),
-    outputSummary: local.reasoning.join(" ")
-  });
-
   return local;
 }
 
@@ -1050,17 +1039,6 @@ export async function generateAssistantSnapshot(input: {
   if (remote) {
     return remote;
   }
-
-  await recordAIGeneration({
-    userId: input.userId,
-    featureName: "assistant_snapshot",
-    sourceEntityType: "Student",
-    sourceEntityId: input.userId,
-    modelName: "local-rules",
-    status: "COMPLETED",
-    inputSummary: JSON.stringify(input),
-    outputSummary: `${local.headline} ${local.summary}`
-  });
 
   return local;
 }
@@ -1101,17 +1079,6 @@ export async function generateNewsInsight(input: {
   if (remote) {
     return remote;
   }
-
-  await recordAIGeneration({
-    userId: input.userId,
-    featureName: "news_insight",
-    sourceEntityType: "NewsArticle",
-    sourceEntityId: input.articleUrl,
-    modelName: "local-rules",
-    status: "COMPLETED",
-    inputSummary: `${input.sourceName} - ${input.articleTitle}`,
-    outputSummary: `${local.summary} ${local.whyItMatters}`
-  });
 
   return local;
 }

@@ -1,5 +1,6 @@
 import { UserRole, type User } from "@prisma/client";
 import { randomBytes, scryptSync, timingSafeEqual, createHmac } from "node:crypto";
+import { cache } from "react";
 import { cookies } from "next/headers";
 
 import { isDemoModeEnabled } from "./app-config";
@@ -100,6 +101,12 @@ export async function signOut() {
   cookieStore.delete(AUTH_COOKIE_NAME);
 }
 
+const getUserById = cache(async (userId: string) => {
+  return prisma.user.findUnique({
+    where: { id: userId }
+  });
+});
+
 export async function getCurrentUser() {
   const cookieStore = await cookies();
   const token = cookieStore.get(AUTH_COOKIE_NAME)?.value;
@@ -114,9 +121,7 @@ export async function getCurrentUser() {
     return null;
   }
 
-  return prisma.user.findUnique({
-    where: { id: session.userId }
-  });
+  return getUserById(session.userId);
 }
 
 export async function requireCurrentUser() {
@@ -266,17 +271,25 @@ export async function getUserLandingPath(user: Pick<User, "role" | "id">) {
     return "/teacher/resources";
   }
 
-  const profile = await prisma.studentProfile.findUnique({
-    where: { userId: user.id }
-  });
+  const profile = await getStudentProfileByUserId(user.id);
 
   return profile ? "/dashboard" : "/onboarding";
 }
 
-export async function getCurrentUserClass(userId: string) {
+const getStudentProfileByUserId = cache(async (userId: string) => {
+  return prisma.studentProfile.findUnique({
+    where: { userId }
+  });
+});
+
+const getCurrentUserClassCached = cache(async (userId: string) => {
   return prisma.classMembership.findFirst({
     where: { userId },
     include: { class: true },
     orderBy: { createdAt: "asc" }
   });
+});
+
+export async function getCurrentUserClass(userId: string) {
+  return getCurrentUserClassCached(userId);
 }
