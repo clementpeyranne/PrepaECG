@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { loginAction } from "@/app/actions/auth";
+import { PublicFooterLinks } from "@/components/public/public-footer-links";
 import { getCurrentUser, getUserLandingPath } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -89,12 +90,20 @@ export default async function LoginPage({
               </button>
             </form>
 
+            <div className="mt-4">
+              <Link href="/forgot-password" className="text-sm font-semibold text-ink transition hover:text-pine">
+                Mot de passe oublie ?
+              </Link>
+            </div>
+
             <p className="mt-5 text-sm text-pine/76">
               Pas encore de compte ?{" "}
               <Link href="/signup" className="font-semibold text-ink transition hover:text-pine">
                 Creer un compte
               </Link>
             </p>
+
+            <PublicFooterLinks className="mt-5" />
           </section>
         </div>
       </div>

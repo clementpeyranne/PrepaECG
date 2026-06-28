@@ -2,6 +2,7 @@ import { prisma } from "./db";
 import {
   getAppMode,
   getFileStorageDriver,
+  getPasswordResetMode,
   getPublicAppUrl,
   getSupabaseServiceRoleKey,
   getSupabaseUrl,
@@ -53,10 +54,10 @@ function getStorageStatus(): RuntimeCheck {
   if (driver === "local") {
     return {
       label: "storage",
-      state: getAppMode() === "production" ? "warn" : "pass",
+      state: getAppMode() === "production" ? "fail" : "pass",
       detail:
         getAppMode() === "production"
-          ? "Stockage local actif. Un stockage cloud est recommande pour la production."
+          ? "Stockage local actif. Un stockage cloud est requis pour la production."
           : "Stockage local actif."
     };
   }
@@ -82,7 +83,7 @@ function getAppUrlStatus(): RuntimeCheck {
   if (!publicUrl || publicUrl.includes("localhost")) {
     return {
       label: "app_url",
-      state: getAppMode() === "production" ? "warn" : "pass",
+      state: getAppMode() === "production" ? "fail" : "pass",
       detail:
         getAppMode() === "production"
           ? "L'URL publique pointe encore vers localhost ou n'est pas finalisee."
@@ -90,10 +91,39 @@ function getAppUrlStatus(): RuntimeCheck {
     };
   }
 
+  if (getAppMode() === "production" && !publicUrl.startsWith("https://")) {
+    return {
+      label: "app_url",
+      state: "warn",
+      detail: "L'URL publique est definie mais n'utilise pas HTTPS."
+    };
+  }
+
   return {
     label: "app_url",
     state: "pass",
     detail: "URL publique configuree."
+  };
+}
+
+function getPasswordResetStatus(): RuntimeCheck {
+  const mode = getPasswordResetMode();
+
+  if (mode === "direct-link") {
+    return {
+      label: "password_reset",
+      state: getAppMode() === "production" ? "warn" : "pass",
+      detail:
+        getAppMode() === "production"
+          ? "Le mot de passe oublie utilise encore le mode lien direct prive."
+          : "Le mot de passe oublie fonctionne avec lien direct local."
+    };
+  }
+
+  return {
+    label: "password_reset",
+    state: "pass",
+    detail: "La reinitialisation de mot de passe est geree via le support."
   };
 }
 
@@ -116,7 +146,13 @@ function getAiStatus(): RuntimeCheck {
 }
 
 export async function getRuntimeStatus() {
-  const checks: RuntimeCheck[] = [getAuthSecretStatus(), getStorageStatus(), getAppUrlStatus(), getAiStatus()];
+  const checks: RuntimeCheck[] = [
+    getAuthSecretStatus(),
+    getStorageStatus(),
+    getAppUrlStatus(),
+    getPasswordResetStatus(),
+    getAiStatus()
+  ];
 
   try {
     await prisma.$queryRaw`SELECT 1`;

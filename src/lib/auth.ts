@@ -3,12 +3,13 @@ import { randomBytes, scryptSync, timingSafeEqual, createHmac } from "node:crypt
 import { cache } from "react";
 import { cookies } from "next/headers";
 
-import { isDemoModeEnabled } from "./app-config";
+import { getPasswordResetMode, getPublicAppUrl, isDemoModeEnabled } from "./app-config";
 import { prisma } from "./db";
 import { ensureReferenceData } from "./reference-data";
 
 const AUTH_COOKIE_NAME = "prepa_auth";
 const SESSION_DURATION_MS = 1000 * 60 * 60 * 24 * 14;
+const PASSWORD_RESET_DURATION_MS = 1000 * 60 * 60;
 
 function getAuthSecret() {
   const configuredSecret = process.env.AUTH_SECRET?.trim();
@@ -53,6 +54,14 @@ function createSessionToken(userId: string, expiresAt: number) {
   const payload = `${userId}.${expiresAt}`;
   const signature = createHmac("sha256", getAuthSecret()).update(payload).digest("hex");
   return `${payload}.${signature}`;
+}
+
+function hashPasswordResetToken(token: string) {
+  return createHmac("sha256", getAuthSecret()).update(`password-reset:${token}`).digest("hex");
+}
+
+function buildPasswordResetUrl(token: string) {
+  return `${getPublicAppUrl().replace(/\/+$/, "")}/reset-password?token=${encodeURIComponent(token)}`;
 }
 
 function parseSessionToken(token: string) {
@@ -263,6 +272,147 @@ export async function loginUser(input: { email: string; password: string }) {
   return {
     ok: true as const,
     user
+  };
+}
+
+export async function requestPasswordReset(emailInput: string) {
+  const email = normalizeEmail(emailInput);
+
+  if (!email) {
+    return {
+      ok: false as const,
+      message: "Merci d'indiquer ton email."
+    };
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email }
+  });
+
+  let resetLink: string | null = null;
+
+  if (user) {
+    const rawToken = randomBytes(32).toString("hex");
+    const tokenHash = hashPasswordResetToken(rawToken);
+    const expiresAt = new Date(Date.now() + PASSWORD_RESET_DURATION_MS);
+
+    await prisma.passwordResetToken.deleteMany({
+      where: { userId: user.id }
+    });
+
+    await prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        tokenHash,
+        expiresAt
+      }
+    });
+
+    if (getPasswordResetMode() === "direct-link") {
+      resetLink = buildPasswordResetUrl(rawToken);
+    }
+  }
+
+  return {
+    ok: true as const,
+    message:
+      getPasswordResetMode() === "direct-link"
+        ? "Si un compte existe, le lien de reinitialisation est pret ci-dessous."
+        : "Si un compte existe, la demande de reinitialisation a bien ete enregistree.",
+    resetLink
+  };
+}
+
+async function getPasswordResetTokenRecord(token: string) {
+  if (!token.trim()) {
+    return null;
+  }
+
+  return prisma.passwordResetToken.findUnique({
+    where: {
+      tokenHash: hashPasswordResetToken(token.trim())
+    },
+    include: {
+      user: true
+    }
+  });
+}
+
+export async function getPasswordResetTokenState(token: string) {
+  if (!token.trim()) {
+    return { status: "missing" as const };
+  }
+
+  const record = await getPasswordResetTokenRecord(token);
+
+  if (!record) {
+    return { status: "invalid" as const };
+  }
+
+  if (record.usedAt) {
+    return { status: "used" as const };
+  }
+
+  if (record.expiresAt.getTime() < Date.now()) {
+    return { status: "expired" as const };
+  }
+
+  return {
+    status: "valid" as const,
+    userId: record.userId
+  };
+}
+
+export async function resetPasswordFromToken(input: { token: string; password: string }) {
+  const password = input.password.trim();
+
+  if (password.length < 8) {
+    return {
+      ok: false as const,
+      message: "Le mot de passe doit contenir au moins 8 caracteres."
+    };
+  }
+
+  const tokenState = await getPasswordResetTokenState(input.token);
+  if (tokenState.status !== "valid") {
+    return {
+      ok: false as const,
+      message: "Le lien de reinitialisation n'est plus valide."
+    };
+  }
+
+  const record = await getPasswordResetTokenRecord(input.token);
+  if (!record) {
+    return {
+      ok: false as const,
+      message: "Le lien de reinitialisation n'est plus valide."
+    };
+  }
+
+  const passwordHash = hashPassword(password);
+
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: record.userId },
+      data: { passwordHash }
+    }),
+    prisma.passwordResetToken.update({
+      where: { id: record.id },
+      data: { usedAt: new Date() }
+    }),
+    prisma.passwordResetToken.deleteMany({
+      where: {
+        userId: record.userId,
+        id: { not: record.id }
+      }
+    })
+  ]);
+
+  await writeSessionCookie(record.userId);
+
+  return {
+    ok: true as const,
+    user: record.user
   };
 }
 

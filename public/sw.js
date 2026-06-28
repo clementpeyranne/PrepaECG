@@ -1,5 +1,19 @@
-const CACHE_NAME = "prepa-ecg-os-v1";
-const APP_SHELL = ["/", "/login", "/signup", "/dashboard", "/planning", "/flashcards", "/resources", "/assistant", "/progress", "/actualites"];
+const CACHE_NAME = "prepa-ecg-os-v2";
+const OFFLINE_URL = "/offline.html";
+const APP_SHELL = [
+  "/",
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/dashboard",
+  "/planning",
+  "/flashcards",
+  "/resources",
+  "/assistant",
+  "/progress",
+  "/actualites",
+  OFFLINE_URL
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -39,7 +53,7 @@ self.addEventListener("fetch", (event) => {
         })
         .catch(async () => {
           const cached = await caches.match(request);
-          return cached || caches.match("/");
+          return cached || caches.match(OFFLINE_URL) || caches.match("/");
         })
     );
     return;

@@ -110,6 +110,7 @@ model User {
   grades            StudentGrade[]
   flashcardShares   FlashcardShare[]
   newsSelections    NewsSelection[]
+  passwordResetTokens PasswordResetToken[]
 }
 
 model Class {
@@ -466,4 +467,16 @@ model NewsSelection {
   selectedAt   DateTime @default(now())
   expiresAt    DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

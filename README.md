@@ -137,7 +137,14 @@ APP_MODE="demo"
 DATABASE_URL="file:./dev.db"
 AUTH_SECRET="change-me-before-production"
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
+PASSWORD_RESET_MODE="direct-link"
 FILE_STORAGE_DRIVER="local"
+NEXT_PUBLIC_SUPPORT_EMAIL="support@a-renseigner.fr"
+NEXT_PUBLIC_LEGAL_NAME="Editeur a renseigner"
+NEXT_PUBLIC_LEGAL_ADDRESS="Adresse a renseigner"
+NEXT_PUBLIC_PUBLICATION_DIRECTOR="Responsable de publication a renseigner"
+NEXT_PUBLIC_HOSTING_NAME="Hebergeur a renseigner"
+NEXT_PUBLIC_HOSTING_ADDRESS="Adresse de l'hebergeur a renseigner"
 SUPABASE_URL=""
 SUPABASE_SERVICE_ROLE_KEY=""
 SUPABASE_STORAGE_BUCKET="prepa-files"
@@ -150,8 +157,10 @@ Principes :
 - `APP_MODE="production"` desactive ces automatismes de demonstration.
 - `AUTH_SECRET` doit etre personnalise avant toute mise en ligne.
 - `DATABASE_URL` devra pointer vers une base en ligne pour la vraie production.
+- `PASSWORD_RESET_MODE="support"` est prefere pour une ouverture publique propre.
 - `FILE_STORAGE_DRIVER="local"` convient au prototype, mais pas au deploiement final des fichiers.
 - `FILE_STORAGE_DRIVER="supabase"` est la direction retenue pour stocker les PDF et les photos en production.
+- `NEXT_PUBLIC_SUPPORT_EMAIL` et les champs legaux doivent etre completes avant ouverture publique.
 
 Un exemple de configuration de production est disponible dans [.env.production.example](/Users/clementpeyranne/Documents/Codex/2026-04-18-salut-je-viens-de-finir-classe/.env.production.example).
 
@@ -214,3 +223,4 @@ Les fichiers relies a cette installation sont :
 - [src/app/manifest.ts](/Users/clementpeyranne/Documents/Codex/2026-04-18-salut-je-viens-de-finir-classe/src/app/manifest.ts)
 - [public/sw.js](/Users/clementpeyranne/Documents/Codex/2026-04-18-salut-je-viens-de-finir-classe/public/sw.js)
 - [src/components/pwa/register-service-worker.tsx](/Users/clementpeyranne/Documents/Codex/2026-04-18-salut-je-viens-de-finir-classe/src/components/pwa/register-service-worker.tsx)
+- [src/components/pwa/install-app-prompt.tsx](/Users/clementpeyranne/Documents/Codex/2026-04-18-salut-je-viens-de-finir-classe/src/components/pwa/install-app-prompt.tsx)

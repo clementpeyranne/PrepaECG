@@ -10,6 +10,8 @@ const databaseUrl = (env.DATABASE_URL || "").trim();
 const directUrl = (env.DIRECT_URL || "").trim();
 const authSecret = (env.AUTH_SECRET || "").trim();
 const appUrl = (env.NEXT_PUBLIC_APP_URL || "").trim();
+const passwordResetMode = (env.PASSWORD_RESET_MODE || "support").trim().toLowerCase();
+const supportEmail = (env.NEXT_PUBLIC_SUPPORT_EMAIL || "").trim();
 const fileStorageDriver = (env.FILE_STORAGE_DRIVER || "local").trim().toLowerCase();
 const supabaseUrl = (env.SUPABASE_URL || "").trim();
 const supabaseServiceRoleKey = (env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
@@ -51,16 +53,28 @@ if (!authSecret || authSecret === "dev-prepa-ecg-os-secret-change-me") {
 }
 
 if (!appUrl) {
-  warnings.push("NEXT_PUBLIC_APP_URL n'est pas defini. Il faudra indiquer l'URL publique du site.");
+  errors.push("NEXT_PUBLIC_APP_URL n'est pas defini.");
 } else if (appUrl.includes("localhost")) {
-  warnings.push("NEXT_PUBLIC_APP_URL pointe encore vers localhost.");
+  errors.push("NEXT_PUBLIC_APP_URL pointe encore vers localhost.");
 } else if (appUrl.includes("ton-domaine.fr")) {
   warnings.push("NEXT_PUBLIC_APP_URL contient encore le domaine d'exemple.");
+} else if (!appUrl.startsWith("https://")) {
+  warnings.push("NEXT_PUBLIC_APP_URL devrait idealement utiliser HTTPS.");
 }
 
 if (fileStorageDriver === "local") {
+  errors.push(
+    "FILE_STORAGE_DRIVER est encore sur local. Pour un vrai deploiement, il faut un stockage cloud pour les PDF et photos."
+  );
+}
+
+if (!supportEmail) {
+  warnings.push("NEXT_PUBLIC_SUPPORT_EMAIL n'est pas defini.");
+}
+
+if (passwordResetMode === "direct-link") {
   warnings.push(
-    "FILE_STORAGE_DRIVER est encore sur local. Pour un vrai deploiement, il faudra brancher un stockage cloud pour les PDF et photos."
+    "PASSWORD_RESET_MODE est sur direct-link. C'est pratique pour une beta privee, mais moins adapte a une ouverture publique."
   );
 }
 

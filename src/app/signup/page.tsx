@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { signupAction } from "@/app/actions/auth";
+import { PublicFooterLinks } from "@/components/public/public-footer-links";
 import { isDemoModeEnabled } from "@/lib/app-config";
 import { getCurrentUser, getUserLandingPath } from "@/lib/auth";
 import { DEFAULT_CLASS_ACCESS_CODE } from "@/lib/reference-data";
@@ -108,6 +109,18 @@ export default async function SignupPage({
               >
                 Creer mon compte
               </button>
+
+              <p className="text-xs leading-6 text-pine/68">
+                En creant un compte, tu acceptes les{" "}
+                <Link href="/cgu" className="font-semibold text-ink transition hover:text-pine">
+                  CGU
+                </Link>{" "}
+                et la{" "}
+                <Link href="/confidentialite" className="font-semibold text-ink transition hover:text-pine">
+                  politique de confidentialite
+                </Link>
+                .
+              </p>
             </form>
 
             <p className="mt-5 text-sm text-pine/76">
@@ -116,6 +129,8 @@ export default async function SignupPage({
                 Se connecter
               </Link>
             </p>
+
+            <PublicFooterLinks className="mt-5" />
           </section>
 
           <section className="rounded-[36px] bg-ink p-8 text-sand shadow-panel lg:p-10">

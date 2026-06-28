@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { continueAsCurrentUserAction } from "@/app/actions/auth";
+import { PublicFooterLinks } from "@/components/public/public-footer-links";
 import { getCurrentUser } from "@/lib/auth";
 
 const pillars = [
@@ -87,6 +88,14 @@ export default async function HomePage() {
             </article>
           ))}
         </section>
+
+        <footer className="mt-6 flex flex-col gap-3 rounded-[24px] bg-white/70 px-5 py-4 shadow-panel">
+          <PublicFooterLinks />
+          <p className="text-sm text-pine/72">
+            Une plateforme unique pour organiser le travail, memoriser et progresser sans se
+            disperser.
+          </p>
+        </footer>
       </div>
     </main>
   );
