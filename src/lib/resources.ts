@@ -1,4 +1,5 @@
 import { DeckOrigin, ResourceType, UserRole } from "@prisma/client";
+import { cache } from "react";
 
 import { isDemoModeEnabled } from "./app-config";
 import { getCurrentUserClass, requireRole } from "./auth";
@@ -328,7 +329,7 @@ function formatOutputContent(type: OutputType, payload: Record<string, unknown>)
   return items;
 }
 
-export async function ensureDemoResources() {
+export const ensureDemoResources = cache(async () => {
   const { prepClass } = await ensureReferenceData();
   const subjects = await prisma.subject.findMany();
   const subjectMap = new Map(subjects.map((subject) => [subject.code, subject]));
@@ -455,7 +456,7 @@ export async function ensureDemoResources() {
       }
     });
   }
-}
+});
 
 export async function getResourcesOverviewData(): Promise<ResourcesOverviewData> {
   await ensureDemoResources();
@@ -468,11 +469,34 @@ export async function getResourcesOverviewData(): Promise<ResourcesOverviewData>
           OR: [{ classId: membership.classId }, { classId: null }]
         }
       : undefined,
-    include: {
-      uploader: true,
-      subject: true,
-      chapter: true,
-      aiOutputs: true
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      storageKey: true,
+      resourceType: true,
+      isAiActionsEnabled: true,
+      uploader: {
+        select: {
+          firstName: true,
+          lastName: true
+        }
+      },
+      subject: {
+        select: {
+          name: true
+        }
+      },
+      chapter: {
+        select: {
+          name: true
+        }
+      },
+      _count: {
+        select: {
+          aiOutputs: true
+        }
+      }
     },
     orderBy: { createdAt: "desc" }
   });
@@ -486,7 +510,7 @@ export async function getResourcesOverviewData(): Promise<ResourcesOverviewData>
     teacher: getTeacherName(resource.uploader.firstName, resource.uploader.lastName),
     summary: resource.description || getSummaryExcerpt(resource.storageKey),
     aiEnabled: resource.isAiActionsEnabled,
-    generatedOutputs: resource.aiOutputs.length
+    generatedOutputs: resource._count.aiOutputs
   }));
 
   return {
@@ -514,9 +538,23 @@ export async function getTeacherResourcesData(): Promise<TeacherResourcesData> {
             }
           : {})
       },
-      include: {
-        subject: true,
-        chapter: true
+      select: {
+        id: true,
+        title: true,
+        resourceType: true,
+        createdAt: true,
+        isAiActionsEnabled: true,
+        sourceKind: true,
+        subject: {
+          select: {
+            name: true
+          }
+        },
+        chapter: {
+          select: {
+            name: true
+          }
+        }
       },
       orderBy: { createdAt: "desc" }
     }),

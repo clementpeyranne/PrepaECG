@@ -5,6 +5,7 @@ import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { cache } from "react";
 import { promisify } from "node:util";
 
 import { isDemoModeEnabled } from "./app-config";
@@ -1461,7 +1462,7 @@ async function readApkgAsExportPayload(
   }
 }
 
-export async function ensureDemoFlashcards() {
+export const ensureDemoFlashcards = cache(async () => {
   const { user, prepClass } = await ensureDemoStudent();
   if (!isDemoModeEnabled()) {
     return { user, prepClass };
@@ -1564,7 +1565,7 @@ export async function ensureDemoFlashcards() {
   }
 
   return { user, prepClass };
-}
+});
 
 export async function getFlashcardExportPayload(deckId: string) {
   const { user } = await ensureDemoFlashcards();
@@ -1769,39 +1770,143 @@ export async function getFlashcardsOverviewData(): Promise<FlashcardsOverviewDat
   const { user } = await ensureDemoFlashcards();
   const now = new Date();
 
-  const decks = await prisma.flashcardDeck.findMany({
-    where: { ownerUserId: user.id },
-    include: {
-      subject: true,
-      chapter: true,
-      flashcards: {
-        include: {
-          states: {
-            where: { userId: user.id }
-          },
-          reviews: {
-            where: { userId: user.id },
-            orderBy: { reviewedAt: "desc" },
-            take: 12
+  const [decks, allCards, reviews, subjectsForForms, recentShares] = await Promise.all([
+    prisma.flashcardDeck.findMany({
+      where: { ownerUserId: user.id },
+      select: {
+        id: true,
+        title: true,
+        parentDeckId: true,
+        subject: {
+          select: {
+            name: true
           }
         },
-        orderBy: { position: "asc" }
+        chapter: {
+          select: {
+            name: true
+          }
+        }
+      },
+      orderBy: { createdAt: "asc" }
+    }),
+    prisma.flashcard.findMany({
+      where: {
+        deck: {
+          ownerUserId: user.id
+        }
+      },
+      select: {
+        id: true,
+        deckId: true,
+        position: true,
+        frontText: true,
+        backText: true,
+        deck: {
+          select: {
+            id: true,
+            title: true,
+            subject: {
+              select: {
+                name: true
+              }
+            }
+          }
+        },
+        states: {
+          where: { userId: user.id },
+          select: {
+            status: true,
+            nextReviewAt: true
+          }
+        }
+      },
+      orderBy: [{ deck: { title: "asc" } }, { position: "asc" }]
+    }),
+    prisma.flashcardReview.findMany({
+      where: {
+        userId: user.id,
+        flashcard: {
+          deck: {
+            ownerUserId: user.id
+          }
+        }
+      },
+      select: {
+        flashcardId: true,
+        rating: true
       }
-    },
-    orderBy: { createdAt: "asc" }
-  });
+    }),
+    prisma.subject.findMany({
+      orderBy: { name: "asc" }
+    }),
+    prisma.flashcardShare.findMany({
+      where: {
+        ownerUserId: user.id
+      },
+      orderBy: {
+        createdAt: "desc"
+      },
+      take: 6
+    })
+  ]);
+
+  const reviewStatsByCardId = reviews.reduce((map, review) => {
+    const current = map.get(review.flashcardId) ?? {
+      totalReviews: 0,
+      successfulReviews: 0
+    };
+
+    current.totalReviews += 1;
+    if (review.rating !== FlashcardRating.AGAIN) {
+      current.successfulReviews += 1;
+    }
+
+    map.set(review.flashcardId, current);
+    return map;
+  }, new Map<string, { totalReviews: number; successfulReviews: number }>());
+
+  const deckStatsById = decks.reduce((map, deck) => {
+    map.set(deck.id, {
+      due: 0,
+      newCards: 0,
+      total: 0,
+      totalReviews: 0,
+      successfulReviews: 0
+    });
+    return map;
+  }, new Map<string, { due: number; newCards: number; total: number; totalReviews: number; successfulReviews: number }>());
+
+  for (const card of allCards) {
+    const deckStats = deckStatsById.get(card.deckId);
+    if (!deckStats) {
+      continue;
+    }
+
+    const state = card.states[0];
+    const reviewStats = reviewStatsByCardId.get(card.id);
+
+    deckStats.total += 1;
+    if (!state || state.status === FlashcardStatus.NEW) {
+      deckStats.newCards += 1;
+    }
+    if (!state?.nextReviewAt || state.nextReviewAt <= now) {
+      deckStats.due += 1;
+    }
+    if (reviewStats) {
+      deckStats.totalReviews += reviewStats.totalReviews;
+      deckStats.successfulReviews += reviewStats.successfulReviews;
+    }
+  }
 
   const deckSummaries = decks.map((deck) => {
-    const due = deck.flashcards.filter((card) => {
-      const state = card.states[0];
-      return !state?.nextReviewAt || state.nextReviewAt <= now;
-    }).length;
-    const newCards = deck.flashcards.filter((card) => {
-      const state = card.states[0];
-      return !state || state.status === FlashcardStatus.NEW;
-    }).length;
-    const reviews = deck.flashcards.flatMap((card) => card.reviews);
-    const successfulReviews = reviews.filter((review) => review.rating !== FlashcardRating.AGAIN).length;
+    const stats = deckStatsById.get(deck.id) ?? {
+      due: 0,
+      newCards: 0,
+      total: 0,
+      totalReviews: 0,
+      successfulReviews: 0
+    };
 
     return {
       id: deck.id,
@@ -1809,11 +1914,11 @@ export async function getFlashcardsOverviewData(): Promise<FlashcardsOverviewDat
       subject: deck.subject.name,
       chapter: deck.chapter?.name ?? "Sans chapitre",
       parentDeckId: deck.parentDeckId,
-      due,
-      newCards,
-      total: deck.flashcards.length,
-      totalReviews: reviews.length,
-      successfulReviews
+      due: stats.due,
+      newCards: stats.newCards,
+      total: stats.total,
+      totalReviews: stats.totalReviews,
+      successfulReviews: stats.successfulReviews
     };
   });
   const deckSummariesById = new Map(deckSummaries.map((deck) => [deck.id, deck]));
@@ -1916,28 +2021,9 @@ export async function getFlashcardsOverviewData(): Promise<FlashcardsOverviewDat
     }))
     .sort((left, right) => left.subject.localeCompare(right.subject, "fr"));
 
-  const allCards = await prisma.flashcard.findMany({
-    where: {
-      deck: {
-        ownerUserId: user.id
-      }
-    },
-    include: {
-      deck: {
-        include: {
-          subject: true
-        }
-      },
-      states: {
-        where: { userId: user.id }
-      }
-    },
-    orderBy: [{ deck: { title: "asc" } }, { position: "asc" }]
-  });
-
   const browserCards = allCards
     .map((card) => {
-    const state = card.states[0];
+      const state = card.states[0];
       const deckPath = getDeckPath(card.deckId) || card.deck.title;
 
       return {
@@ -1975,20 +2061,6 @@ export async function getFlashcardsOverviewData(): Promise<FlashcardsOverviewDat
   const activeLeafDecks = leafDeckSummaries.filter((deck) => deck.total > 0);
   const totalDue = activeLeafDecks.reduce((sum, deck) => sum + deck.due, 0);
   const stableDecks = activeLeafDecks.filter((deck) => deck.retention >= 75).length;
-
-  const subjectsForForms = await prisma.subject.findMany({
-    orderBy: { name: "asc" }
-  });
-
-  const recentShares = await prisma.flashcardShare.findMany({
-    where: {
-      ownerUserId: user.id
-    },
-    orderBy: {
-      createdAt: "desc"
-    },
-    take: 6
-  });
 
   return {
     subjectGroups,

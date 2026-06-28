@@ -1779,7 +1779,7 @@ export async function getStudentAssistantData() {
   const { user } = await ensureDemoStudent();
   const membership = await getCurrentUserClass(user.id);
 
-  const [weakPoints, latestEssay, latestResource, flashcards] = await Promise.all([
+  const [weakPoints, latestEssay, latestResource, dueStatesCount, neverReviewedCount] = await Promise.all([
     prisma.weakPoint.findMany({
       where: { studentId: user.id },
       orderBy: { severityScore: "desc" },
@@ -1797,24 +1797,29 @@ export async function getStudentAssistantData() {
         : undefined,
       orderBy: { createdAt: "desc" }
     }),
-    prisma.flashcard.findMany({
+    prisma.flashcardState.count({
+      where: {
+        userId: user.id,
+        nextReviewAt: {
+          lte: new Date()
+        }
+      }
+    }),
+    prisma.flashcard.count({
       where: {
         deck: {
           ownerUserId: user.id
-        }
-      },
-      include: {
+        },
         states: {
-          where: { userId: user.id }
+          none: {
+            userId: user.id
+          }
         }
       }
     })
   ]);
 
-  const dueFlashcards = flashcards.filter((card) => {
-    const state = card.states[0];
-    return !state?.nextReviewAt || state.nextReviewAt <= new Date();
-  }).length;
+  const dueFlashcards = dueStatesCount + neverReviewedCount;
   const snapshot = await generateAssistantSnapshot({
     userId: user.id,
     weakPointLabels: weakPoints.map((point) => point.label),

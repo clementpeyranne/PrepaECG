@@ -47,13 +47,29 @@ export async function getAssistantWorkspaceData(): Promise<AssistantWorkspaceDat
         : undefined,
       orderBy: { createdAt: "desc" },
       take: 20,
-      include: { subject: true }
+      select: {
+        id: true,
+        title: true,
+        subject: {
+          select: {
+            name: true
+          }
+        }
+      }
     }),
     prisma.essay.findMany({
       where: { studentId: user.id },
       orderBy: { createdAt: "desc" },
       take: 20,
-      include: { subject: true }
+      select: {
+        id: true,
+        title: true,
+        subject: {
+          select: {
+            name: true
+          }
+        }
+      }
     })
   ]);
 
@@ -84,7 +100,7 @@ export async function askStudentAssistant(input: {
   const { user } = await ensureDemoStudent();
   const membership = await getCurrentUserClass(user.id);
 
-  const [resource, essay, essayFeedback, weakPoints, flashcards] = await Promise.all([
+  const [resource, essay, essayFeedback, weakPoints, dueStatesCount, neverReviewedCount] = await Promise.all([
     input.resourceId
       ? prisma.resource.findFirst({
           where: {
@@ -123,29 +139,36 @@ export async function askStudentAssistant(input: {
       orderBy: { severityScore: "desc" },
       take: 4
     }),
-    prisma.flashcard.findMany({
+    prisma.flashcardState.count({
+      where: {
+        userId: user.id,
+        nextReviewAt: {
+          lte: new Date()
+        }
+      }
+    }),
+    prisma.flashcard.count({
       where: {
         deck: {
           ownerUserId: user.id
-        }
-      },
-      include: {
+        },
         states: {
-          where: { userId: user.id }
+          none: {
+            userId: user.id
+          }
         }
       }
     })
   ]);
+
+  const dueFlashcards = dueStatesCount + neverReviewedCount;
 
   const reply = await generateAssistantReply({
     userId: user.id,
     prompt: input.prompt,
     history: input.history ?? [],
     weakPointLabels: weakPoints.map((point) => point.label),
-    dueFlashcards: flashcards.filter((card) => {
-      const state = card.states[0];
-      return !state?.nextReviewAt || state.nextReviewAt <= new Date();
-    }).length,
+    dueFlashcards,
     selectedResourceTitle: resource?.title,
     selectedResourceContent: resource?.storageKey,
     selectedEssayTitle: essay?.title,
