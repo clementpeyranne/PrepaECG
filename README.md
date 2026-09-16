@@ -157,10 +157,15 @@ Principes :
 - `APP_MODE="production"` desactive ces automatismes de demonstration.
 - `AUTH_SECRET` doit etre personnalise avant toute mise en ligne.
 - `DATABASE_URL` devra pointer vers une base en ligne pour la vraie production.
-- `PASSWORD_RESET_MODE="support"` est prefere pour une ouverture publique propre.
+- `PASSWORD_RESET_MODE="direct-link"` ne fonctionne qu'en demonstration sous `npm run dev`, hors Vercel. Il ne doit jamais etre utilise pour des comptes reels.
+- La reinitialisation par email n'est pas encore implementee. Le mode `support` ne cree ni demande ni email ; la page indique cette indisponibilite et affiche le contact configure.
 - `FILE_STORAGE_DRIVER="local"` convient au prototype, mais pas au deploiement final des fichiers.
 - `FILE_STORAGE_DRIVER="supabase"` est la direction retenue pour stocker les PDF et les photos en production.
 - `NEXT_PUBLIC_SUPPORT_EMAIL` et les champs legaux doivent etre completes avant ouverture publique.
+
+Securite des comptes : `npm run test:security` couvre les sessions, les liens de recuperation et le cache hors connexion avec des services simules. Un test de bout en bout avec PostgreSQL et le navigateur reste necessaire. Les sessions sont liees au mot de passe : changer celui-ci invalide les anciennes connexions. Le passage aux cookies v2 exige une reconnexion des comptes existants, sans modifier leurs donnees.
+
+L'application installable ne conserve plus les pages privees en cache hors connexion. Elle affiche uniquement une page publique d'indisponibilite quand le reseau est coupe ; l'ancien cache est efface a l'activation du nouveau service worker.
 
 Un exemple de configuration de production est disponible dans [.env.production.example](/Users/clementpeyranne/Documents/Codex/2026-04-18-salut-je-viens-de-finir-classe/.env.production.example).
 

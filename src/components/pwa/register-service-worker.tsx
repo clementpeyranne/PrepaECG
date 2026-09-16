@@ -8,7 +8,7 @@ export function RegisterServiceWorker() {
       return;
     }
 
-    navigator.serviceWorker.register("/sw.js").catch(() => {
+    navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" }).catch(() => {
       // Ignore registration failures and keep the web app usable.
     });
   }, []);

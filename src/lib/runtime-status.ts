@@ -123,18 +123,15 @@ function getPasswordResetStatus(): RuntimeCheck {
   if (mode === "direct-link") {
     return {
       label: "password_reset",
-      state: getAppMode() === "production" ? "warn" : "pass",
-      detail:
-        getAppMode() === "production"
-          ? "Le mot de passe oublie utilise encore le mode lien direct prive."
-          : "Le mot de passe oublie fonctionne avec lien direct local."
+      state: "pass",
+      detail: "Reinitialisation de demonstration locale uniquement, sans envoi d'email."
     };
   }
 
   return {
     label: "password_reset",
-    state: "pass",
-    detail: "La reinitialisation de mot de passe est geree via le support."
+    state: "warn",
+    detail: "La reinitialisation par email n'est pas encore configuree."
   };
 }
 
@@ -172,11 +169,11 @@ export async function getRuntimeStatus() {
       state: "pass",
       detail: "Connexion base de donnees operationnelle."
     });
-  } catch (error) {
+  } catch {
     checks.unshift({
       label: "database",
       state: "fail",
-      detail: error instanceof Error ? error.message : "Connexion base de donnees impossible."
+      detail: "Connexion base de donnees impossible. Consulter les journaux du serveur."
     });
   }
 

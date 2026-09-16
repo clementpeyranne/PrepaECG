@@ -3,10 +3,11 @@ import { redirect } from "next/navigation";
 
 import { forgotPasswordAction } from "@/app/actions/auth";
 import { PublicFooterLinks } from "@/components/public/public-footer-links";
-import { getPasswordResetMode, isDemoModeEnabled } from "@/lib/app-config";
+import { getPasswordResetMode } from "@/lib/app-config";
 import { getCurrentUser, getUserLandingPath } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
+export const metadata = { robots: { index: false, follow: false }, referrer: "no-referrer" as const };
 
 export default async function ForgotPasswordPage({
   searchParams
@@ -21,9 +22,15 @@ export default async function ForgotPasswordPage({
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const message =
     typeof resolvedSearchParams.message === "string" ? resolvedSearchParams.message : null;
-  const resetLink =
-    typeof resolvedSearchParams.resetLink === "string" ? resolvedSearchParams.resetLink : null;
   const resetMode = getPasswordResetMode();
+  const resetToken = resolvedSearchParams.resetToken;
+  const resetLink = resetMode === "direct-link" && typeof resetToken === "string" && /^[a-f0-9]{64}$/.test(resetToken)
+    ? `/reset-password?token=${resetToken}`
+    : null;
+  const configuredEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL?.trim() ?? "";
+  const supportEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(configuredEmail) && !configuredEmail.includes("a-renseigner")
+    ? configuredEmail
+    : null;
 
   return (
     <main className="bg-app-gradient">
@@ -35,13 +42,15 @@ export default async function ForgotPasswordPage({
               Recuperer l'acces a ton compte.
             </h1>
             <p className="mt-6 max-w-2xl text-base leading-8 text-sand/78">
-              Entre ton email pour lancer la reinitialisation du mot de passe.
+              {resetMode === "direct-link"
+                ? "Entre ton email pour reinitialiser ton compte de demonstration."
+                : "La reinitialisation automatique par email n'est pas encore disponible."}
             </p>
 
             <div className="mt-10 rounded-[24px] bg-sand/8 p-5 text-sm leading-7 text-sand/82">
-              {resetMode === "direct-link" || isDemoModeEnabled()
-                ? "Un lien de reinitialisation pourra etre ouvert directement depuis cette page."
-                : "En phase publique, le lien pourra ensuite etre envoye par email ou gere par le support."}
+              {resetMode === "direct-link"
+                ? "Ce lien est reserve aux essais en local, sans envoi d'email."
+                : "Ne communique jamais ton mot de passe, meme au support."}
             </div>
           </section>
 
@@ -55,12 +64,14 @@ export default async function ForgotPasswordPage({
               </div>
             ) : null}
 
-            <form action={forgotPasswordAction} className="mt-6 space-y-4">
+            {resetMode === "direct-link" ? <form action={forgotPasswordAction} className="mt-6 space-y-4">
               <label className="block">
                 <span className="mb-2 block text-sm font-medium text-pine/80">Email</span>
                 <input
                   type="email"
                   name="email"
+                  required
+                  autoComplete="email"
                   placeholder="toi@exemple.fr"
                   className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm outline-none transition focus:border-pine"
                 />
@@ -72,7 +83,14 @@ export default async function ForgotPasswordPage({
               >
                 Generer un lien
               </button>
-            </form>
+            </form> : (
+              <p className="mt-6 text-sm leading-7 text-pine/80">
+                {supportEmail ? <>
+                  Pour obtenir de l'aide, contacte <a className="font-semibold underline" href={`mailto:${encodeURIComponent(supportEmail)}`}>{supportEmail}</a>.
+                </> : "Contacte le responsable de la plateforme pour obtenir de l'aide."}
+                {" "}Aucun email de reinitialisation n'a ete envoye depuis cette page.
+              </p>
+            )}
 
             {resetLink ? (
               <div className="mt-5 rounded-[20px] border border-pine/15 bg-pine/8 px-4 py-4 text-sm text-pine">

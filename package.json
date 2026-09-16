@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "test:security": "node --test tests/security.test.mjs",
     "dev": "next dev",
     "build": "node scripts/prepare-build.mjs && next build",
     "start": "next start",

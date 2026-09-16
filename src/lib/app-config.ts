@@ -69,12 +69,9 @@ export function getPublicAppUrl() {
 
 export function getPasswordResetMode(): PasswordResetMode {
   const configured = normalize(process.env.PASSWORD_RESET_MODE);
-
-  if (configured === "direct-link") {
-    return "direct-link";
-  }
-
-  return isDemoModeEnabled() ? "direct-link" : "support";
+  // A publicly displayed recovery link would allow anyone to take over an account.
+  const localDemo = process.env.NODE_ENV === "development" && !process.env.VERCEL && isDemoModeEnabled();
+  return localDemo && configured !== "support" ? "direct-link" : "support";
 }
 
 export function getSupabaseUrl() {

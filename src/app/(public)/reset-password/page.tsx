@@ -6,6 +6,7 @@ import { PublicFooterLinks } from "@/components/public/public-footer-links";
 import { getCurrentUser, getPasswordResetTokenState, getUserLandingPath } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
+export const metadata = { robots: { index: false, follow: false }, referrer: "no-referrer" as const };
 
 const stateMessages: Record<string, string> = {
   missing: "Le lien de reinitialisation est incomplet.",

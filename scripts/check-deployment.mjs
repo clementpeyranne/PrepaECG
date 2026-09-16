@@ -86,9 +86,10 @@ if (!supportEmail) {
 
 if (passwordResetMode === "direct-link") {
   warnings.push(
-    "PASSWORD_RESET_MODE est sur direct-link. C'est pratique pour une beta privee, mais moins adapte a une ouverture publique."
+    "PASSWORD_RESET_MODE=direct-link est ignore en production : un lien de recuperation ne doit jamais etre affiche publiquement."
   );
 }
+warnings.push("L'envoi d'emails de reinitialisation n'est pas implemente. Le mode support ne transmet aucune demande.");
 
 if (fileStorageDriver === "supabase") {
   if (!supabaseUrl) {
@@ -113,14 +114,14 @@ warnings.push(
 );
 
 warnings.push(
-  "Apres deploiement, verifie aussi le point de sante `/api/health` pour confirmer la base, l'authentification et le stockage."
+  "Apres deploiement, verifie `/api/health`, puis teste les comptes et les depots : le controle de configuration ne teste pas ces parcours."
 );
 
 console.log("Verification de deploiement");
 console.log("---------------------------");
 
 if (errors.length === 0) {
-  console.log("Aucun blocage critique detecte.");
+  console.log("Configuration controlee sans erreur bloquante. Ceci ne valide pas les parcours utilisateurs ni l'ouverture publique.");
 } else {
   console.log("Blocages critiques :");
   for (const error of errors) {

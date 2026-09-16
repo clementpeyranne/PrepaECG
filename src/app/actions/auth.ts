@@ -98,7 +98,7 @@ export async function forgotPasswordAction(formData: FormData) {
 
   redirectWithParams("/forgot-password", {
     message: result.message,
-    resetLink: result.resetLink ?? undefined
+    resetToken: result.resetToken ?? undefined
   });
 }
 

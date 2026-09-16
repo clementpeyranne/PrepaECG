@@ -3,7 +3,7 @@ import { randomBytes, scryptSync, timingSafeEqual, createHmac } from "node:crypt
 import { cache } from "react";
 import { cookies } from "next/headers";
 
-import { getPasswordResetMode, getPublicAppUrl, isDemoModeEnabled } from "./app-config";
+import { getPasswordResetMode, isDemoModeEnabled } from "./app-config";
 import { prisma } from "./db";
 import { ensureReferenceData } from "./reference-data";
 
@@ -50,9 +50,12 @@ function verifyPassword(password: string, passwordHash: string) {
   return timingSafeEqual(stored, derived);
 }
 
-function createSessionToken(userId: string, expiresAt: number) {
-  const payload = `${userId}.${expiresAt}`;
-  const signature = createHmac("sha256", getAuthSecret()).update(payload).digest("hex");
+function createSessionToken(user: Pick<User, "id" | "passwordHash">, expiresAt: number) {
+  const payload = `v2.${user.id}.${expiresAt}`;
+  // Password changes invalidate existing sessions without storing credentials in the cookie.
+  const signature = createHmac("sha256", getAuthSecret())
+    .update(`${payload}\0${user.passwordHash ?? ""}`)
+    .digest("hex");
   return `${payload}.${signature}`;
 }
 
@@ -60,29 +63,19 @@ function hashPasswordResetToken(token: string) {
   return createHmac("sha256", getAuthSecret()).update(`password-reset:${token}`).digest("hex");
 }
 
-function buildPasswordResetUrl(token: string) {
-  return `${getPublicAppUrl().replace(/\/+$/, "")}/reset-password?token=${encodeURIComponent(token)}`;
-}
-
 function parseSessionToken(token: string) {
-  const [userId, expiresAtRaw, signature] = token.split(".");
-  if (!userId || !expiresAtRaw || !signature) {
-    return null;
-  }
-
-  const payload = `${userId}.${expiresAtRaw}`;
-  const expectedSignature = createHmac("sha256", getAuthSecret()).update(payload).digest("hex");
-
-  if (signature.length !== expectedSignature.length) {
-    return null;
-  }
-
-  if (!timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
+  const parts = token.split(".");
+  const [version, userId, expiresAtRaw, signature] = parts;
+  if (
+    parts.length !== 4 || version !== "v2" ||
+    !/^[A-Za-z0-9_-]{1,128}$/.test(userId ?? "") ||
+    !/^\d{1,16}$/.test(expiresAtRaw ?? "") || !/^[a-f0-9]{64}$/.test(signature ?? "")
+  ) {
     return null;
   }
 
   const expiresAt = Number(expiresAtRaw);
-  if (!Number.isFinite(expiresAt) || expiresAt < Date.now()) {
+  if (!Number.isSafeInteger(expiresAt) || expiresAt <= Date.now()) {
     return null;
   }
 
@@ -92,11 +85,11 @@ function parseSessionToken(token: string) {
   };
 }
 
-async function writeSessionCookie(userId: string) {
+async function writeSessionCookie(user: Pick<User, "id" | "passwordHash">) {
   const expiresAt = Date.now() + SESSION_DURATION_MS;
   const cookieStore = await cookies();
 
-  cookieStore.set(AUTH_COOKIE_NAME, createSessionToken(userId, expiresAt), {
+  cookieStore.set(AUTH_COOKIE_NAME, createSessionToken(user, expiresAt), {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
@@ -126,11 +119,19 @@ export async function getCurrentUser() {
 
   const session = parseSessionToken(token);
   if (!session) {
-    cookieStore.delete(AUTH_COOKIE_NAME);
+    // Rendering a Server Component may read cookies, but must not mutate them.
     return null;
   }
 
-  return getUserById(session.userId);
+  const user = await getUserById(session.userId);
+  if (!user) {
+    return null;
+  }
+
+  const expected = createSessionToken(user, session.expiresAt);
+  return token.length === expected.length && timingSafeEqual(Buffer.from(token), Buffer.from(expected))
+    ? user
+    : null;
 }
 
 export async function requireCurrentUser() {
@@ -237,7 +238,7 @@ export async function registerUser(input: {
     }
   });
 
-  await writeSessionCookie(user.id);
+  await writeSessionCookie(user);
 
   return {
     ok: true as const,
@@ -267,7 +268,7 @@ export async function loginUser(input: { email: string; password: string }) {
     };
   }
 
-  await writeSessionCookie(user.id);
+  await writeSessionCookie(user);
 
   return {
     ok: true as const,
@@ -276,6 +277,13 @@ export async function loginUser(input: { email: string; password: string }) {
 }
 
 export async function requestPasswordReset(emailInput: string) {
+  if (getPasswordResetMode() !== "direct-link") {
+    return {
+      ok: false as const,
+      message: "La reinitialisation par email n'est pas encore disponible. Aucune demande n'a ete envoyee."
+    };
+  }
+
   const email = normalizeEmail(emailInput);
 
   if (!email) {
@@ -289,7 +297,7 @@ export async function requestPasswordReset(emailInput: string) {
     where: { email }
   });
 
-  let resetLink: string | null = null;
+  let resetToken: string | null = null;
 
   if (user) {
     const rawToken = randomBytes(32).toString("hex");
@@ -308,23 +316,18 @@ export async function requestPasswordReset(emailInput: string) {
       }
     });
 
-    if (getPasswordResetMode() === "direct-link") {
-      resetLink = buildPasswordResetUrl(rawToken);
-    }
+    resetToken = rawToken;
   }
 
   return {
     ok: true as const,
-    message:
-      getPasswordResetMode() === "direct-link"
-        ? "Si un compte existe, le lien de reinitialisation est pret ci-dessous."
-        : "Si un compte existe, la demande de reinitialisation a bien ete enregistree.",
-    resetLink
+    message: "Si un compte existe, le lien de reinitialisation est pret ci-dessous.",
+    resetToken
   };
 }
 
 async function getPasswordResetTokenRecord(token: string) {
-  if (!token.trim()) {
+  if (!/^[a-f0-9]{64}$/.test(token.trim())) {
     return null;
   }
 
@@ -353,7 +356,7 @@ export async function getPasswordResetTokenState(token: string) {
     return { status: "used" as const };
   }
 
-  if (record.expiresAt.getTime() < Date.now()) {
+  if (record.expiresAt.getTime() <= Date.now()) {
     return { status: "expired" as const };
   }
 
@@ -373,16 +376,8 @@ export async function resetPasswordFromToken(input: { token: string; password: s
     };
   }
 
-  const tokenState = await getPasswordResetTokenState(input.token);
-  if (tokenState.status !== "valid") {
-    return {
-      ok: false as const,
-      message: "Le lien de reinitialisation n'est plus valide."
-    };
-  }
-
   const record = await getPasswordResetTokenRecord(input.token);
-  if (!record) {
+  if (!record || record.usedAt || record.expiresAt.getTime() <= Date.now()) {
     return {
       ok: false as const,
       message: "Le lien de reinitialisation n'est plus valide."
@@ -391,28 +386,39 @@ export async function resetPasswordFromToken(input: { token: string; password: s
 
   const passwordHash = hashPassword(password);
 
-  await prisma.$transaction([
-    prisma.user.update({
+  const user = await prisma.$transaction(async (tx) => {
+    const now = new Date();
+    // Claim the unused token atomically, including when two submissions race.
+    const claimed = await tx.passwordResetToken.updateMany({
+      where: { id: record.id, usedAt: null, expiresAt: { gt: now } },
+      data: { usedAt: now }
+    });
+    if (claimed.count !== 1) {
+      return null;
+    }
+
+    const updatedUser = await tx.user.update({
       where: { id: record.userId },
       data: { passwordHash }
-    }),
-    prisma.passwordResetToken.update({
-      where: { id: record.id },
-      data: { usedAt: new Date() }
-    }),
-    prisma.passwordResetToken.deleteMany({
+    });
+    await tx.passwordResetToken.deleteMany({
       where: {
         userId: record.userId,
         id: { not: record.id }
       }
-    })
-  ]);
+    });
+    return updatedUser;
+  });
 
-  await writeSessionCookie(record.userId);
+  if (!user) {
+    return { ok: false as const, message: "Le lien de reinitialisation n'est plus valide." };
+  }
+
+  await writeSessionCookie(user);
 
   return {
     ok: true as const,
-    user: record.user
+    user
   };
 }
 
