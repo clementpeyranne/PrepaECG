@@ -4,9 +4,17 @@ import { PageHeader } from "@/components/ui/page-header";
 import { SectionCard } from "@/components/ui/section-card";
 import { createTeacherResourceAction } from "@/app/actions/resources";
 import { getTeacherResourcesData } from "@/lib/resources";
+import { randomUUID } from "node:crypto";
+import { DocumentUploadForm } from "@/components/forms/document-upload-form";
+import { SubjectChapterFields } from "@/components/forms/subject-chapter-fields";
+import { getFileStorageDriver } from "@/lib/app-config";
 
-export default async function TeacherNewResourcePage() {
+export default async function TeacherNewResourcePage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
   const data = await getTeacherResourcesData();
+  const status = (await searchParams)?.status;
+  const message = status === "created" ? "Ressource publiee dans ta prepa."
+    : status === "already_exists" ? "Cette ressource est deja enregistree. Aucun doublon n'a ete cree."
+    : status === "invalid" ? "Depot non enregistre. Verifie la matiere, le chapitre et le fichier, puis reessaie." : null;
 
   return (
     <div>
@@ -20,7 +28,9 @@ export default async function TeacherNewResourcePage() {
         title="Ajouter une ressource"
         description="Cours, fiche, exercice ou correction."
       >
-        <form action={createTeacherResourceAction} className="space-y-5">
+        {message ? <p role="status" className="mb-5 rounded-2xl bg-sand p-4 text-sm">{message}</p> : null}
+        <DocumentUploadForm action={createTeacherResourceAction} folder="resources" cloud={getFileStorageDriver() === "supabase"}>
+          <input type="hidden" name="submissionKey" value={randomUUID()} />
           <div className="grid gap-4 lg:grid-cols-2">
             <label className="rounded-[22px] bg-sand p-4">
               <span className="text-sm font-semibold">Titre</span>
@@ -31,33 +41,7 @@ export default async function TeacherNewResourcePage() {
               />
             </label>
 
-            <label className="rounded-[22px] bg-sand p-4">
-              <span className="text-sm font-semibold">Matiere</span>
-              <select
-                name="subjectCode"
-                className="mt-3 w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-pine"
-              >
-                {data.subjects.map((subject) => (
-                  <option key={subject.code} value={subject.code}>
-                    {subject.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="rounded-[22px] bg-sand p-4">
-              <span className="text-sm font-semibold">Chapitre</span>
-              <select
-                name="chapterId"
-                className="mt-3 w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-pine"
-              >
-                {data.chapters.map((chapter) => (
-                  <option key={chapter.id} value={chapter.id}>
-                    {chapter.subjectCode} - {chapter.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <SubjectChapterFields subjects={data.subjects} chapters={data.chapters} />
 
             <label className="rounded-[22px] bg-sand p-4">
               <span className="text-sm font-semibold">Type</span>
@@ -129,7 +113,7 @@ export default async function TeacherNewResourcePage() {
           >
             Publier la ressource
           </button>
-        </form>
+        </DocumentUploadForm>
       </SectionCard>
     </div>
   );

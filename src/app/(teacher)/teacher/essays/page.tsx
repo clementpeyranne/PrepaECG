@@ -77,6 +77,7 @@ export default async function TeacherEssaysPage({
                 {essay.student} - {essay.subject} - {essay.examType} - {essay.targetExam}
               </p>
               <p className="mt-3 text-sm text-pine/80">Statut : {essay.status}</p>
+              {essay.instructions ? <p className="mt-3 whitespace-pre-wrap rounded-2xl bg-sand p-4 text-sm text-pine">Consignes : {essay.instructions}</p> : null}
               <p className="mt-2 text-sm text-pine/70">{essay.latestAiSummary}</p>
               <p className="mt-2 text-xs uppercase tracking-[0.18em] text-pine/55">{essay.createdAtLabel}</p>
 

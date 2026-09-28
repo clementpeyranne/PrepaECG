@@ -1,4 +1,5 @@
 import { prisma } from "./db";
+import { isRecoveryEmailConfigured } from "./mail";
 import {
   getAppMode,
   getFileStorageDriver,
@@ -119,6 +120,9 @@ function getAppUrlStatus(): RuntimeCheck {
 
 function getPasswordResetStatus(): RuntimeCheck {
   const mode = getPasswordResetMode();
+  if (mode === "email" && isRecoveryEmailConfigured()) {
+    return { label: "password_reset", state: "pass", detail: "Service email configure. La reception effective doit etre testee." };
+  }
 
   if (mode === "direct-link") {
     return {

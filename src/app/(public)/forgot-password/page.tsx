@@ -5,6 +5,7 @@ import { forgotPasswordAction } from "@/app/actions/auth";
 import { PublicFooterLinks } from "@/components/public/public-footer-links";
 import { getPasswordResetMode } from "@/lib/app-config";
 import { getCurrentUser, getUserLandingPath } from "@/lib/auth";
+import { isRecoveryEmailConfigured } from "@/lib/mail";
 
 export const dynamic = "force-dynamic";
 export const metadata = { robots: { index: false, follow: false }, referrer: "no-referrer" as const };
@@ -23,6 +24,7 @@ export default async function ForgotPasswordPage({
   const message =
     typeof resolvedSearchParams.message === "string" ? resolvedSearchParams.message : null;
   const resetMode = getPasswordResetMode();
+  const emailEnabled = resetMode === "email" && isRecoveryEmailConfigured();
   const resetToken = resolvedSearchParams.resetToken;
   const resetLink = resetMode === "direct-link" && typeof resetToken === "string" && /^[a-f0-9]{64}$/.test(resetToken)
     ? `/reset-password?token=${resetToken}`
@@ -44,6 +46,7 @@ export default async function ForgotPasswordPage({
             <p className="mt-6 max-w-2xl text-base leading-8 text-sand/78">
               {resetMode === "direct-link"
                 ? "Entre ton email pour reinitialiser ton compte de demonstration."
+                : emailEnabled ? "Indique ton email pour recevoir un lien valable une heure."
                 : "La reinitialisation automatique par email n'est pas encore disponible."}
             </p>
 
@@ -64,7 +67,7 @@ export default async function ForgotPasswordPage({
               </div>
             ) : null}
 
-            {resetMode === "direct-link" ? <form action={forgotPasswordAction} className="mt-6 space-y-4">
+            {resetMode === "direct-link" || emailEnabled ? <form action={forgotPasswordAction} className="mt-6 space-y-4">
               <label className="block">
                 <span className="mb-2 block text-sm font-medium text-pine/80">Email</span>
                 <input
@@ -81,7 +84,7 @@ export default async function ForgotPasswordPage({
                 type="submit"
                 className="w-full rounded-full bg-ink px-5 py-3 text-sm font-semibold text-sand transition hover:bg-pine"
               >
-                Generer un lien
+                {emailEnabled ? "Recevoir le lien par email" : "Generer un lien"}
               </button>
             </form> : (
               <p className="mt-6 text-sm leading-7 text-pine/80">

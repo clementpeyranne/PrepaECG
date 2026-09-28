@@ -124,6 +124,28 @@ model Class {
   students    StudentProfile[]
   resources   Resource[]
   decks       FlashcardDeck[]
+  teacherInvitations TeacherInvitation[]
+}
+
+model TeacherInvitation {
+  id        String   @id @default(cuid())
+  email     String
+  classId   String
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@index([email, classId])
+}
+
+model AuthRateLimit {
+  id        String   @id
+  count     Int      @default(1)
+  expiresAt DateTime
+
+  @@index([expiresAt])
 }
 
 model ClassMembership {
@@ -197,6 +219,7 @@ model Chapter {
 
 model Resource {
   id                 String             @id @default(cuid())
+  submissionKey      String?            @unique
   uploaderId         String
   classId            String?
   subjectId          String
@@ -365,6 +388,8 @@ model WeakPoint {
 
 model Essay {
   id             String          @id @default(cuid())
+  deduplicationKey String?        @unique
+  instructions   String?
   studentId      String
   teacherId      String?
   subjectId      String

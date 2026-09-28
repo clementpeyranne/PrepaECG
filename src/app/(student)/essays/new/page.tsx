@@ -7,6 +7,9 @@ import { SectionCard } from "@/components/ui/section-card";
 import { createEssaySubmissionAction } from "@/app/actions/essays";
 import { PendingSubmitButton } from "@/components/forms/pending-submit-button";
 import { getEssaySubmissionFormData } from "@/lib/essays";
+import { DocumentUploadForm } from "@/components/forms/document-upload-form";
+import { SubjectChapterFields } from "@/components/forms/subject-chapter-fields";
+import { getFileStorageDriver, isDemoModeEnabled } from "@/lib/app-config";
 
 function getSubmissionMessage(status: string | null) {
   if (status === "submitted") {
@@ -43,7 +46,8 @@ export default async function NewEssayPage({
   const status = typeof resolvedSearchParams.status === "string" ? resolvedSearchParams.status : null;
   const message = getSubmissionMessage(status);
   const submissionKey = randomUUID();
-  const isSubmitDisabled = data.teachers.length === 0;
+  const aiEnabled = isDemoModeEnabled() || Boolean(process.env.OPENAI_API_KEY?.trim());
+  const isSubmitDisabled = data.teachers.length === 0 && !aiEnabled;
 
   return (
     <div>
@@ -64,7 +68,7 @@ export default async function NewEssayPage({
           </div>
         ) : null}
 
-        <form action={createEssaySubmissionAction} className="space-y-5">
+        <DocumentUploadForm action={createEssaySubmissionAction} folder="essays" cloud={getFileStorageDriver() === "supabase"}>
           <input type="hidden" name="submissionKey" value={submissionKey} />
           <div className="grid gap-4 lg:grid-cols-2">
             <label className="rounded-[22px] bg-sand p-4">
@@ -76,19 +80,7 @@ export default async function NewEssayPage({
               />
             </label>
 
-            <label className="rounded-[22px] bg-sand p-4">
-              <span className="text-sm font-semibold">Matiere</span>
-              <select
-                name="subjectCode"
-                className="mt-3 w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-pine"
-              >
-                {data.subjects.map((subject) => (
-                  <option key={subject.code} value={subject.code}>
-                    {subject.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <SubjectChapterFields subjects={data.subjects} chapters={data.chapters} />
 
             <label className="rounded-[22px] bg-sand p-4">
               <span className="text-sm font-semibold">Type d'epreuve</span>
@@ -109,28 +101,14 @@ export default async function NewEssayPage({
             </label>
 
             <label className="rounded-[22px] bg-sand p-4">
-              <span className="text-sm font-semibold">Chapitre ou theme</span>
-              <select
-                name="chapterId"
-                className="mt-3 w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-pine"
-              >
-                {data.chapters.map((chapter) => (
-                  <option key={chapter.id} value={chapter.id}>
-                    {chapter.subjectCode} - {chapter.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="rounded-[22px] bg-sand p-4">
               <span className="text-sm font-semibold">Correction souhaitee</span>
               <select
                 name="correctionMode"
-                defaultValue="ai_then_teacher"
+                defaultValue={!data.teachers.length && aiEnabled ? "ai_only" : aiEnabled ? "ai_then_teacher" : "teacher_only"}
                 className="mt-3 w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-pine"
               >
-                <option value="ai_then_teacher">IA puis professeur si besoin</option>
-                <option value="ai_only">IA seulement</option>
+                {aiEnabled ? <option value="ai_then_teacher">IA puis professeur si besoin</option> : null}
+                {aiEnabled ? <option value="ai_only">IA seulement</option> : null}
                 <option value="teacher_only">Professeur seulement</option>
               </select>
             </label>
@@ -172,7 +150,7 @@ export default async function NewEssayPage({
             <input
               type="file"
               name="file"
-              accept="application/pdf,image/*"
+              accept="application/pdf,image/jpeg,image/png,image/webp"
               className="mt-3 block w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none transition file:mr-4 file:rounded-full file:border-0 file:bg-ink file:px-4 file:py-2 file:text-sm file:font-semibold file:text-sand focus:border-pine"
             />
           </label>
@@ -189,7 +167,7 @@ export default async function NewEssayPage({
               Aucun professeur n'est encore disponible dans cette prepa pour recevoir la copie.
             </p>
           ) : null}
-        </form>
+        </DocumentUploadForm>
       </SectionCard>
     </div>
   );

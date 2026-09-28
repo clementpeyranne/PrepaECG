@@ -53,6 +53,8 @@ function createAuth(env = production) {
       delete: () => { throw new Error("Cookie mutation during rendering"); }
     }) },
     "./app-config": config, "./db": { prisma: db },
+    "./auth-rate-limit": { allowAuthRequest: async () => true },
+    "./mail": { isRecoveryEmailConfigured: () => false, sendRecoveryEmail: async () => { throw new Error("Unexpected email"); } },
     "./reference-data": { ensureReferenceData: async () => {} }
   });
   return { auth, db, state, getCookie: () => cookie, setCookie: (value) => { cookie = value; } };
@@ -176,6 +178,7 @@ test("health reports missing email recovery and does not leak database errors", 
   const config = loadModule("src/lib/app-config.ts", production);
   const status = loadModule("src/lib/runtime-status.ts", production, {
     "./app-config": config,
+    "./mail": { isRecoveryEmailConfigured: () => false },
     "./db": { prisma: { $queryRaw: async () => { throw new Error("private-host-and-credentials"); } } }
   });
   const result = await status.getRuntimeStatus();

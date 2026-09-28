@@ -22,6 +22,7 @@ export default async function EssayDetailPage({
   return (
     <div>
       <PageHeader title={data.essay.title} />
+      {data.essay.instructions ? <p className="mb-5 whitespace-pre-wrap rounded-2xl bg-sand p-4 text-sm text-pine">Tes consignes : {data.essay.instructions}</p> : null}
 
       <div className="grid gap-5 xl:grid-cols-[0.8fr_1.2fr]">
         <SectionCard

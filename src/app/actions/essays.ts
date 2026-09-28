@@ -31,6 +31,7 @@ export async function createEssaySubmissionAction(formData: FormData) {
     targetExam: getString(formData, "targetExam"),
     correctionMode: getString(formData, "correctionMode"),
     instructions: getString(formData, "instructions"),
+    uploadReceipt: getString(formData, "uploadReceipt"),
     file: maybeFile instanceof File ? maybeFile : null
   });
 

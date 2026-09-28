@@ -1,6 +1,6 @@
 export type AppMode = "demo" | "production";
 export type FileStorageDriver = "local" | "supabase";
-export type PasswordResetMode = "support" | "direct-link";
+export type PasswordResetMode = "support" | "direct-link" | "email";
 export type PublicAppUrlSource = "explicit" | "vercel-production" | "vercel-preview" | "local";
 
 function normalize(value: string | undefined) {
@@ -69,6 +69,7 @@ export function getPublicAppUrl() {
 
 export function getPasswordResetMode(): PasswordResetMode {
   const configured = normalize(process.env.PASSWORD_RESET_MODE);
+  if (configured === "email") return "email";
   // A publicly displayed recovery link would allow anyone to take over an account.
   const localDemo = process.env.NODE_ENV === "development" && !process.env.VERCEL && isDemoModeEnabled();
   return localDemo && configured !== "support" ? "direct-link" : "support";

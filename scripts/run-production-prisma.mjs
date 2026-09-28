@@ -9,8 +9,8 @@ if (cliArgs.length === 0) {
 }
 
 const env = {
-  ...process.env,
-  ...loadMergedEnv([".env", ".env.local", ".env.production", ".env.production.local"])
+  ...loadMergedEnv([".env", ".env.local", ".env.production", ".env.production.local"]),
+  ...process.env
 };
 
 const binary = process.platform === "win32" ? "npx.cmd" : "npx";

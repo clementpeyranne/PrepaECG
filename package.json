@@ -4,6 +4,10 @@
   "private": true,
   "scripts": {
     "test:security": "node --test tests/security.test.mjs",
+    "test:journeys": "npm run prisma:generate && node --test tests/journeys.test.mjs",
+    "db:auth:prod": "npm run prisma:prepare:prod && node scripts/run-production-prisma.mjs db execute --file prisma/production-auth.sql",
+    "teacher:invite": "node scripts/invite-teacher.mjs",
+    "teacher:invite:prod": "npm run prisma:generate:prod && node scripts/invite-teacher.mjs --prod",
     "dev": "next dev",
     "build": "node scripts/prepare-build.mjs && next build",
     "start": "next start",
@@ -28,11 +32,16 @@
     "@prisma/client": "^6.0.0",
     "@supabase/supabase-js": "^2.104.0",
     "lucide-react": "^0.468.0",
-    "next": "^15.0.0",
+    "next": "^15.5.26",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
+  "overrides": {
+    "next": { "postcss": "^8.5.28" },
+    "@prisma/config": { "deepmerge-ts": "^8.0.0" }
+  },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",

@@ -6,7 +6,8 @@ import { getCurrentUserClass, requireRole } from "./auth";
 import { generateEssayReview } from "./ai";
 import { prisma } from "./db";
 import { ensureDemoResources } from "./resources";
-import { getStoredFileName, getStoredFileUrl, readStoredFileBuffer, saveUploadedFile } from "./storage";
+import { getStoredFileName, getStoredFileUrl, readStoredFileBuffer, saveUploadedFile, resolveDirectUpload } from "./storage";
+import { validateDocumentBytes } from "./upload-rules";
 import { ensureDemoStudent } from "./student-app";
 
 type EssayFeedbackPayload = {
@@ -34,6 +35,7 @@ export type EssaysOverviewData = {
 
 export type EssayDetailData = {
   essay: {
+    instructions: string;
     id: string;
     title: string;
     subject: string;
@@ -71,6 +73,7 @@ export type EssayDetailData = {
 
 export type TeacherEssaysQueueData = {
   essays: Array<{
+    instructions: string;
     id: string;
     title: string;
     subject: string;
@@ -342,51 +345,35 @@ export async function createEssaySubmission(input: {
   correctionMode: string;
   instructions: string;
   file: File | null;
+  uploadReceipt?: string;
 }): Promise<EssaySubmissionResult> {
   const { user } = await ensureDemoStudent();
   await ensureDemoResources();
   const membership = await getCurrentUserClass(user.id);
 
   const chapter = await prisma.chapter.findFirst({
-    where: { id: input.chapterId },
+    where: { id: input.chapterId, subject: { code: input.subjectCode } },
     include: { subject: true }
   });
+  if (input.correctionMode === "ai_only" && !isDemoModeEnabled() && !process.env.OPENAI_API_KEY?.trim()) return { status: "invalid" };
   const teacher = await prisma.user.findFirst({
-    where: input.teacherId
-      ? {
-          id: input.teacherId,
-          role: "TEACHER",
-          ...(membership?.classId
-            ? {
-                memberships: {
-                  some: {
-                    classId: membership.classId,
-                    roleInClass: "teacher"
-                  }
-                }
-              }
-            : {})
-        }
-      : membership?.classId
-        ? {
-            role: "TEACHER",
-            memberships: {
-              some: {
-                classId: membership.classId,
-                roleInClass: "teacher"
-              }
-            }
-          }
-        : { role: "TEACHER" }
+    where: {
+      id: input.teacherId || "__no_teacher__", role: "TEACHER",
+      memberships: { some: { classId: membership?.classId ?? "__no_class__", roleInClass: "teacher" } }
+    }
   });
 
-  if (!chapter || !input.title.trim() || !input.file || input.file.size === 0 || !input.submissionKey.trim()) {
+  if (!membership?.classId || (input.correctionMode !== "ai_only" && !teacher) ||
+    !["teacher_only", "ai_only", "ai_then_teacher"].includes(input.correctionMode) ||
+    !chapter || !input.title.trim() || (!input.uploadReceipt && (!input.file || input.file.size === 0)) || !input.submissionKey.trim()) {
     return { status: "invalid" };
   }
 
+  const submissionKey = createHash("sha256").update(`${user.id}:${input.submissionKey}`).digest("hex");
+  const teacherId = input.correctionMode === "ai_only" ? null : teacher!.id;
   const existingBySubmissionKey = await prisma.essay.findUnique({
     where: {
-      submissionKey: input.submissionKey
+      submissionKey
     }
   });
 
@@ -394,16 +381,25 @@ export async function createEssaySubmission(input: {
     return { status: "already_exists", essayId: existingBySubmissionKey.id };
   }
 
-  const fileBuffer = Buffer.from(await input.file.arrayBuffer());
+  let directUpload;
+  let fileBuffer: Buffer;
+  try {
+    directUpload = input.uploadReceipt ? await resolveDirectUpload(input.uploadReceipt, user.id, "essays") : null;
+    fileBuffer = directUpload?.buffer ?? Buffer.from(await input.file!.arrayBuffer());
+    validateDocumentBytes(fileBuffer, directUpload?.storedFile.mimeType ?? input.file!.type, "essays");
+  } catch { return { status: "invalid" }; }
   const contentHash = createHash("sha256").update(fileBuffer).digest("hex");
   const normalizedTitle = input.title.trim();
   const normalizedExamType = input.examType.trim() || "Copie";
   const normalizedTargetExam = input.targetExam.trim() || "BCE";
+  const deduplicationKey = createHash("sha256").update(JSON.stringify([
+    user.id, teacherId, chapter.id, normalizedTitle, normalizedExamType, normalizedTargetExam, contentHash
+  ])).digest("hex");
 
   const existingDuplicate = await prisma.essay.findFirst({
     where: {
       studentId: user.id,
-      teacherId: teacher?.id ?? null,
+      teacherId,
       chapterId: chapter.id,
       title: normalizedTitle,
       examType: normalizedExamType,
@@ -419,16 +415,18 @@ export async function createEssaySubmission(input: {
     return { status: "already_exists", essayId: existingDuplicate.id };
   }
 
-  const storedFile = await saveUploadedFile(input.file, "essays");
+  const storedFile = directUpload?.storedFile ?? await saveUploadedFile(input.file!, "essays");
 
   try {
     const essay = await prisma.essay.create({
       data: {
         studentId: user.id,
-        teacherId: teacher?.id ?? null,
+        teacherId,
         subjectId: chapter.subject.id,
         chapterId: chapter.id,
-        submissionKey: input.submissionKey,
+        submissionKey,
+        deduplicationKey,
+        instructions: input.instructions.trim().slice(0, 5000) || null,
         contentHash,
         title: normalizedTitle,
         examType: normalizedExamType,
@@ -440,8 +438,9 @@ export async function createEssaySubmission(input: {
       }
     });
 
-    if (input.correctionMode !== "teacher_only") {
-      await generateEssayAiFeedback(essay.id);
+    if (input.correctionMode !== "teacher_only" && (isDemoModeEnabled() || process.env.OPENAI_API_KEY?.trim())) {
+      try { await generateEssayAiFeedback(essay.id); }
+      catch { console.error("ESSAY_AI_REVIEW_FAILED"); }
     }
 
     return { status: "created", essayId: essay.id };
@@ -453,13 +452,13 @@ export async function createEssaySubmission(input: {
     const existingEssay =
       (await prisma.essay.findUnique({
         where: {
-          submissionKey: input.submissionKey
+          submissionKey
         }
       })) ??
       (await prisma.essay.findFirst({
         where: {
           studentId: user.id,
-          teacherId: teacher?.id ?? null,
+          teacherId,
           chapterId: chapter.id,
           title: normalizedTitle,
           examType: normalizedExamType,
@@ -512,10 +511,15 @@ export async function addTeacherEssayFeedback(input: {
   if (!essay || !input.overview.trim() || !belongsToSamePrep || !isAssignedTeacher || !input.submissionKey.trim()) {
     return { status: "invalid" };
   }
+  for (const score of [input.scoreMin, input.scoreMax]) {
+    if (score != null && (!Number.isFinite(score) || score < 0 || score > 20)) return { status: "invalid" };
+  }
+  if (input.scoreMin != null && input.scoreMax != null && input.scoreMin > input.scoreMax) return { status: "invalid" };
+  const feedbackKey = `teacher:${essay.id}:${teacher.id}`;
 
   const existingBySubmissionKey = await prisma.essayFeedback.findUnique({
     where: {
-      submissionKey: input.submissionKey
+      submissionKey: feedbackKey
     }
   });
 
@@ -538,10 +542,11 @@ export async function addTeacherEssayFeedback(input: {
   const rubric = await getDefaultRubric(essay.subjectId, teacher.id);
 
   try {
-    await prisma.essayFeedback.create({
+    await prisma.$transaction(async (tx) => {
+    await tx.essayFeedback.create({
       data: {
         essayId: essay.id,
-        submissionKey: input.submissionKey,
+        submissionKey: feedbackKey,
         reviewerType: ReviewerType.TEACHER,
         reviewerUserId: teacher.id,
         rubricId: rubric.id,
@@ -557,11 +562,12 @@ export async function addTeacherEssayFeedback(input: {
       }
     });
 
-    await prisma.essay.update({
+    await tx.essay.update({
       where: { id: essay.id },
       data: {
         status: "TEACHER_REVIEWED"
       }
+    });
     });
 
     return { status: "saved" };
@@ -660,6 +666,7 @@ export async function getEssayDetailData(essayId: string): Promise<EssayDetailDa
 
   return {
     essay: {
+      instructions: essay.instructions ?? "",
       id: essay.id,
       title: essay.title,
       subject: essay.subject.name,
@@ -691,10 +698,12 @@ export async function getEssayDetailData(essayId: string): Promise<EssayDetailDa
 export async function getTeacherEssaysQueueData(): Promise<TeacherEssaysQueueData> {
   await ensureDemoResources();
   const teacher = await requireRole([UserRole.TEACHER, UserRole.ADMIN]);
+  const membership = await getCurrentUserClass(teacher.id);
 
   const essays = await prisma.essay.findMany({
     where: {
-      teacherId: teacher.id
+      teacherId: teacher.id,
+      student: { memberships: { some: { classId: membership?.classId ?? "__no_class__" } } }
     },
     include: {
       subject: true,
@@ -732,6 +741,7 @@ export async function getTeacherEssaysQueueData(): Promise<TeacherEssaysQueueDat
           title: essay.title,
           subject: essay.subject.name,
           student: `${essay.student.firstName} ${essay.student.lastName}`.trim(),
+          instructions: essay.instructions ?? "",
           examType: essay.examType,
           targetExam: essay.targetExam,
           status:
@@ -792,7 +802,8 @@ export async function getEssaySubmissionFormData(): Promise<EssaySubmissionFormD
             }
           }
         : {
-            role: UserRole.TEACHER
+            role: UserRole.TEACHER,
+            id: "__no_teacher__"
           },
       orderBy: [{ lastName: "asc" }, { firstName: "asc" }]
     })

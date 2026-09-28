@@ -6,7 +6,8 @@ import { getCurrentUserClass, requireRole } from "./auth";
 import { generateResourceFlashcards, generateResourceSheet, generateResourceSummary } from "./ai";
 import { prisma } from "./db";
 import { ensureReferenceData } from "./reference-data";
-import { getStoredFileName, getStoredFileUrl, readStoredFileBuffer, saveUploadedFile } from "./storage";
+import { getStoredFileName, getStoredFileUrl, readStoredFileBuffer, saveUploadedFile, resolveDirectUpload } from "./storage";
+import { createHash } from "node:crypto";
 import { ensureDemoStudent } from "./student-app";
 
 type OutputType = "SUMMARY" | "SHEET" | "FLASHCARDS";
@@ -464,11 +465,7 @@ export async function getResourcesOverviewData(): Promise<ResourcesOverviewData>
   const membership = await getCurrentUserClass(user.id);
 
   const resources = await prisma.resource.findMany({
-    where: membership?.classId
-      ? {
-          OR: [{ classId: membership.classId }, { classId: null }]
-        }
-      : undefined,
+    where: { classId: membership?.classId ?? "__no_class__" },
     select: {
       id: true,
       title: true,
@@ -532,11 +529,7 @@ export async function getTeacherResourcesData(): Promise<TeacherResourcesData> {
     prisma.resource.findMany({
       where: {
         uploaderId: teacher.id,
-        ...(membership?.classId
-          ? {
-              OR: [{ classId: membership.classId }, { classId: null }]
-            }
-          : {})
+        classId: membership?.classId ?? "__no_class__"
       },
       select: {
         id: true,
@@ -627,11 +620,7 @@ export async function getResourceDetailData(resourceId: string): Promise<Resourc
   const resource = await prisma.resource.findFirst({
     where: {
       id: resourceId,
-      ...(membership?.classId
-        ? {
-            OR: [{ classId: membership.classId }, { classId: null }]
-          }
-        : {})
+      classId: membership?.classId ?? "__no_class__"
     },
     include: {
       uploader: true,
@@ -695,11 +684,7 @@ export async function getTeacherResourceDetailData(resourceId: string): Promise<
     where: {
       id: resourceId,
       uploaderId: teacher.id,
-      ...(membership?.classId
-        ? {
-            OR: [{ classId: membership.classId }, { classId: null }]
-          }
-        : {})
+      classId: membership?.classId ?? "__no_class__"
     },
     include: {
       subject: true,
@@ -732,6 +717,8 @@ export async function getTeacherResourceDetailData(resourceId: string): Promise<
 }
 
 export async function createTeacherResource(input: {
+  submissionKey: string;
+  uploadReceipt?: string;
   title: string;
   subjectCode: string;
   chapterId: string;
@@ -745,22 +732,30 @@ export async function createTeacherResource(input: {
   const teacher = await requireRole([UserRole.TEACHER, UserRole.ADMIN]);
   const membership = await getCurrentUserClass(teacher.id);
   const chapter = await prisma.chapter.findFirst({
-    where: { id: input.chapterId },
+    where: { id: input.chapterId, subject: { code: input.subjectCode } },
     include: { subject: true }
   });
 
   const hasTextContent = Boolean(input.content.trim());
-  const hasFile = Boolean(input.file && input.file.size > 0);
+  const hasFile = Boolean((input.file && input.file.size > 0) || input.uploadReceipt);
 
-  if (!membership?.classId || !chapter || !input.title.trim() || (!hasTextContent && !hasFile)) {
-    return;
+  if (!membership?.classId || !chapter || !input.title.trim() || !input.submissionKey.trim() || (!hasTextContent && !hasFile)) {
+    return { status: "invalid" as const };
   }
+  const submissionKey = createHash("sha256").update(`${teacher.id}:${input.submissionKey}`).digest("hex");
+  const existing = await prisma.resource.findUnique({ where: { submissionKey } });
+  if (existing) return { status: "already_exists" as const, resourceId: existing.id };
 
   const normalizedType = Object.values(ResourceType).includes(input.resourceType as ResourceType)
     ? (input.resourceType as ResourceType)
     : ResourceType.COURSE;
 
-  const uploadedFile = hasFile ? await saveUploadedFile(input.file as File, "resources") : null;
+  let uploadedFile;
+  try {
+    uploadedFile = input.uploadReceipt
+      ? (await resolveDirectUpload(input.uploadReceipt, teacher.id, "resources")).storedFile
+      : hasFile ? await saveUploadedFile(input.file as File, "resources") : null;
+  } catch { return { status: "invalid" as const }; }
   const storageKey = uploadedFile ? uploadedFile.storageKey : input.content.trim();
   const mimeType = uploadedFile?.mimeType || "text/plain";
   const sourceKind = uploadedFile ? "FILE_UPLOAD" : "TEXT_PASTE";
@@ -772,8 +767,10 @@ export async function createTeacherResource(input: {
         ? `Document ${uploadedFile.originalName} depose par le professeur.`
         : null);
 
-  await prisma.resource.create({
+  try {
+  const resource = await prisma.resource.create({
     data: {
+      submissionKey,
       uploaderId: teacher.id,
       classId: membership.classId,
       subjectId: chapter.subject.id,
@@ -787,6 +784,13 @@ export async function createTeacherResource(input: {
       isAiActionsEnabled: input.aiEnabled
     }
   });
+  return { status: "created" as const, resourceId: resource.id };
+  } catch (error) {
+    if (error && typeof error === "object" && "code" in error && error.code === "P2002") {
+      return { status: "already_exists" as const };
+    }
+    throw error;
+  }
 }
 
 export async function generateResourceOutput(resourceId: string, type: OutputType) {
@@ -798,11 +802,7 @@ export async function generateResourceOutput(resourceId: string, type: OutputTyp
     where: {
       id: resourceId,
       isAiActionsEnabled: true,
-      ...(membership?.classId
-        ? {
-            OR: [{ classId: membership.classId }, { classId: null }]
-          }
-        : {})
+      classId: membership?.classId ?? "__no_class__"
     },
     include: {
       subject: true,

@@ -158,7 +158,7 @@ Principes :
 - `AUTH_SECRET` doit etre personnalise avant toute mise en ligne.
 - `DATABASE_URL` devra pointer vers une base en ligne pour la vraie production.
 - `PASSWORD_RESET_MODE="direct-link"` ne fonctionne qu'en demonstration sous `npm run dev`, hors Vercel. Il ne doit jamais etre utilise pour des comptes reels.
-- La reinitialisation par email n'est pas encore implementee. Le mode `support` ne cree ni demande ni email ; la page indique cette indisponibilite et affiche le contact configure.
+- La reinitialisation par email utilise Resend : `PASSWORD_RESET_MODE="email"`, `RESEND_API_KEY` et `EMAIL_FROM` (adresse seule, sur un domaine verifie). Tant que ces elements manquent, garder `support` : aucun envoi n'est annonce. Ne jamais mettre ces cles dans une variable `NEXT_PUBLIC_*`.
 - `FILE_STORAGE_DRIVER="local"` convient au prototype, mais pas au deploiement final des fichiers.
 - `FILE_STORAGE_DRIVER="supabase"` est la direction retenue pour stocker les PDF et les photos en production.
 - `NEXT_PUBLIC_SUPPORT_EMAIL` et les champs legaux doivent etre completes avant ouverture publique.
@@ -166,6 +166,39 @@ Principes :
 Securite des comptes : `npm run test:security` couvre les sessions, les liens de recuperation et le cache hors connexion avec des services simules. Un test de bout en bout avec PostgreSQL et le navigateur reste necessaire. Les sessions sont liees au mot de passe : changer celui-ci invalide les anciennes connexions. Le passage aux cookies v2 exige une reconnexion des comptes existants, sans modifier leurs donnees.
 
 L'application installable ne conserve plus les pages privees en cache hors connexion. Elle affiche uniquement une page publique d'indisponibilite quand le reseau est coupe ; l'ancien cache est efface a l'activation du nouveau service worker.
+
+### Mise a jour des comptes et des depots
+
+Avant de deployer cette version, executer `npm run db:auth:prod`. Ce script ajoute uniquement les tables d'invitations/limitation et les colonnes anti-doublons ; il ne supprime pas de donnees. Il est relancable. Ne pas deployer le code tant que cette commande n'a pas reussi. En local, `npm run db:push` applique le schema SQLite.
+
+Les inscriptions professeurs exigent une invitation personnelle, y compris en demonstration. Pour creer une invitation apres verification de l'identite du professeur :
+
+```bash
+npm run teacher:invite:prod -- --email "prof@exemple.fr" --code "CODE-PREPA"
+```
+
+Le lien affiche est confidentiel, expire apres 7 jours et ne fonctionne qu'une fois pour cet email et cet etablissement. Le transmettre directement au professeur. L'option `--revoke` revoque les invitations en attente. Les comptes professeurs deja existants ne sont pas modifies : leur legitimite doit etre verifiee avant ouverture publique. Le premier visiteur ne peut plus creer un etablissement ; utiliser `establishment:create:prod`.
+
+Les PDF, JPEG, PNG et WebP des copies et ressources passent directement du navigateur au bucket Supabase prive, puis sont controles et rattaches au compte cote serveur. Limite : 50 Mo par document. Le serveur ne distribue que des liens de lecture temporaires apres verification des droits. Les ressources acceptent aussi les fichiers texte. Les imports Anki restent un parcours distinct : ils utilisent encore des outils systeme et doivent etre valides/adaptes pour l'hebergement serverless. Les envois abandonnes avant validation peuvent laisser des fichiers non rattaches ; prevoir leur nettoyage avant une utilisation a grande echelle.
+
+Pour les emails, verifier le domaine et l'adresse d'envoi dans Resend, renseigner les variables dans Vercel, redeployer puis tester une reception reelle et l'utilisation unique du lien. Un retour HTTP positif du fournisseur ne prouve pas la livraison en boite de reception. Documentation : https://resend.com/docs/dashboard/domains/introduction et https://resend.com/docs/api-reference/emails/send-email.
+
+### Verification des parcours
+
+Le bilan de la recette et ses limites sont dans [RELEASE-CHECK.md](RELEASE-CHECK.md).
+
+```bash
+npm run test:security
+npm run test:journeys
+```
+
+Les tests de parcours creent une base SQLite et des fichiers temporaires puis les suppriment. Ils exercent le vrai code applicatif et Prisma : inscriptions, invitations, connexion, isolation entre deux prepas, depots PDF/photos, lecture, corrections, doublons, decks/sous-decks, partage et progression des revisions. Cookies/requetes Next, Resend et Supabase sont simules. Ils n'envoient aucun email reel et ne touchent pas a la production. Ils ne remplacent pas une recette navigateur, PostgreSQL, stockage cloud et boite mail en conditions reelles.
+
+Sur Vercel, la limitation utilise son en-tete `x-forwarded-for` remplace par la plateforme, puis une limite par email. Source : https://vercel.com/docs/headers/request-headers. Sur un autre hebergeur, le repli partage doit etre adapte au proxy de confiance.
+
+Next reste sur la branche 15. Les overrides de PostCSS (Next) et deepmerge-ts (configuration Prisma) remplacent des dependances signalees par l'audit de securite. Revalider `prisma:generate`, les tests et le build lors de leur mise a jour.
+
+Pour la recette locale HTTP/navigateur, `PREPA_KEEP_TEST_FIXTURE=1 npm run test:journeys` conserve une base jetable dont le chemin est affiche. Lancer le serveur local avec cette `DATABASE_URL`, `APP_MODE=production`, `FILE_STORAGE_DRIVER=local`, `AUTH_SECRET=test-secret-only-not-production`, `PASSWORD_RESET_MODE=support`, `OPENAI_API_KEY` vide, puis executer `node tests/http-smoke.mjs` ou `node tests/browser-smoke.mjs` (Chrome requis). Ces scripts n'acceptent que localhost/127.0.0.1. Ne jamais utiliser les identifiants de test sur une vraie base. Supprimer uniquement le dossier temporaire affiche apres la recette. La recette navigateur n'est pas validee tant que Chrome ne peut pas etre lance par l'environnement d'execution.
 
 Un exemple de configuration de production est disponible dans [.env.production.example](/Users/clementpeyranne/Documents/Codex/2026-04-18-salut-je-viens-de-finir-classe/.env.production.example).
 

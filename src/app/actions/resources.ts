@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { createTeacherResource, generateResourceOutput } from "@/lib/resources";
 
@@ -15,7 +16,9 @@ function getBoolean(formData: FormData, key: string) {
 export async function createTeacherResourceAction(formData: FormData) {
   const maybeFile = formData.get("file");
 
-  await createTeacherResource({
+  const result = await createTeacherResource({
+    submissionKey: getString(formData, "submissionKey"),
+    uploadReceipt: getString(formData, "uploadReceipt"),
     title: getString(formData, "title"),
     subjectCode: getString(formData, "subjectCode"),
     chapterId: getString(formData, "chapterId"),
@@ -29,6 +32,7 @@ export async function createTeacherResourceAction(formData: FormData) {
   revalidatePath("/teacher/resources");
   revalidatePath("/teacher/resources/new");
   revalidatePath("/resources");
+  redirect(`/teacher/resources/new?status=${result.status}`);
 }
 
 export async function generateResourceOutputAction(formData: FormData) {

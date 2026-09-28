@@ -89,7 +89,10 @@ if (passwordResetMode === "direct-link") {
     "PASSWORD_RESET_MODE=direct-link est ignore en production : un lien de recuperation ne doit jamais etre affiche publiquement."
   );
 }
-warnings.push("L'envoi d'emails de reinitialisation n'est pas implemente. Le mode support ne transmet aucune demande.");
+if (passwordResetMode !== "email" || !env.RESEND_API_KEY?.trim() || !env.EMAIL_FROM?.trim()) {
+  warnings.push("Recuperation par email inactive. Configurer PASSWORD_RESET_MODE=email, RESEND_API_KEY et EMAIL_FROM apres verification du domaine d'envoi.");
+}
+warnings.push("Avant ce deploiement, appliquer les ajouts non destructifs avec npm run db:auth:prod.");
 
 if (fileStorageDriver === "supabase") {
   if (!supabaseUrl) {

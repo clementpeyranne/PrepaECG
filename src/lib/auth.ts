@@ -1,11 +1,13 @@
 import { UserRole, type User } from "@prisma/client";
-import { randomBytes, scryptSync, timingSafeEqual, createHmac } from "node:crypto";
+import { randomBytes, scryptSync, timingSafeEqual, createHmac, createHash } from "node:crypto";
 import { cache } from "react";
 import { cookies } from "next/headers";
 
 import { getPasswordResetMode, isDemoModeEnabled } from "./app-config";
 import { prisma } from "./db";
 import { ensureReferenceData } from "./reference-data";
+import { allowAuthRequest } from "./auth-rate-limit";
+import { isRecoveryEmailConfigured, sendRecoveryEmail } from "./mail";
 
 const AUTH_COOKIE_NAME = "prepa_auth";
 const SESSION_DURATION_MS = 1000 * 60 * 60 * 24 * 14;
@@ -159,10 +161,21 @@ export async function registerUser(input: {
   password: string;
   role: UserRole;
   accessCode: string;
+  invitationToken?: string;
 }) {
   const email = normalizeEmail(input.email);
   const firstName = input.firstName.trim();
   const lastName = input.lastName.trim();
+
+  if (![UserRole.STUDENT, UserRole.TEACHER].includes(input.role as "STUDENT" | "TEACHER")) {
+    return { ok: false as const, message: "Ce type de compte n'est pas disponible a l'inscription." };
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
+    return { ok: false as const, message: "Indique une adresse email valide." };
+  }
+  if (!await allowAuthRequest("signup", email)) {
+    return { ok: false as const, message: "Trop de tentatives. Reessaie dans 15 minutes." };
+  }
 
   if (!firstName || !lastName || !email || !input.password.trim()) {
     return {
@@ -192,24 +205,9 @@ export async function registerUser(input: {
   await ensureReferenceData();
   const normalizedAccessCode = input.accessCode.trim().toUpperCase();
 
-  let prepClass = await prisma.class.findUnique({
+  const prepClass = await prisma.class.findUnique({
     where: { accessCode: normalizedAccessCode }
   });
-
-  if (!prepClass && !isDemoModeEnabled()) {
-    const classCount = await prisma.class.count();
-
-    if (classCount === 0 && normalizedAccessCode) {
-      prepClass = await prisma.class.create({
-        data: {
-          name: "Prepa ECG",
-          yearLabel: String(new Date().getFullYear()),
-          track: "ECG",
-          accessCode: normalizedAccessCode
-        }
-      });
-    }
-  }
 
   if (!prepClass) {
     return {
@@ -219,24 +217,39 @@ export async function registerUser(input: {
   }
 
   const passwordHash = hashPassword(input.password.trim());
-
-  const user = await prisma.user.create({
-    data: {
-      email,
-      passwordHash,
-      firstName,
-      lastName,
-      role: input.role
-    }
-  });
-
-  await prisma.classMembership.create({
-    data: {
-      userId: user.id,
-      classId: prepClass.id,
-      roleInClass: input.role === UserRole.TEACHER ? "teacher" : "student"
-    }
-  });
+  const invitationToken = input.invitationToken?.trim() || "";
+  if (input.role === UserRole.TEACHER && !/^[a-f0-9]{64}$/.test(invitationToken)) {
+    return { ok: false as const, message: "Une invitation personnelle est necessaire pour creer un compte professeur." };
+  }
+  let user;
+  try {
+    user = await prisma.$transaction(async (tx) => {
+      if (input.role === UserRole.TEACHER) {
+        const claimed = await tx.teacherInvitation.updateMany({
+          where: {
+            email, classId: prepClass.id,
+            tokenHash: createHash("sha256").update(invitationToken).digest("hex"),
+            usedAt: null, expiresAt: { gt: new Date() }
+          },
+          data: { usedAt: new Date() }
+        });
+        if (claimed.count !== 1) return null;
+      }
+      return tx.user.create({
+        data: {
+          email, passwordHash, firstName, lastName, role: input.role,
+          memberships: { create: {
+            classId: prepClass.id,
+            roleInClass: input.role === UserRole.TEACHER ? "teacher" : "student"
+          } }
+        }
+      });
+    });
+  } catch (error) {
+    if (!(error && typeof error === "object" && "code" in error && error.code === "P2002")) throw error;
+    return { ok: false as const, message: "Un compte existe deja avec cette adresse email." };
+  }
+  if (!user) return { ok: false as const, message: "Invitation invalide, expiree ou deja utilisee. Verifie aussi ton email et ton etablissement." };
 
   await writeSessionCookie(user);
 
@@ -255,6 +268,10 @@ export async function loginUser(input: { email: string; password: string }) {
       ok: false as const,
       message: "Email et mot de passe sont obligatoires."
     };
+  }
+
+  if (!await allowAuthRequest("login", email)) {
+    return { ok: false as const, message: "Trop de tentatives. Reessaie dans 15 minutes." };
   }
 
   const user = await prisma.user.findUnique({
@@ -277,7 +294,8 @@ export async function loginUser(input: { email: string; password: string }) {
 }
 
 export async function requestPasswordReset(emailInput: string) {
-  if (getPasswordResetMode() !== "direct-link") {
+  const mode = getPasswordResetMode();
+  if (mode === "support" || (mode === "email" && !isRecoveryEmailConfigured())) {
     return {
       ok: false as const,
       message: "La reinitialisation par email n'est pas encore disponible. Aucune demande n'a ete envoyee."
@@ -286,12 +304,19 @@ export async function requestPasswordReset(emailInput: string) {
 
   const email = normalizeEmail(emailInput);
 
-  if (!email) {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
     return {
       ok: false as const,
       message: "Merci d'indiquer ton email."
     };
   }
+
+  const genericResult = {
+    ok: true as const,
+    message: "Demande prise en compte. Si un compte correspond, consulte ta messagerie et tes courriers indesirables. Sans email, reessaie plus tard ou contacte le support.",
+    resetToken: null as string | null
+  };
+  if (!await allowAuthRequest("reset", email)) return genericResult;
 
   const user = await prisma.user.findUnique({
     where: { email }
@@ -304,11 +329,7 @@ export async function requestPasswordReset(emailInput: string) {
     const tokenHash = hashPasswordResetToken(rawToken);
     const expiresAt = new Date(Date.now() + PASSWORD_RESET_DURATION_MS);
 
-    await prisma.passwordResetToken.deleteMany({
-      where: { userId: user.id }
-    });
-
-    await prisma.passwordResetToken.create({
+    const record = await prisma.passwordResetToken.create({
       data: {
         userId: user.id,
         tokenHash,
@@ -316,8 +337,20 @@ export async function requestPasswordReset(emailInput: string) {
       }
     });
 
-    resetToken = rawToken;
+    if (mode === "direct-link") {
+      resetToken = rawToken;
+    } else {
+      try {
+        await sendRecoveryEmail(email, rawToken, record.id);
+      } catch {
+        // Do not log addresses/tokens or reveal account existence through the response.
+        console.error("PASSWORD_RESET_EMAIL_FAILED");
+        await prisma.passwordResetToken.deleteMany({ where: { id: record.id } });
+      }
+    }
   }
+
+  if (mode === "email") return genericResult;
 
   return {
     ok: true as const,

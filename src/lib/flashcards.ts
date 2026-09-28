@@ -306,6 +306,7 @@ function getReviewDecision(
   storedStabilityScore: number | null,
   storedDifficultyScore: number | null
 ): ReviewDecision {
+  currentStatus ??= FlashcardStatus.NEW;
   const now = new Date();
   const difficultyBase = clamp(storedDifficultyScore ?? 0.45, 0.18, 0.92);
   const baseStabilityDays = getBaseStabilityDays(
@@ -2156,7 +2157,7 @@ export async function getFlashcardDeckData(deckId: string): Promise<FlashcardDec
     return !state?.nextReviewAt || state.nextReviewAt <= now;
   });
 
-  const reviewCardSource = dueCards[0] ?? deck.flashcards[0] ?? null;
+  const reviewCardSource = dueCards[0] ?? null;
   const reviewCardState = reviewCardSource?.states[0] ?? null;
   const reviewCardLatestReview = reviewCardSource?.reviews[0] ?? null;
   const reviewCardCurrentIntervalDays = reviewCardSource
@@ -2330,11 +2331,12 @@ export async function reviewFlashcard(input: {
     }
   });
 
-  if (!card) {
+  if (!card || ![FlashcardRating.AGAIN, FlashcardRating.HARD, FlashcardRating.MEDIUM, FlashcardRating.EASY].includes(input.rating as "AGAIN" | "HARD" | "MEDIUM" | "EASY")) {
     return;
   }
 
   const existingState = card.states[0] ?? null;
+  if (existingState?.nextReviewAt && existingState.nextReviewAt > new Date()) return;
   const latestReview = card.reviews[0] ?? null;
   const currentIntervalDays =
     latestReview?.intervalDays ??
@@ -2350,49 +2352,36 @@ export async function reviewFlashcard(input: {
     existingState?.difficultyScore ?? null
   );
 
+  try {
   await prisma.$transaction(async (tx) => {
+    const data = {
+        status: decision.status,
+        lastReviewAt: new Date(),
+        nextReviewAt: decision.nextReviewAt,
+        repetitionCount: decision.repetitionCount,
+        lapseCount: decision.lapseCount,
+        easeScore: decision.easeScore,
+        stabilityScore: decision.stabilityScore,
+        difficultyScore: decision.difficultyScore
+    };
+    if (existingState) {
+      const claimed = await tx.flashcardState.updateMany({
+        where: { id: existingState.id, lastReviewAt: existingState.lastReviewAt, nextReviewAt: existingState.nextReviewAt }, data
+      });
+      if (claimed.count !== 1) return;
+    } else {
+      await tx.flashcardState.create({ data: { ...data, flashcardId: card.id, userId: user.id } });
+    }
     await tx.flashcardReview.create({
       data: {
-        flashcardId: card.id,
-        userId: user.id,
-        rating: input.rating,
-        reviewedAt: new Date(),
-        nextReviewAt: decision.nextReviewAt,
-        stabilityScore: decision.stabilityScore,
-        difficultyScore: decision.difficultyScore,
+        flashcardId: card.id, userId: user.id, rating: input.rating,
+        reviewedAt: data.lastReviewAt, nextReviewAt: decision.nextReviewAt,
+        stabilityScore: decision.stabilityScore, difficultyScore: decision.difficultyScore,
         intervalDays: decision.intervalDays
       }
     });
-
-    await tx.flashcardState.upsert({
-      where: {
-        flashcardId_userId: {
-          flashcardId: card.id,
-          userId: user.id
-        }
-      },
-      update: {
-        status: decision.status,
-        lastReviewAt: new Date(),
-        nextReviewAt: decision.nextReviewAt,
-        repetitionCount: decision.repetitionCount,
-        lapseCount: decision.lapseCount,
-        easeScore: decision.easeScore,
-        stabilityScore: decision.stabilityScore,
-        difficultyScore: decision.difficultyScore
-      },
-      create: {
-        flashcardId: card.id,
-        userId: user.id,
-        status: decision.status,
-        lastReviewAt: new Date(),
-        nextReviewAt: decision.nextReviewAt,
-        repetitionCount: decision.repetitionCount,
-        lapseCount: decision.lapseCount,
-        easeScore: decision.easeScore,
-        stabilityScore: decision.stabilityScore,
-        difficultyScore: decision.difficultyScore
-      }
-    });
   });
+  } catch (error) {
+    if (!(error && typeof error === "object" && "code" in error && error.code === "P2002")) throw error;
+  }
 }

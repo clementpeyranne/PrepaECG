@@ -8,6 +8,7 @@ import { getCurrentUser, getUserLandingPath } from "@/lib/auth";
 import { DEFAULT_CLASS_ACCESS_CODE } from "@/lib/reference-data";
 
 export const dynamic = "force-dynamic";
+export const metadata = { robots: { index: false, follow: false }, referrer: "no-referrer" as const };
 
 export default async function SignupPage({
   searchParams
@@ -22,7 +23,11 @@ export default async function SignupPage({
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const message =
     typeof resolvedSearchParams.message === "string" ? resolvedSearchParams.message : null;
-  const defaultAccessCode = isDemoModeEnabled() ? DEFAULT_CLASS_ACCESS_CODE : "";
+  const invitation = typeof resolvedSearchParams.invitation === "string" && /^[a-f0-9]{64}$/.test(resolvedSearchParams.invitation)
+    ? resolvedSearchParams.invitation : "";
+  const invitedEmail = invitation && typeof resolvedSearchParams.email === "string" ? resolvedSearchParams.email : "";
+  const defaultAccessCode = invitation && typeof resolvedSearchParams.accessCode === "string"
+    ? resolvedSearchParams.accessCode : isDemoModeEnabled() ? DEFAULT_CLASS_ACCESS_CODE : "";
 
   return (
     <main className="bg-app-gradient">
@@ -66,6 +71,9 @@ export default async function SignupPage({
                 <input
                   type="email"
                   name="email"
+                  required
+                  defaultValue={invitedEmail}
+                  autoComplete="email"
                   className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm outline-none transition focus:border-pine"
                 />
               </label>
@@ -75,6 +83,9 @@ export default async function SignupPage({
                 <input
                   type="password"
                   name="password"
+                  minLength={8}
+                  required
+                  autoComplete="new-password"
                   className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm outline-none transition focus:border-pine"
                 />
               </label>
@@ -83,7 +94,7 @@ export default async function SignupPage({
                 <span className="mb-2 block text-sm font-medium text-pine/80">Je suis</span>
                 <select
                   name="role"
-                  defaultValue="student"
+                  defaultValue={invitation ? "teacher" : "student"}
                   className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm outline-none transition focus:border-pine"
                 >
                   <option value="student">Eleve</option>
@@ -102,6 +113,15 @@ export default async function SignupPage({
                   className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm uppercase outline-none transition focus:border-pine"
                 />
               </label>
+
+              <details open={Boolean(invitation)} className="text-sm text-pine/80">
+                <summary className="cursor-pointer font-medium">Invitation professeur</summary>
+                <label className="mt-3 block">
+                  <span className="mb-2 block">Code personnel, reserve aux professeurs</span>
+                  <input name="invitationToken" defaultValue={invitation} autoComplete="off"
+                    className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm" />
+                </label>
+              </details>
 
               <button
                 type="submit"
@@ -149,7 +169,7 @@ export default async function SignupPage({
               <p>2. Les ressources restent visibles dans cet environnement</p>
               <p>3. Les copies sont adressees aux professeurs de cette meme prepa</p>
               {isDemoModeEnabled() ? null : (
-                <p>4. Au tout premier lancement, le premier code saisi initialise l&apos;etablissement</p>
+                <p>4. Les professeurs rejoignent la prepa sur invitation personnelle</p>
               )}
             </div>
           </section>
