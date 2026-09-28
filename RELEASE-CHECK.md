@@ -3,7 +3,7 @@
 ## Controles effectues
 
 - 11 tests de securite reussis : sessions, recuperation, liens a usage unique, cache prive.
-- 17 scenarios de parcours reussis sur SQLite isole : invitations professeurs, deux prepas, connexion, PDF/photos, corrections, doublons, flashcards et progression.
+- 20 scenarios de parcours reussis sur SQLite isole : invitations professeurs, deux prepas, connexion, PDF/photos, corrections, doublons, flashcards et progression. Les trois scenarios planning verifient aussi la conservation de tous les blocs, l'annulation, l'absence de doublon et le temps reporte au tableau de bord.
 - Recette HTTP du vrai serveur Next reussie : connexion eleve/professeur, ressources isolees, pages professeur, recuperation indisponible explicite, refus d'origine etrangere.
 - Build optimise et verification TypeScript reussis. Lint non execute par le build.
 - Installation reproductible avec npm ci ; npm audit : aucune vulnerabilite signalee au moment du controle. Cela ne constitue pas un audit exhaustif du code.
@@ -23,6 +23,7 @@ Le push automatique n'a pas pu s'authentifier a GitHub. Apres git push origin ma
 - Renseigner une adresse de support et les informations legales reelles.
 - Verifier la legitimite des comptes professeurs deja existants. Les nouvelles inscriptions exigent une invitation personnelle liee a l'email et a l'etablissement ; les anciens comptes ne sont pas modifies.
 - Recette navigateur sur ordinateur et iPhone : inscription invitee, connexion, depot, ouverture du document, retour professeur, lecture par l'eleve et revision. Le lancement automatise de Chrome est bloque par les permissions de l'environnement ; aucune validation visuelle n'est revendiquee.
+- Le planning dispose des vues semaine/jour et de la validation sur chaque ligne de la vue jour. Le script tests/planning-browser.mjs prepare la recette navigation, validation, annulation et largeur mobile sur la base jetable ; son execution navigateur reste bloquee dans cet environnement.
 - Rejouer ces parcours sur PostgreSQL avec des comptes de recette dedies apres deploiement. Les tests automatisees de parcours utilisent SQLite, pas la base de production.
 - Adapter et tester l'import Anki volumineux sur Vercel : le parcours utilise encore des outils systeme et des fichiers locaux, contrairement aux nouveaux depots PDF/photos directs. Ne pas le presenter comme valide en production.
 - Prevoir le nettoyage des fichiers cloud abandonnes avant enregistrement et un test de charge. Ni la charge simultanee ni toutes les tailles de fichier ne sont validees.

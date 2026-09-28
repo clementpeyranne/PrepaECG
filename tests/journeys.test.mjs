@@ -28,6 +28,7 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
   let uploadPath;
   const mocks = {
     react: { cache: (fn) => fn }, "./db": { prisma: db },
+    "@/lib/db": { prisma: db }, "next/cache": { revalidatePath: () => {} },
     "next/headers": {
       headers: async () => new Headers(),
       cookies: async () => ({
@@ -121,6 +122,53 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
       assert.equal((await auth.loginUser({ email: student.email, password: "wrong" })).ok, false);
       assert.equal((await auth.loginUser({ email: student.email, password: "test-password-123" })).ok, true);
       assert.equal((await auth.getCurrentUser()).id, student.id); sessions.set(student.id, cookie);
+    });
+
+    const planning = load("src/lib/student-app.ts");
+    const planningActions = load("src/app/(student)/planning/actions.ts");
+    const blockForm = (id) => { const form = new FormData(); form.set("entryId", id); form.set("plannedDurationMin", "9999"); return form; };
+    let initialDay;
+    await t.test("planning: valider un bloc conserve la journee entiere et les autres jours", async () => {
+      use(student);
+      await db.studentProfile.create({ data: { userId: student.id, classId: prepA.id, prepYear: 1, targetExams: { bceSchools: ["HEC"], ecricomeSchools: [] } } });
+      const before = await planning.getStudentPlanningData();
+      initialDay = before.todayPlan;
+      assert.equal(before.week.length, 7);
+      assert.ok(initialDay.entries.length > 1);
+      await planningActions.markPlanningSessionDone(blockForm(initialDay.entries[0].id));
+      const after = await planning.getStudentPlanningData();
+      assert.deepEqual(after.todayPlan.entries.map((entry) => entry.id), initialDay.entries.map((entry) => entry.id));
+      assert.equal(after.todayPlan.entries[0].status, "COMPLETED");
+      assert.ok(after.todayPlan.entries.every((entry) => entry.persisted));
+      assert.ok(after.todayPlan.entries.slice(1).every((entry) => entry.status === "PLANNED"));
+      assert.deepEqual(after.week.filter((day) => !day.isToday), before.week.filter((day) => !day.isToday));
+      const saved = await db.studySession.findUnique({ where: { id: initialDay.entries[0].id } });
+      assert.equal(saved.actualDurationMin, initialDay.entries[0].duration, "La duree vient du planning serveur, pas du formulaire");
+    });
+    await t.test("planning: nouvelle validation sans doublon, autre bloc puis annulation persistante", async () => {
+      await planningActions.markPlanningSessionDone(blockForm(initialDay.entries[0].id));
+      await planningActions.markPlanningSessionDone(blockForm(initialDay.entries[1].id));
+      assert.equal(await db.studySession.count({ where: { studentId: student.id } }), initialDay.entries.length);
+      await planningActions.markPlanningSessionPlanned(blockForm(initialDay.entries[0].id));
+      const after = await planning.getStudentPlanningData();
+      assert.equal(after.todayPlan.entries[0].status, "PLANNED");
+      assert.equal(after.todayPlan.entries[1].status, "COMPLETED");
+      assert.equal((await db.studySession.findUnique({ where: { id: initialDay.entries[0].id } })).actualDurationMin, null);
+      const dashboard = await planning.getStudentDashboardData();
+      assert.equal(dashboard.anonymousRanking.windows.find((window) => window.id === "today").userMinutes, initialDay.entries[1].duration);
+    });
+    await t.test("planning: un autre jour peut etre valide sans modifier aujourd'hui ni un autre compte", async () => {
+      const before = await planning.getStudentPlanningData();
+      const anotherDay = before.week.find((day) => !day.isToday);
+      await planningActions.markPlanningSessionDone(blockForm(anotherDay.entries[0].id));
+      const after = await planning.getStudentPlanningData();
+      assert.deepEqual(after.todayPlan, before.todayPlan);
+      assert.equal(after.week.find((day) => day.dateLabel === anotherDay.dateLabel).entries[0].status, "COMPLETED");
+      use(studentB);
+      await assert.rejects(planningActions.markPlanningSessionDone(blockForm(initialDay.entries[0].id)), /PLANNING_ENTRY_UNAVAILABLE/);
+      assert.equal(await db.studySession.count({ where: { studentId: studentB.id } }), 0);
+      use(student);
+      await assert.rejects(planningActions.markPlanningSessionDone(blockForm("unknown")), /PLANNING_ENTRY_UNAVAILABLE/);
     });
 
     const resourceInput = () => ({ title: "Cours ESH", subjectCode: "ESH", chapterId: chapter.id, resourceType: "COURSE", description: "", content: "", file: pdf, aiEnabled: false, submissionKey: "resource-1" });

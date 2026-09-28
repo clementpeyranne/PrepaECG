@@ -25,6 +25,16 @@ for (const [email, password, expectedCourse] of [
   assert.equal(response.status, 200);
   assert.equal((await response.text()).includes("Cours ESH"), expectedCourse);
   console.log(`PASS: connexion serveur et isolation des ressources pour ${email}`);
+  if (expectedCourse) {
+    const planning = await fetch(`${base}/planning`, { headers: { Cookie: cookie } });
+    assert.equal(planning.status, 200);
+    const html = await planning.text();
+    assert.ok(html.includes("Mon emploi du temps"));
+    assert.ok(html.includes("Affichage du planning"));
+    assert.equal((html.match(/<button[^>]+aria-label="Afficher /g) || []).length, 7);
+    assert.ok(!html.includes("Blocs de la journee"));
+    console.log("PASS: planning HTTP 200, selecteur de vue, sept jours et ancien panneau retire");
+  }
 }
 const teacher = await login("teacher@example.test", "test-password-123");
 for (const route of ["/teacher/resources", "/teacher/resources/new", "/teacher/essays"]) {

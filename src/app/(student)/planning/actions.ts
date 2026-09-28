@@ -4,117 +4,58 @@ import { revalidatePath } from "next/cache";
 import { SessionStatus, SessionType } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
-import { ensureDemoStudent } from "@/lib/student-app";
-
-function getString(formData: FormData, key: string) {
-  return String(formData.get(key) ?? "").trim();
-}
-
-function getOptionalString(formData: FormData, key: string) {
-  const value = getString(formData, key);
-  return value || null;
-}
-
-function getNumber(formData: FormData, key: string) {
-  const parsed = Number(getString(formData, key));
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function getSessionType(formData: FormData) {
-  const sessionType = getString(formData, "sessionType");
-  if (!Object.values(SessionType).includes(sessionType as SessionType)) {
-    return null;
-  }
-
-  return sessionType as SessionType;
-}
+import { ensureDemoStudent, getStudentPlanningData } from "@/lib/student-app";
 
 async function persistPlanningEntry(formData: FormData, status: SessionStatus) {
   const { user } = await ensureDemoStudent();
-  const sessionId = getString(formData, "sessionId");
-  const duration = getNumber(formData, "plannedDurationMin");
+  const entryId = String(formData.get("entryId") ?? formData.get("sessionId") ?? "").trim();
+  const planning = await getStudentPlanningData();
+  const day = planning.hasProfile ? planning.week.find((day) => day.entries.some((entry) => entry.id === entryId)) : null;
+  const entry = day?.entries.find((entry) => entry.id === entryId);
+  if (!day || !entry) throw new Error("PLANNING_ENTRY_UNAVAILABLE");
 
-  if (sessionId) {
-    await prisma.studySession.updateMany({
-      where: {
-        id: sessionId,
-        studentId: user.id
-      },
-      data: {
-        status,
-        actualDurationMin: status === SessionStatus.COMPLETED ? duration : null
-      }
-    });
-
-    return;
-  }
-
-  const goalText = getString(formData, "goalText");
-  const plannedStartAtRaw = getString(formData, "plannedStartAt");
-  const sessionType = getSessionType(formData);
-
-  if (!goalText || !plannedStartAtRaw || !sessionType || !duration) {
-    return;
-  }
-
-  const plannedStartAt = new Date(plannedStartAtRaw);
-  if (Number.isNaN(plannedStartAt.getTime())) {
-    return;
-  }
-
-  const subjectId = getOptionalString(formData, "subjectId");
-
-  const existingSession = await prisma.studySession.findFirst({
-    where: {
-      studentId: user.id,
-      plannedStartAt,
-      goalText,
-      sessionType
-    },
-    select: {
-      id: true
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await prisma.$transaction(async (tx) => {
+        // Freeze the whole suggested day before changing one block. Stable IDs make retries safe.
+        for (const block of day.entries.filter((block) => !block.persisted)) {
+          await tx.studySession.upsert({
+            where: { id: block.id },
+            update: {},
+            create: {
+              id: block.id,
+              studentId: user.id,
+              subjectId: block.subjectId,
+              plannedStartAt: block.plannedStartAt ? new Date(block.plannedStartAt) : null,
+              plannedDurationMin: block.duration,
+              sessionType: block.sessionType as SessionType,
+              goalText: block.title,
+              status: SessionStatus.PLANNED,
+              createdByType: "planning"
+            }
+          });
+        }
+        const result = await tx.studySession.updateMany({
+          where: { id: entryId, studentId: user.id },
+          data: { status, actualDurationMin: status === SessionStatus.COMPLETED ? entry.duration : null }
+        });
+        if (result.count !== 1) throw new Error("PLANNING_ENTRY_UNAVAILABLE");
+      });
+      break;
+    } catch (error) {
+      const retryable = error && typeof error === "object" && "code" in error &&
+        (error.code === "P2002" || error.code === "P2034");
+      if (!retryable || attempt === 2) throw error;
     }
-  });
-
-  if (existingSession) {
-    await prisma.studySession.update({
-      where: { id: existingSession.id },
-      data: {
-        status,
-        actualDurationMin: status === SessionStatus.COMPLETED ? duration : null
-      }
-    });
-
-    return;
   }
 
-  await prisma.studySession.create({
-    data: {
-      studentId: user.id,
-      subjectId,
-      plannedStartAt,
-      plannedDurationMin: duration,
-      actualDurationMin: status === SessionStatus.COMPLETED ? duration : null,
-      sessionType,
-      goalText,
-      status,
-      createdByType: "planning"
-    }
-  });
+  for (const path of ["/planning", "/dashboard", "/progress", "/assistant"]) revalidatePath(path);
 }
 
 export async function markPlanningSessionDone(formData: FormData) {
   await persistPlanningEntry(formData, SessionStatus.COMPLETED);
-
-  revalidatePath("/planning");
-  revalidatePath("/dashboard");
-  revalidatePath("/assistant");
 }
 
 export async function markPlanningSessionPlanned(formData: FormData) {
   await persistPlanningEntry(formData, SessionStatus.PLANNED);
-
-  revalidatePath("/planning");
-  revalidatePath("/dashboard");
-  revalidatePath("/assistant");
 }

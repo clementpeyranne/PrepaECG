@@ -1,5 +1,6 @@
 import { Prisma, SessionStatus, SessionType, UserRole } from "@prisma/client";
 import { cache } from "react";
+import { createHash } from "node:crypto";
 
 import { getCurrentUserClass, requireRole } from "./auth";
 import { generateAssistantSnapshot, getAIStatusMeta } from "./ai";
@@ -1363,7 +1364,7 @@ export async function getStudentPlanningData() {
       const slotTime = new Date(firstStart.getTime() + offsetMinutes * 60_000);
 
       return {
-        id: `${date.toISOString()}-${sessionIndex}`,
+        id: `planning-${createHash("sha256").update(`${user.id}:${date.toISOString()}:${sessionIndex}`).digest("hex")}`,
         time: slotTime.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
         plannedStartAt: slotTime.toISOString(),
         subjectId: subject?.id ?? null,
