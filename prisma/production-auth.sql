@@ -24,4 +24,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS "Resource_submissionKey_key" ON "Resource"("su
 ALTER TABLE "Essay" ADD COLUMN IF NOT EXISTS "deduplicationKey" TEXT;
 CREATE UNIQUE INDEX IF NOT EXISTS "Essay_deduplicationKey_key" ON "Essay"("deduplicationKey");
 ALTER TABLE "Essay" ADD COLUMN IF NOT EXISTS "instructions" TEXT;
+ALTER TABLE "Essay" ADD COLUMN IF NOT EXISTS "planningEntryId" TEXT;
+CREATE INDEX IF NOT EXISTS "Essay_studentId_planningEntryId_idx" ON "Essay"("studentId", "planningEntryId");
+ALTER TABLE "FlashcardReview" ADD COLUMN IF NOT EXISTS "planningEntryId" TEXT;
+CREATE INDEX IF NOT EXISTS "FlashcardReview_userId_planningEntryId_idx" ON "FlashcardReview"("userId", "planningEntryId");
 COMMIT;

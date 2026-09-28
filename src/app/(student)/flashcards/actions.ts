@@ -76,7 +76,8 @@ export async function reviewCardAction(formData: FormData) {
   await reviewFlashcard({
     cardId,
     deckId,
-    rating
+    rating,
+    planningEntryId: getString(formData, "planningEntryId")
   });
 
   revalidatePath("/flashcards");

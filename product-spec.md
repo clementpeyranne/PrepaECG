@@ -392,3 +392,19 @@ La meilleure suite est de choisir un point d'entree ultra-fort, par exemple :
 4. copies + correction assistee.
 
 Mon conseil : commencer par le couple "planning intelligent + flashcards + suivi des lacunes", car c'est la boucle d'usage la plus quotidienne, la plus defensible et la plus facile a rendre vraiment utile.
+
+## 11. Catalogue des taches du planning
+
+Les noms generiques des blocs sont provisoires. Avant de rendre le planning reellement prescriptif, construire un catalogue de taches precises par matiere, chapitre, niveau et type d'epreuve.
+
+Chaque tache devra indiquer :
+
+- un objectif observable et une consigne concrete ;
+- la matiere, le chapitre et la competence travaillee ;
+- une duree realiste et le support necessaire ;
+- la preuve attendue : copie, exercice, flashcards revisees ou simple validation ;
+- les prerequis et le niveau de difficulte ;
+- les concours et ecoles auxquels elle est utile ;
+- les conditions qui permettent a l'IA de la proposer ou de la reproposer.
+
+Le catalogue sera construit matiere par matiere avec des professeurs avant de remplacer les titres actuels dans le planning.

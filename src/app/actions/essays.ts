@@ -31,6 +31,7 @@ export async function createEssaySubmissionAction(formData: FormData) {
     targetExam: getString(formData, "targetExam"),
     correctionMode: getString(formData, "correctionMode"),
     instructions: getString(formData, "instructions"),
+    planningEntryId: getString(formData, "planningEntryId"),
     uploadReceipt: getString(formData, "uploadReceipt"),
     file: maybeFile instanceof File ? maybeFile : null
   });
@@ -41,12 +42,13 @@ export async function createEssaySubmissionAction(formData: FormData) {
   revalidatePath("/planning");
   revalidatePath("/assistant");
 
-  if (result.status === "created") {
-    redirect("/essays/new?status=submitted");
-  }
+  const planningEntryId = getString(formData, "planningEntryId");
+  const planningQuery = planningEntryId ? `&planningEntryId=${encodeURIComponent(planningEntryId)}` : "";
+
+  if (result.status === "created") redirect(`/essays/new?status=submitted${planningQuery}`);
 
   if (result.status === "already_exists") {
-    redirect("/essays/new?status=already_submitted");
+    redirect(`/essays/new?status=already_submitted${planningQuery}`);
   }
 
   redirect("/essays/new?status=invalid");

@@ -31,7 +31,6 @@ export default async function DashboardPage() {
 
       <div className="grid gap-5 xl:grid-cols-[1.4fr_1fr]">
         <SectionCard
-          eyebrow="Classement anonyme"
           title={data.anonymousRanking.title}
           accent="dark"
         >

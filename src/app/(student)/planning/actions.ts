@@ -6,13 +6,26 @@ import { SessionStatus, SessionType } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { ensureDemoStudent, getStudentPlanningData } from "@/lib/student-app";
 
-async function persistPlanningEntry(formData: FormData, status: SessionStatus) {
+export type PlanningActionResult =
+  | { ok: true }
+  | { ok: false; reason: "missing_copy" | "flashcards_required" | "unavailable" };
+
+async function persistPlanningEntry(formData: FormData, status: SessionStatus): Promise<PlanningActionResult> {
   const { user } = await ensureDemoStudent();
   const entryId = String(formData.get("entryId") ?? formData.get("sessionId") ?? "").trim();
   const planning = await getStudentPlanningData();
   const day = planning.hasProfile ? planning.week.find((day) => day.entries.some((entry) => entry.id === entryId)) : null;
   const entry = day?.entries.find((entry) => entry.id === entryId);
-  if (!day || !entry) throw new Error("PLANNING_ENTRY_UNAVAILABLE");
+  if (!day || !entry) return { ok: false, reason: "unavailable" };
+
+  if (status === SessionStatus.COMPLETED) {
+    if (entry.requiresFlashcards && !entry.hasFlashcardReview) {
+      return { ok: false, reason: "flashcards_required" };
+    }
+    if (entry.requiresSubmission && !entry.hasSubmission && formData.get("confirmMissingSubmission") !== "yes") {
+      return { ok: false, reason: "missing_copy" };
+    }
+  }
 
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
@@ -50,12 +63,13 @@ async function persistPlanningEntry(formData: FormData, status: SessionStatus) {
   }
 
   for (const path of ["/planning", "/dashboard", "/progress", "/assistant"]) revalidatePath(path);
+  return { ok: true };
 }
 
 export async function markPlanningSessionDone(formData: FormData) {
-  await persistPlanningEntry(formData, SessionStatus.COMPLETED);
+  return persistPlanningEntry(formData, SessionStatus.COMPLETED);
 }
 
 export async function markPlanningSessionPlanned(formData: FormData) {
-  await persistPlanningEntry(formData, SessionStatus.PLANNED);
+  return persistPlanningEntry(formData, SessionStatus.PLANNED);
 }

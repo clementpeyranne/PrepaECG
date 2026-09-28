@@ -26,15 +26,11 @@ export default async function ProgressPage() {
 
       <div className="mt-5">
         <ProgressDashboard
-          profile={data.profile}
-          summaryCards={data.summaryCards}
           subjectCharts={data.subjectCharts}
           gradeFormSubjects={data.gradeFormSubjects}
-          averageCardsBase={data.averageCardsBase}
           grades={data.grades}
           categories={data.categories}
           visualReading={data.visualReading}
-          essayProgress={data.essayProgress}
         />
       </div>
     </div>

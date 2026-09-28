@@ -2308,6 +2308,7 @@ export async function reviewFlashcard(input: {
   cardId: string;
   deckId: string;
   rating: FlashcardRating;
+  planningEntryId?: string;
 }) {
   const { user } = await ensureDemoFlashcards();
 
@@ -2351,6 +2352,9 @@ export async function reviewFlashcard(input: {
     existingState?.stabilityScore ?? null,
     existingState?.difficultyScore ?? null
   );
+  const planningEntryId = input.planningEntryId && /^[a-zA-Z0-9_-]{1,100}$/.test(input.planningEntryId)
+    ? input.planningEntryId
+    : null;
 
   try {
   await prisma.$transaction(async (tx) => {
@@ -2377,7 +2381,7 @@ export async function reviewFlashcard(input: {
         flashcardId: card.id, userId: user.id, rating: input.rating,
         reviewedAt: data.lastReviewAt, nextReviewAt: decision.nextReviewAt,
         stabilityScore: decision.stabilityScore, difficultyScore: decision.difficultyScore,
-        intervalDays: decision.intervalDays
+        intervalDays: decision.intervalDays, planningEntryId
       }
     });
   });

@@ -10,11 +10,18 @@ import { SectionCard } from "@/components/ui/section-card";
 import { getFlashcardDeckData } from "@/lib/flashcards";
 
 export default async function DeckDetailPage({
-  params
+  params,
+  searchParams
 }: {
   params: Promise<{ deckId: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { deckId } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const planningEntryId =
+    typeof resolvedSearchParams.planningEntryId === "string" && /^[a-zA-Z0-9_-]{1,100}$/.test(resolvedSearchParams.planningEntryId)
+      ? resolvedSearchParams.planningEntryId
+      : "";
   const data = await getFlashcardDeckData(deckId);
 
   if (!data) {
@@ -31,6 +38,7 @@ export default async function DeckDetailPage({
           deckId={data.deck.id}
           card={data.reviewCard}
           reviewOptions={data.reviewOptions}
+          planningEntryId={planningEntryId}
         />
 
         <SectionCard

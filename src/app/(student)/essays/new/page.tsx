@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { randomUUID } from "node:crypto";
+import Link from "next/link";
 
 import { PageHeader } from "@/components/ui/page-header";
 import { SectionCard } from "@/components/ui/section-card";
@@ -44,6 +45,10 @@ export default async function NewEssayPage({
   const data = await getEssaySubmissionFormData();
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const status = typeof resolvedSearchParams.status === "string" ? resolvedSearchParams.status : null;
+  const planningEntryId =
+    typeof resolvedSearchParams.planningEntryId === "string" && /^[a-zA-Z0-9_-]{1,100}$/.test(resolvedSearchParams.planningEntryId)
+      ? resolvedSearchParams.planningEntryId
+      : "";
   const message = getSubmissionMessage(status);
   const submissionKey = randomUUID();
   const aiEnabled = isDemoModeEnabled() || Boolean(process.env.OPENAI_API_KEY?.trim());
@@ -65,11 +70,15 @@ export default async function NewEssayPage({
             }`}
           >
             {message.text}
+            {planningEntryId && (status === "submitted" || status === "already_submitted") ? (
+              <Link href="/planning" className="ml-2 font-semibold underline underline-offset-4">Retour au planning</Link>
+            ) : null}
           </div>
         ) : null}
 
         <DocumentUploadForm action={createEssaySubmissionAction} folder="essays" cloud={getFileStorageDriver() === "supabase"}>
           <input type="hidden" name="submissionKey" value={submissionKey} />
+          <input type="hidden" name="planningEntryId" value={planningEntryId} />
           <div className="grid gap-4 lg:grid-cols-2">
             <label className="rounded-[22px] bg-sand p-4">
               <span className="text-sm font-semibold">Titre</span>

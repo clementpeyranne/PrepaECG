@@ -34,6 +34,18 @@ for (const [email, password, expectedCourse] of [
     assert.equal((html.match(/<button[^>]+aria-label="Afficher /g) || []).length, 7);
     assert.ok(!html.includes("Blocs de la journee"));
     console.log("PASS: planning HTTP 200, selecteur de vue, sept jours et ancien panneau retire");
+
+    const dashboard = await fetch(`${base}/dashboard`, { headers: { Cookie: cookie } });
+    assert.equal(dashboard.status, 200);
+    const dashboardHtml = await dashboard.text();
+    assert.equal((dashboardHtml.match(/Classement anonyme/g) || []).length, 1);
+
+    const progress = await fetch(`${base}/progress`, { headers: { Cookie: cookie } });
+    assert.equal(progress.status, 200);
+    const progressHtml = await progress.text();
+    assert.ok(!progressHtml.includes("Retours les plus utiles"));
+    assert.ok(!progressHtml.includes(">Signal<"));
+    console.log("PASS: classement unique et anciens panneaux de progression retires");
   }
 }
 const teacher = await login("teacher@example.test", "test-password-123");

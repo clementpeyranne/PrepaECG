@@ -307,8 +307,11 @@ model FlashcardReview {
   stabilityScore  Float?
   difficultyScore Float?
   intervalDays    Float?
+  planningEntryId String?
   flashcard       Flashcard       @relation(fields: [flashcardId], references: [id], onDelete: Cascade)
   user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, planningEntryId])
 }
 
 model FlashcardState {
@@ -390,6 +393,7 @@ model Essay {
   id             String          @id @default(cuid())
   deduplicationKey String?        @unique
   instructions   String?
+  planningEntryId String?
   studentId      String
   teacherId      String?
   subjectId      String
@@ -409,6 +413,8 @@ model Essay {
   subject        Subject         @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   chapter        Chapter?        @relation(fields: [chapterId], references: [id], onDelete: SetNull)
   feedbacks      EssayFeedback[]
+
+  @@index([studentId, planningEntryId])
 }
 
 model GradingRubric {

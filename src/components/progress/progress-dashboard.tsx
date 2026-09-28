@@ -6,15 +6,6 @@ import { createGradeAction } from "@/app/actions/progress";
 import { SectionCard } from "@/components/ui/section-card";
 
 type ProgressDashboardProps = {
-  profile: {
-    className: string;
-    targetExamSummary: string;
-  };
-  summaryCards: Array<{
-    label: string;
-    value: string;
-    helper: string;
-  }>;
   subjectCharts: Array<{
     subject: string;
     status: string;
@@ -31,18 +22,6 @@ type ProgressDashboardProps = {
     code: string;
     name: string;
   }>;
-  averageCardsBase: {
-    strongestSubject: {
-      label: string;
-      average: number | null;
-    } | null;
-    weakestSubject: {
-      label: string;
-      average: number | null;
-    } | null;
-    correctedEssaysCount: number;
-    averageEssayScore: number | null;
-  };
   grades: Array<{
     id: string;
     title: string;
@@ -61,15 +40,6 @@ type ProgressDashboardProps = {
     watchAreas: string[];
     consolidateAreas: string[];
   };
-  essayProgress: Array<{
-    id: string;
-    title: string;
-    subject: string;
-    status: string;
-    scoreLabel: string;
-    summary: string;
-    nextStep: string;
-  }>;
 };
 
 function MiniLineChart({
@@ -139,15 +109,11 @@ function MiniLineChart({
 }
 
 export function ProgressDashboard({
-  profile,
-  summaryCards,
   subjectCharts,
   gradeFormSubjects,
-  averageCardsBase,
   grades,
   categories,
-  visualReading,
-  essayProgress
+  visualReading
 }: ProgressDashboardProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>(categories[0] ?? "Semestre 1");
   const [expandedGradeId, setExpandedGradeId] = useState<string | null>(null);
@@ -168,28 +134,11 @@ export function ProgressDashboard({
     return filteredGrades.reduce((sum, grade) => sum + grade.score, 0) / filteredGrades.length;
   }, [filteredGrades]);
 
-  const averageSummaryCards = [
-    {
-      label: `Moyenne ${selectedCategory.toLowerCase()}`,
-      value: selectedAverage !== null ? `${selectedAverage.toFixed(1)}/20` : "--",
-      helper: `${filteredGrades.length} note(s) dans cette categorie`
-    },
-    ...summaryCards
-  ];
-
   const defaultDate = new Date().toISOString().slice(0, 10);
 
   return (
     <div>
-      <div className="grid gap-5 lg:grid-cols-4">
-        {averageSummaryCards.map((card) => (
-          <SectionCard key={card.label} eyebrow="Signal" title={card.value}>
-            <div className="rounded-2xl bg-sand p-4 text-sm leading-7 text-pine/78">{card.helper}</div>
-          </SectionCard>
-        ))}
-      </div>
-
-      <div className="mt-5 grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+      <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
         <SectionCard
           eyebrow="Notes"
           title="Evolution par matiere"
@@ -235,6 +184,15 @@ export function ProgressDashboard({
             title="Quelle moyenne afficher ?"
             accent="soft"
           >
+            <div className="mb-4 flex items-end justify-between gap-4 rounded-2xl bg-sand p-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-pine/55">Moyenne selectionnee</p>
+                <p className="mt-2 font-display text-3xl text-ink">
+                  {selectedAverage !== null ? `${selectedAverage.toFixed(1)}/20` : "--"}
+                </p>
+              </div>
+              <p className="text-right text-sm text-pine/70">{filteredGrades.length} note(s)</p>
+            </div>
             <div className="flex flex-wrap gap-3">
               {categories.map((category) => (
                 <button
@@ -418,25 +376,6 @@ export function ProgressDashboard({
         </SectionCard>
       </div>
 
-      <div className="mt-5">
-        <SectionCard
-          eyebrow="Copies"
-          title="Retours les plus utiles"
-        >
-          <div className="grid gap-4 lg:grid-cols-3">
-            {essayProgress.map((essay) => (
-              <div key={essay.id} className="rounded-2xl border border-ink/8 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-semibold text-ink">{essay.title}</p>
-                  <span className="text-sm font-semibold text-clay">{essay.scoreLabel}</span>
-                </div>
-                <p className="mt-2 text-sm text-pine/75">{essay.subject}</p>
-                <p className="mt-3 text-sm leading-7 text-pine/80">{essay.nextStep}</p>
-              </div>
-            ))}
-          </div>
-        </SectionCard>
-      </div>
     </div>
   );
 }

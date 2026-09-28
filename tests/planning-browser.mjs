@@ -21,10 +21,16 @@ try {
   await expect(page.getByRole("group", { name: "Choisir une journee" }).getByRole("button")).toHaveCount(7);
   const selectedDay = page.getByRole("group", { name: "Choisir une journee" }).locator('[aria-pressed="true"]');
   const dayLabel = await selectedDay.textContent();
-  const validate = page.getByRole("button", { name: /^Valider / }).first();
-  const label = await validate.getAttribute("aria-label");
+  const validate = page.getByRole("button", { name: "Valider", exact: true }).first();
+  await expect(page.getByRole("link", { name: "Deposer une copie", exact: true }).first()).toBeVisible();
   await validate.click();
-  const undoLabel = label.replace(/^Valider /, "Annuler la validation de ");
+  await expect(page.getByText("Attention : copie non deposee.", { exact: true }).first()).toBeVisible();
+  const validateAnyway = page.getByRole("button", { name: /^Valider quand meme / }).first();
+  const forcedLabel = await validateAnyway.getAttribute("aria-label");
+  await validateAnyway.click();
+  const title = forcedLabel.replace(/^Valider quand meme /, "");
+  const label = `Valider ${title}`;
+  const undoLabel = `Annuler la validation de ${title}`;
   await expect(page.getByRole("button", { name: undoLabel, exact: true })).toBeVisible();
   await expect(selectedDay).toHaveText(dayLabel);
   await page.reload();
@@ -44,7 +50,7 @@ try {
   await expect(page.getByRole("button", { name: "Jour", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByRole("button", { name: "Jour suivant", exact: true })).toBeDisabled();
   expect(errors).toEqual([]);
-  console.log("PASS: semaine/jour, navigation, validation, rechargement, annulation et largeur mobile");
+  console.log("PASS: semaine/jour, avertissement copie, validation, rechargement, annulation et largeur mobile");
 } finally {
   await browser.close();
 }

@@ -344,6 +344,7 @@ export async function createEssaySubmission(input: {
   targetExam: string;
   correctionMode: string;
   instructions: string;
+  planningEntryId?: string;
   file: File | null;
   uploadReceipt?: string;
 }): Promise<EssaySubmissionResult> {
@@ -370,6 +371,9 @@ export async function createEssaySubmission(input: {
   }
 
   const submissionKey = createHash("sha256").update(`${user.id}:${input.submissionKey}`).digest("hex");
+  const planningEntryId = input.planningEntryId && /^[a-zA-Z0-9_-]{1,100}$/.test(input.planningEntryId)
+    ? input.planningEntryId
+    : null;
   const teacherId = input.correctionMode === "ai_only" ? null : teacher!.id;
   const existingBySubmissionKey = await prisma.essay.findUnique({
     where: {
@@ -427,6 +431,7 @@ export async function createEssaySubmission(input: {
         submissionKey,
         deduplicationKey,
         instructions: input.instructions.trim().slice(0, 5000) || null,
+        planningEntryId,
         contentHash,
         title: normalizedTitle,
         examType: normalizedExamType,

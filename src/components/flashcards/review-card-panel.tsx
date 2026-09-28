@@ -21,9 +21,10 @@ type ReviewCardPanelProps = {
     label: string;
     nextReviewLabel: string;
   }>;
+  planningEntryId?: string;
 };
 
-export function ReviewCardPanel({ deckId, card, reviewOptions }: ReviewCardPanelProps) {
+export function ReviewCardPanel({ deckId, card, reviewOptions, planningEntryId = "" }: ReviewCardPanelProps) {
   const [showAnswer, setShowAnswer] = useState(false);
 
   useEffect(() => {
@@ -77,6 +78,7 @@ export function ReviewCardPanel({ deckId, card, reviewOptions }: ReviewCardPanel
           <form action={reviewCardAction} className="space-y-4">
             <input type="hidden" name="cardId" value={card.id} />
             <input type="hidden" name="deckId" value={deckId} />
+            <input type="hidden" name="planningEntryId" value={planningEntryId} />
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               {reviewOptions.map((rating) => (
                 <RatingButton

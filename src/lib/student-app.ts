@@ -354,26 +354,6 @@ function getAverageScore(feedbacks: Array<{ scoreMin: number | null; scoreMax: n
   return scored.reduce((sum, score) => sum + score, 0) / scored.length;
 }
 
-function getProgressFeedbackPayload(value: unknown) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return {
-      overview: "Feedback indisponible.",
-      strengths: [] as string[],
-      mistakes: [] as string[],
-      nextSteps: [] as string[]
-    };
-  }
-
-  const payload = value as Record<string, unknown>;
-
-  return {
-    overview: typeof payload.overview === "string" ? payload.overview : "Feedback indisponible.",
-    strengths: Array.isArray(payload.strengths) ? payload.strengths.map(String) : [],
-    mistakes: Array.isArray(payload.mistakes) ? payload.mistakes.map(String) : [],
-    nextSteps: Array.isArray(payload.nextSteps) ? payload.nextSteps.map(String) : []
-  };
-}
-
 function getSemesterLabel(date: Date) {
   const month = date.getMonth() + 1;
   return month >= 9 || month <= 1 ? "Semestre 1" : "Semestre 2";
@@ -1272,7 +1252,7 @@ export async function getStudentPlanningData() {
   };
   const energyProfile = (profile.energyProfile as EnergyProfilePayload | null) ?? null;
 
-  const [sessions, weakPoints, tasks, subjects] = await Promise.all([
+  const [sessions, weakPoints, tasks, subjects, planningEssays, planningReviews] = await Promise.all([
     prisma.studySession.findMany({
       where: { studentId: user.id },
       include: {
@@ -1296,8 +1276,28 @@ export async function getStudentPlanningData() {
     }),
     prisma.subject.findMany({
       orderBy: { name: "asc" }
+    }),
+    prisma.essay.findMany({
+      where: { studentId: user.id, planningEntryId: { not: null } },
+      select: { planningEntryId: true }
+    }),
+    prisma.flashcardReview.findMany({
+      where: { userId: user.id, planningEntryId: { not: null } },
+      select: { planningEntryId: true }
     })
   ]);
+
+  const submittedPlanningEntries = new Set(planningEssays.map((essay) => essay.planningEntryId).filter(Boolean));
+  const reviewedPlanningEntries = new Set(planningReviews.map((review) => review.planningEntryId).filter(Boolean));
+  const getCompletionRequirements = (entryId: string, sessionType: SessionType | string) => ({
+    requiresSubmission:
+      sessionType === SessionType.ESSAY_PRACTICE ||
+      sessionType === SessionType.CHAPTER_REVISION ||
+      sessionType === SessionType.EXERCISE_TRAINING,
+    hasSubmission: submittedPlanningEntries.has(entryId),
+    requiresFlashcards: sessionType === SessionType.FLASHCARDS_REVIEW,
+    hasFlashcardReview: reviewedPlanningEntries.has(entryId)
+  });
 
   const weekdayDailyHours = energyProfile?.weekdayDailyHours ?? 3;
   const weekendDailyHours = energyProfile?.weekendDailyHours ?? 5;
@@ -1348,7 +1348,8 @@ export async function getStudentPlanningData() {
           duration: session.plannedDurationMin,
           status: session.status,
           persisted: true,
-          sessionType: session.sessionType
+          sessionType: session.sessionType,
+          ...getCompletionRequirements(session.id, session.sessionType)
         }))
       };
     }
@@ -1363,8 +1364,16 @@ export async function getStudentPlanningData() {
       const offsetMinutes = sessionIndex * blockMinutes + appliedBreak * sessionIndex;
       const slotTime = new Date(firstStart.getTime() + offsetMinutes * 60_000);
 
+      const entryId = `planning-${createHash("sha256").update(`${user.id}:${date.toISOString()}:${sessionIndex}`).digest("hex")}`;
+      const sessionType =
+        sessionIndex === 0
+          ? SessionType.CHAPTER_REVISION
+          : sessionIndex === 1
+            ? SessionType.FLASHCARDS_REVIEW
+            : SessionType.ESSAY_PRACTICE;
+
       return {
-        id: `planning-${createHash("sha256").update(`${user.id}:${date.toISOString()}:${sessionIndex}`).digest("hex")}`,
+        id: entryId,
         time: slotTime.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
         plannedStartAt: slotTime.toISOString(),
         subjectId: subject?.id ?? null,
@@ -1378,12 +1387,8 @@ export async function getStudentPlanningData() {
         duration: sessionIndex === 1 ? Math.max(20, Math.min(blockMinutes, 35)) : blockMinutes,
         status: "PLANNED",
         persisted: false,
-        sessionType:
-          sessionIndex === 0
-            ? "CHAPTER_REVISION"
-            : sessionIndex === 1
-              ? "FLASHCARDS_REVIEW"
-              : "ESSAY_PRACTICE"
+        sessionType,
+        ...getCompletionRequirements(entryId, sessionType)
       };
     });
 
@@ -1434,10 +1439,7 @@ export async function getStudentProgressData() {
   const { user } = await ensureDemoStudent();
 
   const profile = await prisma.studentProfile.findUnique({
-    where: { userId: user.id },
-    include: {
-      class: true
-    }
+    where: { userId: user.id }
   });
 
   if (!profile) {
@@ -1448,12 +1450,7 @@ export async function getStudentProgressData() {
 
   await ensureDemoGrades(user.id);
 
-  const targetExams = (profile.targetExams as TargetExamsPayload | null) ?? {
-    bceSchools: [],
-    ecricomeSchools: []
-  };
-
-  const [subjects, grades, weakPoints, flashcards, reviews, essays] = await Promise.all([
+  const [subjects, grades, weakPoints, flashcards, essays] = await Promise.all([
     prisma.subject.findMany({
       orderBy: { name: "asc" }
     }),
@@ -1489,27 +1486,6 @@ export async function getStudentProgressData() {
         }
       }
     }),
-    prisma.flashcardReview.findMany({
-      where: {
-        userId: user.id,
-        reviewedAt: {
-          gte: addDays(startOfToday(), -13)
-        }
-      },
-      include: {
-        flashcard: {
-          include: {
-            deck: {
-              include: {
-                subject: true,
-                chapter: true
-              }
-            }
-          }
-        }
-      },
-      orderBy: { reviewedAt: "desc" }
-    }),
     prisma.essay.findMany({
       where: { studentId: user.id },
       include: {
@@ -1522,16 +1498,10 @@ export async function getStudentProgressData() {
     })
   ]);
 
-  const flashcardStates = flashcards.map((card) => card.states[0]).filter(Boolean);
   const dueFlashcards = flashcards.filter((card) => {
     const state = card.states[0];
     return !state?.nextReviewAt || state.nextReviewAt <= new Date();
   }).length;
-  const matureCards = flashcardStates.filter((state) => state.status === "REVIEW").length;
-
-  const correctedEssays = essays.filter((essay) => essay.feedbacks.length > 0);
-  const allEssayFeedbacks = correctedEssays.flatMap((essay) => essay.feedbacks);
-  const averageEssayScore = getAverageScore(allEssayFeedbacks);
   const groupedGrades = subjects
     .map((subject) => {
       const subjectGrades = grades.filter((grade) => grade.subjectId === subject.id);
@@ -1572,39 +1542,6 @@ export async function getStudentProgressData() {
       };
     })
     .filter((entry) => entry.grades.length > 0);
-
-  const recentGrades = grades.slice(-6);
-  const averageRecentGrade =
-    recentGrades.length > 0
-      ? recentGrades.reduce((sum, grade) => sum + (grade.score / grade.maxScore) * 20, 0) / recentGrades.length
-      : null;
-  const strongestSubject = [...groupedGrades]
-    .filter((entry) => entry.average !== null)
-    .sort((left, right) => (right.average ?? 0) - (left.average ?? 0))[0];
-  const weakestSubject = [...groupedGrades]
-    .filter((entry) => entry.average !== null)
-    .sort((left, right) => (left.average ?? 20) - (right.average ?? 20))[0];
-
-  const summaryCards = [
-    {
-      label: "Point fort",
-      value: strongestSubject?.subject ?? "--",
-      helper:
-        strongestSubject?.average != null ? `${strongestSubject.average.toFixed(1)}/20 de moyenne` : "A preciser"
-    },
-    {
-      label: "A consolider",
-      value: weakestSubject?.subject ?? "--",
-      helper:
-        weakestSubject?.average != null ? `${weakestSubject.average.toFixed(1)}/20 de moyenne` : "A preciser"
-    },
-    {
-      label: "Copies corrigees",
-      value: `${correctedEssays.length}`,
-      helper:
-        averageEssayScore !== null ? `Autour de ${averageEssayScore.toFixed(1)}/20 en moyenne` : "Pas encore de moyenne concours"
-    }
-  ];
 
   const subjectCharts = groupedGrades.map((entry) => {
     const points = entry.grades.slice(-5).map((grade) => ({
@@ -1653,60 +1590,13 @@ export async function getStudentProgressData() {
     ...(weakPoints[0] ? [`Point faible detecte : ${weakPoints[0].label}.`] : [])
   ].slice(0, 3);
 
-  const essayProgress = essays.slice(0, 3).map((essay) => {
-    const latestFeedback = essay.feedbacks[0];
-    const payload = latestFeedback ? getProgressFeedbackPayload(latestFeedback.feedbackJson) : null;
-    const scoreLabel =
-      latestFeedback && latestFeedback.scoreMin !== null && latestFeedback.scoreMax !== null
-        ? latestFeedback.scoreMin === latestFeedback.scoreMax
-          ? `${latestFeedback.scoreMin}/20`
-          : `${latestFeedback.scoreMin}-${latestFeedback.scoreMax}/20`
-        : "Sans note";
-
-    return {
-      id: essay.id,
-      title: essay.title,
-      subject: essay.subject.name,
-      status:
-        essay.status === "TEACHER_REVIEWED"
-          ? "Corrigee par un prof"
-          : essay.status === "AI_REVIEWED"
-            ? "Correction IA disponible"
-            : "En attente de correction",
-      scoreLabel,
-      summary: payload?.overview ?? "Cette copie n'a pas encore de retour exploitable.",
-      nextStep: payload?.nextSteps[0] ?? payload?.mistakes[0] ?? "Pas encore de prochain levier explicite."
-    };
-  });
-
   return {
     hasProfile: true as const,
-    profile: {
-      className: profile.class.name,
-      targetExamSummary: getTargetExamSummary(targetExams)
-    },
-    summaryCards,
     subjectCharts,
     gradeFormSubjects: subjects.map((subject) => ({
       code: subject.code,
       name: subject.name
     })),
-    averageCardsBase: {
-      strongestSubject: strongestSubject
-        ? {
-            label: strongestSubject.subject,
-            average: strongestSubject.average ?? null
-          }
-        : null,
-      weakestSubject: weakestSubject
-        ? {
-            label: weakestSubject.subject,
-            average: weakestSubject.average ?? null
-          }
-        : null,
-      correctedEssaysCount: correctedEssays.length,
-      averageEssayScore
-    },
     grades: grades
       .slice()
       .sort((left, right) => right.capturedAt.getTime() - left.capturedAt.getTime())
@@ -1728,7 +1618,6 @@ export async function getStudentProgressData() {
       consolidateAreas
     },
     categories: ["Semestre 1", "Semestre 2", "Concours blancs"],
-    essayProgress,
     latestGradeEntries: grades.slice(-8).reverse().map((grade) => ({
       id: grade.id,
       title: grade.title,

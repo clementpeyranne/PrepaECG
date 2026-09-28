@@ -23,7 +23,12 @@ export default async function FlashcardsPage({
 }) {
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const data = await getFlashcardsOverviewData();
-  const reviewHref = (data.reviewDeckId ? `/flashcards/${data.reviewDeckId}` : "/flashcards") as Route;
+  const planningEntryId =
+    typeof resolvedSearchParams.planningEntryId === "string" && /^[a-zA-Z0-9_-]{1,100}$/.test(resolvedSearchParams.planningEntryId)
+      ? resolvedSearchParams.planningEntryId
+      : "";
+  const planningQuery = planningEntryId ? `?planningEntryId=${encodeURIComponent(planningEntryId)}` : "";
+  const reviewHref = (data.reviewDeckId ? `/flashcards/${data.reviewDeckId}${planningQuery}` : `/flashcards${planningQuery}`) as Route;
   const flashcardsStatus =
     typeof resolvedSearchParams.flashcardsStatus === "string"
       ? resolvedSearchParams.flashcardsStatus
@@ -91,7 +96,7 @@ export default async function FlashcardsPage({
                 </div>
 
                 <div className="mt-4 grid gap-3">
-                  {group.decks.map((deck) => renderDeckTree(deck))}
+                  {group.decks.map((deck) => renderDeckTree(deck, planningEntryId))}
                 </div>
               </div>
             ))}
@@ -358,12 +363,12 @@ export default async function FlashcardsPage({
   );
 }
 
-function renderDeckTree(deck: FlashcardsOverviewDeckNode) {
+function renderDeckTree(deck: FlashcardsOverviewDeckNode, planningEntryId = "") {
   if (deck.isLeaf) {
     return (
       <Link
         key={deck.id}
-        href={`/flashcards/${deck.id}` as Route}
+        href={`/flashcards/${deck.id}${planningEntryId ? `?planningEntryId=${encodeURIComponent(planningEntryId)}` : ""}` as Route}
         className="block rounded-[22px] border border-ink/8 bg-white p-4 transition hover:border-pine/20 hover:bg-mist/40"
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -403,7 +408,7 @@ function renderDeckTree(deck: FlashcardsOverviewDeckNode) {
       </summary>
 
       <div className="mt-4 space-y-3 border-l border-ink/8 pl-4">
-        {deck.children.map((childDeck) => renderDeckTree(childDeck))}
+        {deck.children.map((childDeck) => renderDeckTree(childDeck, planningEntryId))}
       </div>
     </details>
   );
