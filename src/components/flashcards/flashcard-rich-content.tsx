@@ -7,10 +7,12 @@ function sanitizeCardHtml(value: string) {
 
   return withBreaks
     .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
+    .replace(/<(?:iframe|object|embed|link|meta)[\s\S]*?>/gi, "")
     .replace(/\son\w+="[^"]*"/gi, "")
     .replace(/\son\w+='[^']*'/gi, "")
-    .replace(/<img /gi, '<img loading="lazy" class="max-h-80 w-auto rounded-xl object-contain" ')
-    .replace(/<audio /gi, '<audio class="mt-3 w-full" ');
+    .replace(/\s(?:src|href)=(['"])\s*javascript:[\s\S]*?\1/gi, "")
+    .replace(/<img(?![^>]*\bloading=)/gi, '<img loading="lazy"')
+    .replace(/<audio(?![^>]*\bcontrols)/gi, "<audio controls");
 }
 
 export function stripCardHtml(value: string) {
@@ -26,7 +28,7 @@ export function stripCardHtml(value: string) {
 }
 
 function containsMathSyntax(value: string) {
-  return /\\\(|\\\[|\\displaystyle|\\frac|\\sqrt|\\sum|\\int|\\binom|\$\$|\$[^$]+\$/i.test(value);
+  return /\\\(|\\\[|\\begin\{|\\displaystyle|\\frac|\\sqrt|\\sum|\\int|\\binom|\\mathbb|\\text\{|\$\$|\$[^$]+\$/i.test(value);
 }
 
 export function FlashcardRichContent({
@@ -64,7 +66,7 @@ export function FlashcardRichContent({
   return (
     <div
       ref={contentRef}
-      className={`space-y-3 leading-8 [&_audio]:mt-3 [&_hr]:my-4 [&_hr]:border-white/15 [&_img]:bg-white/80 [&_mjx-container]:my-2 [&_mjx-container]:overflow-x-auto [&_mjx-container]:overflow-y-hidden ${className}`.trim()}
+      className={`space-y-3 leading-8 [&_audio]:mt-3 [&_audio]:w-full [&_hr]:my-4 [&_hr]:border-white/15 [&_img]:mx-auto [&_img]:max-h-[28rem] [&_img]:max-w-full [&_img]:rounded-xl [&_img]:bg-white/90 [&_img]:object-contain [&_mjx-container]:my-2 [&_mjx-container]:max-w-full [&_mjx-container]:overflow-x-auto [&_mjx-container]:overflow-y-hidden ${className}`.trim()}
       dangerouslySetInnerHTML={{ __html: sanitizeCardHtml(value) }}
     />
   );

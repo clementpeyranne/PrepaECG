@@ -447,16 +447,24 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
           tmpls: [{ name: "Card 1", ord: 0 }]
         }
       });
+      const tinyPng = Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/l2iZ8QAAAABJRU5ErkJggg==",
+        "base64"
+      );
       execFileSync("sqlite3", [legacyDbPath, [
         "create table col (decks text, models text)",
         "create table notes (id integer primary key, mid integer, flds text)",
         "create table cards (id integer primary key, nid integer, did integer, ord integer)",
         `insert into col values ('${legacyDecks}', '${legacyModels}')`,
-        `insert into notes values (1, 7, 'Question Anki${String.fromCharCode(31)}Reponse Anki')`,
+        `insert into notes values (1, 7, 'Valeur de [$]\\sqrt{2}[/$] ?<br><img src="figure%20maths.png">${String.fromCharCode(31)}[latex]\\frac{1}{2}[/latex]')`,
         "insert into cards values (1, 1, 42, 0)"
       ].join(";") + ";"]);
       const apkg = new File(
-        [zipSync({ "collection.anki2": new Uint8Array(await readFile(legacyDbPath)) })],
+        [zipSync({
+          "collection.anki2": new Uint8Array(await readFile(legacyDbPath)),
+          "anki-package/media": new TextEncoder().encode(JSON.stringify({ "0": "figure maths.png" })),
+          "anki-package/0": new Uint8Array(tinyPng)
+        })],
         "legacy.apkg",
         { type: "application/octet-stream" }
       );
@@ -464,9 +472,12 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
       assert.equal(apkgImport.ok, true);
       assert.equal(apkgImport.decksImported, 2);
       assert.equal(apkgImport.cardsImported, 1);
-      assert.ok(await db.flashcard.findFirst({
-        where: { deck: { ownerUserId: studentB.id }, frontText: "Question Anki", backText: "Reponse Anki" }
-      }));
+      const importedAnkiCard = await db.flashcard.findFirst({
+        where: { deck: { ownerUserId: studentB.id }, frontText: { contains: "sqrt{2}" } }
+      });
+      assert.ok(importedAnkiCard.frontText.includes("\\(\\sqrt{2}\\)"));
+      assert.match(importedAnkiCard.frontText, /data:image\/png;base64,/);
+      assert.ok(importedAnkiCard.backText.includes("\\[\\frac{1}{2}\\]"));
     });
     await t.test("revision enregistree une seule fois, pas de reproposition avant echeance", async () => {
       use(student);

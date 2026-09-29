@@ -571,15 +571,23 @@ function getFallbackCardContent(fieldNames: string[], fieldValues: string[], not
 }
 
 function normalizeImportedFieldValue(value: string, mediaPublicPaths: Map<string, string>) {
-  return attachApkgMedia(value, mediaPublicPaths)
+  return normalizeAnkiMathMarkup(attachApkgMedia(value, mediaPublicPaths))
     .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
+    .replace(/<(?:iframe|object|embed|link|meta)[\s\S]*?>/gi, "")
     .replace(/\son\w+="[^"]*"/gi, "")
     .replace(/\son\w+='[^']*'/gi, "")
+    .replace(/\s(?:src|href)=(['"])\s*javascript:[\s\S]*?\1/gi, "")
     .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
-    .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">")
     .trim();
+}
+
+function normalizeAnkiMathMarkup(value: string) {
+  return value
+    .replace(/\[\$\$\]([\s\S]*?)\[\/\$\$\]/gi, (_, math) => `\\[${math}\\]`)
+    .replace(/\[\$\]([\s\S]*?)\[\/\$\]/gi, (_, math) => `\\(${math}\\)`)
+    .replace(/\[latex\]([\s\S]*?)\[\/latex\]/gi, (_, math) => `\\[${math}\\]`)
+    .replace(/<anki-mathjax\s+block[^>]*>([\s\S]*?)<\/anki-mathjax>/gi, (_, math) => `\\[${math}\\]`)
+    .replace(/<anki-mathjax[^>]*>([\s\S]*?)<\/anki-mathjax>/gi, (_, math) => `\\(${math}\\)`);
 }
 
 function readVarint(buffer: Buffer, startOffset: number) {
@@ -669,14 +677,16 @@ function decompressAnkiEntry(buffer: Uint8Array) {
 }
 
 function getApkgMediaNameToIndex(entries: Record<string, Uint8Array>) {
-  const mediaEntry = entries.media;
+  const mediaEntry = findApkgEntry(entries, "media");
   if (!mediaEntry) {
     return new Map<string, string>();
   }
 
   const mediaBuffer = Buffer.from(decompressAnkiEntry(mediaEntry));
   const availableIndexes = new Set(
-    Object.keys(entries).filter((entry) => /^\d+$/.test(entry))
+    Object.keys(entries)
+      .map((entry) => entry.split("/").pop() ?? entry)
+      .filter((entry) => /^\d+$/.test(entry))
   );
 
   const trimmed = mediaBuffer.toString("utf8").trim();
@@ -711,12 +721,28 @@ function inferMimeType(fileName: string) {
     return "image/webp";
   }
 
+  if (extension === ".avif") {
+    return "image/avif";
+  }
+
+  if (extension === ".webm") {
+    return "video/webm";
+  }
+
+  if (extension === ".mp4" || extension === ".m4v") {
+    return "video/mp4";
+  }
+
   if (extension === ".mp3") {
     return "audio/mpeg";
   }
 
   if (extension === ".wav") {
     return "audio/wav";
+  }
+
+  if (extension === ".ogg" || extension === ".oga") {
+    return "audio/ogg";
   }
 
   return "application/octet-stream";
@@ -727,30 +753,62 @@ function extractApkgMediaFiles(entries: Record<string, Uint8Array>) {
   const mediaPublicPaths = new Map<string, string>();
 
   for (const [originalName, index] of nameToIndex.entries()) {
-    const source = entries[index];
+    const source = findApkgEntry(entries, index);
     if (!source) continue;
     const mediaBuffer = decompressAnkiEntry(source);
     const dataUrl = `data:${inferMimeType(originalName)};base64,${Buffer.from(mediaBuffer).toString("base64")}`;
     mediaPublicPaths.set(originalName, dataUrl);
+    mediaPublicPaths.set(decodeMediaReference(originalName), dataUrl);
   }
 
   return mediaPublicPaths;
 }
 
-function attachApkgMedia(html: string, mediaPublicPaths: Map<string, string>) {
-  let next = html;
+function decodeMediaReference(value: string) {
+  const decodedHtml = value
+    .replace(/&amp;/gi, "&")
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&quot;/gi, '"');
 
-  for (const [originalName, publicPath] of mediaPublicPaths.entries()) {
-    const escapedOriginalName = originalName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const sourcePattern = new RegExp(`(["'(])${escapedOriginalName}(["')])`, "g");
-    next = next.replace(sourcePattern, `$1${publicPath}$2`);
-    next = next.replace(
-      new RegExp(`\\[sound:${escapedOriginalName.replace(/\./g, "\\.")}\\]`, "g"),
-      `<audio controls src="${publicPath}"></audio>`
-    );
+  try {
+    return decodeURIComponent(decodedHtml);
+  } catch {
+    return decodedHtml;
   }
+}
 
-  return next;
+function resolveApkgMediaReference(reference: string, mediaPublicPaths: Map<string, string>) {
+  const decoded = decodeMediaReference(reference);
+  const withoutRelativePrefix = decoded.replace(/^\.\//, "");
+  const basename = withoutRelativePrefix.split("/").pop() ?? withoutRelativePrefix;
+
+  return (
+    mediaPublicPaths.get(reference) ??
+    mediaPublicPaths.get(decoded) ??
+    mediaPublicPaths.get(withoutRelativePrefix) ??
+    mediaPublicPaths.get(basename) ??
+    null
+  );
+}
+
+function attachApkgMedia(html: string, mediaPublicPaths: Map<string, string>) {
+  return html
+    .replace(/\b(src|data|poster)=(['"])(.*?)\2/gi, (match, attribute, quote, reference) => {
+      const publicPath = resolveApkgMediaReference(reference, mediaPublicPaths);
+      return publicPath ? `${attribute}=${quote}${publicPath}${quote}` : match;
+    })
+    .replace(/\b(src|data|poster)=([^\s>"']+)/gi, (match, attribute, reference) => {
+      const publicPath = resolveApkgMediaReference(reference, mediaPublicPaths);
+      return publicPath ? `${attribute}="${publicPath}"` : match;
+    })
+    .replace(/\[sound:([^\]]+)\]/gi, (match, reference) => {
+      const publicPath = resolveApkgMediaReference(reference, mediaPublicPaths);
+      return publicPath ? `<audio controls src="${publicPath}"></audio>` : match;
+    })
+    .replace(/url\((['"]?)(.*?)\1\)/gi, (match, _quote, reference) => {
+      const publicPath = resolveApkgMediaReference(reference, mediaPublicPaths);
+      return publicPath ? `url("${publicPath}")` : match;
+    });
 }
 
 function renderAnkiClozeFace(text: string, cardOrd: number, revealAnswer: boolean) {
