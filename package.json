@@ -23,6 +23,8 @@
     "prisma:generate:prod": "npm run prisma:prepare:prod && node scripts/run-production-prisma.mjs generate",
     "db:push:prod": "npm run prisma:prepare:prod && node scripts/run-production-prisma.mjs db push",
     "db:indexes:prod": "node scripts/apply-production-indexes.mjs",
+    "db:admin:prod": "node scripts/apply-production-admin.mjs",
+    "admin:create:prod": "node scripts/create-admin.mjs --confirm-admin",
     "pilot:audit:prod": "node scripts/audit-production-pilot.mjs",
     "pilot:load:prod": "node scripts/check-pilot-load.mjs",
     "pilot:smoke:prod": "node scripts/smoke-production-pilot.mjs --confirm-production",

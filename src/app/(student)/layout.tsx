@@ -10,7 +10,7 @@ import { getStudentShellData } from "@/lib/student-app";
 export const dynamic = "force-dynamic";
 
 export default async function StudentLayout({ children }: { children: ReactNode }) {
-  const allowedRoles: UserRole[] = [UserRole.STUDENT, UserRole.ADMIN];
+  const allowedRoles: UserRole[] = [UserRole.STUDENT];
   const existingUser = await getCurrentUser();
   if (!existingUser) {
     redirect("/login");

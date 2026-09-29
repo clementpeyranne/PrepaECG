@@ -36,7 +36,11 @@ function createAuth(env = production) {
   const passwordHash = `test-salt:${scryptSync("test-password", "test-salt", 64).toString("hex")}`;
   const state = { user: { id: "user-1", email: "student@example.test", passwordHash, role: "STUDENT" } };
   const db = {
-    user: { findUnique: async () => state.user },
+    user: {
+      findUnique: async () => state.user,
+      update: async () => state.user
+    },
+    authEvent: { create: async () => ({}) },
     passwordResetToken: {
       findUnique: async () => null,
       create: async () => { throw new Error("Unexpected reset token creation"); },
@@ -47,11 +51,14 @@ function createAuth(env = production) {
   const auth = loadModule("src/lib/auth.ts", env, {
     "@prisma/client": { UserRole: { STUDENT: "STUDENT", TEACHER: "TEACHER", ADMIN: "ADMIN" } },
     react: { cache: (fn) => fn },
-    "next/headers": { cookies: async () => ({
-      get: () => cookie === undefined ? undefined : { value: cookie },
-      set: (name, value) => { cookie = value; },
-      delete: () => { throw new Error("Cookie mutation during rendering"); }
-    }) },
+    "next/headers": {
+      headers: async () => new Headers(),
+      cookies: async () => ({
+        get: () => cookie === undefined ? undefined : { value: cookie },
+        set: (name, value) => { cookie = value; },
+        delete: () => { throw new Error("Cookie mutation during rendering"); }
+      })
+    },
     "./app-config": config, "./db": { prisma: db },
     "./auth-rate-limit": { allowAuthRequest: async () => true },
     "./mail": { isRecoveryEmailConfigured: () => false, sendRecoveryEmail: async () => { throw new Error("Unexpected email"); } },
@@ -166,9 +173,13 @@ test("only one concurrent password reset can consume the same token", async () =
 });
 
 test("expired or used reset tokens never start a password update", async () => {
-  const { auth, db } = createAuth();
+  const { auth, db, state } = createAuth();
   db.$transaction = async () => { throw new Error("Unexpected transaction"); };
-  for (const record of [null, { usedAt: new Date(), expiresAt: new Date(Date.now() + 60000) }, { usedAt: null, expiresAt: new Date(0) }]) {
+  for (const record of [
+    null,
+    { user: state.user, usedAt: new Date(), expiresAt: new Date(Date.now() + 60000) },
+    { user: state.user, usedAt: null, expiresAt: new Date(0) }
+  ]) {
     db.passwordResetToken.findUnique = async () => record;
     assert.equal((await auth.resetPasswordFromToken({ token: "a".repeat(64), password: "new-password" })).ok, false);
   }

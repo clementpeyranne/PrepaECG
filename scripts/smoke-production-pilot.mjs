@@ -137,16 +137,26 @@ try {
   login.set("email", email);
   login.set("password", password);
   const loginResponse = await postForm("/login", login);
-  if (loginResponse.status !== 303 || loginResponse.headers.get("location") !== "/dashboard" || !authCookie(loginResponse)) {
+  const adminCookie = authCookie(loginResponse);
+  if (loginResponse.status !== 303 || loginResponse.headers.get("location") !== "/dashboard" || !adminCookie) {
     throw new Error("La reconnexion du compte de recette a echoue.");
   }
 
-  console.log("Recette production reussie : inscription, configuration, tous les onglets, deconnexion et reconnexion.");
+  await database.query(`UPDATE "User" SET "role" = 'ADMIN', "updatedAt" = NOW() WHERE "email" = $1`, [email]);
+  for (const route of ["/admin", "/admin/users", "/admin/establishments", "/admin/activity", "/admin/system"]) {
+    const response = await getPage(route, adminCookie);
+    if (!response.ok) throw new Error(`${route} renvoie HTTP ${response.status}.`);
+    const html = await response.text();
+    if (!html.includes("Administration")) throw new Error(`${route} n'affiche pas l'espace administrateur.`);
+  }
+
+  console.log("Recette production reussie : parcours eleve, reconnexion et cinq pages administrateur.");
 } catch (error) {
   console.error(error instanceof Error ? error.message : "Recette production impossible.");
   process.exitCode = 1;
 } finally {
   if (databaseConnected) {
+    await database.query(`DELETE FROM "AuthEvent" WHERE "userId" IN (SELECT "id" FROM "User" WHERE "email" = $1)`, [email]).catch(() => undefined);
     await database.query(`DELETE FROM "User" WHERE "email" = $1`, [email]).catch(() => undefined);
   }
   await database.end().catch(() => undefined);

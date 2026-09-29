@@ -177,6 +177,20 @@ Pour une base deja creee, appliquer aussi les index de performance additifs. La 
 npm run db:indexes:prod
 ```
 
+L'espace d'administration necessite sa migration additive, a appliquer avant le code qui contient les pages `/admin` :
+
+```bash
+npm run db:admin:prod
+```
+
+Creer ou promouvoir ensuite le compte du responsable de la plateforme :
+
+```bash
+npm run admin:create:prod -- --email "admin@exemple.fr" --first-name "Prenom" --last-name "Nom"
+```
+
+Cette commande ne modifie pas le mot de passe d'un compte existant. Pour un nouveau compte, elle affiche une seule fois un mot de passe temporaire. L'administration permet de suivre les connexions, suspendre ou reactiver les comptes, creer les environnements, renouveler leurs codes et inviter les professeurs. Elle ne donne pas acces au contenu pedagogique prive des eleves. Les adresses reseau ne sont jamais stockees en clair : une empreinte quotidienne est conservee au maximum 90 jours pour reperer les abus.
+
 Les inscriptions professeurs exigent une invitation personnelle, y compris en demonstration. Pour creer une invitation apres verification de l'identite du professeur :
 
 ```bash
@@ -198,7 +212,7 @@ npm run test:security
 npm run test:journeys
 ```
 
-Les tests de parcours creent une base SQLite et des fichiers temporaires puis les suppriment. Ils exercent le vrai code applicatif et Prisma : inscriptions, invitations, connexion, isolation entre deux prepas, depots PDF/photos, lecture, corrections, doublons, decks/sous-decks, partage et progression des revisions. Cookies/requetes Next, Resend et Supabase sont simules. Ils n'envoient aucun email reel et ne touchent pas a la production. Ils ne remplacent pas une recette navigateur, PostgreSQL, stockage cloud et boite mail en conditions reelles.
+Les tests de parcours creent une base SQLite et des fichiers temporaires puis les suppriment. Ils exercent le vrai code applicatif et Prisma : inscriptions, invitations, connexion, isolation entre deux prepas, depots PDF/photos, lecture, corrections, doublons, decks/sous-decks, partage, progression des revisions et administration. Cookies/requetes Next, Resend et Supabase sont simules. Ils n'envoient aucun email reel et ne touchent pas a la production. Ils ne remplacent pas une recette navigateur, PostgreSQL, stockage cloud et boite mail en conditions reelles.
 
 Sur Vercel, la limitation utilise son en-tete `x-forwarded-for` remplace par la plateforme, puis une limite par email. Source : https://vercel.com/docs/headers/request-headers. Sur un autre hebergeur, le repli partage doit etre adapte au proxy de confiance.
 

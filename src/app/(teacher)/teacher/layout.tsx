@@ -7,7 +7,7 @@ import { teacherNavigation } from "@/lib/navigation";
 import { getCurrentUser, getUserLandingPath, requireRole } from "@/lib/auth";
 
 export default async function TeacherLayout({ children }: { children: ReactNode }) {
-  const allowedRoles: UserRole[] = [UserRole.TEACHER, UserRole.ADMIN];
+  const allowedRoles: UserRole[] = [UserRole.TEACHER];
   const existingUser = await getCurrentUser();
   if (!existingUser) {
     redirect("/login");

@@ -606,6 +606,46 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
       const entries = await db.authRateLimit.findMany();
       assert.ok(entries.every((entry) => /^[a-f0-9]{64}$/.test(entry.id)));
     });
+    await t.test("administration: acces protege, comptes, etablissements, invitations et journal", async () => {
+      await db.user.update({ where: { id: teacher2.id }, data: { role: "ADMIN" } });
+      teacher2 = { ...teacher2, role: "ADMIN" };
+      use(teacher2);
+      const admin = load("src/lib/admin.ts");
+
+      const overview = await admin.getAdminOverviewData();
+      assert.ok(overview.stats.some((stat) => stat.label === "Comptes"));
+      assert.ok(overview.content.resources >= 1);
+
+      const users = await admin.getAdminUsersData({ query: student.email, role: "STUDENT", status: "active" });
+      assert.equal(users.total, 1);
+      assert.equal(users.users[0].id, student.id);
+      assert.equal((await admin.setAdminUserActive(teacher2.id, false)).ok, false);
+
+      assert.equal((await admin.setAdminUserActive(studentB.id, false)).ok, true);
+      use(studentB);
+      assert.equal(await auth.getCurrentUser(), null);
+      use(teacher2);
+      assert.equal((await admin.setAdminUserActive(studentB.id, true)).ok, true);
+
+      const created = await admin.createAdminEstablishment({
+        name: "Prepa pilote", yearLabel: "2026-2027", track: "ECG", accessCode: "PILOTE-2026"
+      });
+      assert.equal(created.ok, true);
+      const pilot = await db.class.findUnique({ where: { accessCode: "PILOTE-2026" } });
+      const rotated = await admin.rotateAdminAccessCode(pilot.id);
+      assert.equal(rotated.ok, true);
+      assert.notEqual(rotated.accessCode, "PILOTE-2026");
+
+      const invitation = await admin.createAdminTeacherInvitation({ email: "pilot-prof@example.test", classId: pilot.id });
+      assert.equal(invitation.ok, true);
+      assert.equal(new URL(invitation.link).searchParams.get("email"), "pilot-prof@example.test");
+      const storedInvitation = await db.teacherInvitation.findFirst({ where: { email: "pilot-prof@example.test" } });
+      assert.equal((await admin.revokeAdminTeacherInvitation(storedInvitation.id)).ok, true);
+
+      const activity = await admin.getAdminActivityData();
+      assert.ok(activity.events.some((event) => event.type === "ACCOUNT_SUSPENDED"));
+      assert.ok(activity.events.some((event) => event.type === "ESTABLISHMENT_CREATED"));
+    });
   } finally {
     globalThis.fetch = previousFetch;
     await db.$disconnect();

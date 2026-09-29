@@ -1,7 +1,7 @@
 import { UserRole, type User } from "@prisma/client";
 import { randomBytes, scryptSync, timingSafeEqual, createHmac, createHash } from "node:crypto";
 import { cache } from "react";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 import { getPasswordResetMode, isDemoModeEnabled } from "./app-config";
 import { prisma } from "./db";
@@ -65,6 +65,38 @@ function hashPasswordResetToken(token: string) {
   return createHmac("sha256", getAuthSecret()).update(`password-reset:${token}`).digest("hex");
 }
 
+export async function recordSecurityEvent(input: {
+  eventType: string;
+  userId?: string | null;
+  email?: string;
+  metadata?: Record<string, string | number | boolean | null>;
+}) {
+  try {
+    const requestHeaders = await headers();
+    const forwardedIp = process.env.VERCEL
+      ? requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() || ""
+      : "";
+    const day = new Date().toISOString().slice(0, 10);
+    const anonymize = (scope: string, value: string) =>
+      value
+        ? createHmac("sha256", getAuthSecret()).update(`${scope}:${day}:${value}`).digest("hex")
+        : null;
+
+    await prisma.authEvent.create({
+      data: {
+        userId: input.userId || null,
+        eventType: input.eventType,
+        emailHash: anonymize("email", normalizeEmail(input.email || "")),
+        ipHash: anonymize("ip", forwardedIp),
+        userAgent: requestHeaders.get("user-agent")?.slice(0, 240) || null,
+        metadata: input.metadata ?? undefined
+      }
+    });
+  } catch {
+    // Authentication must remain available if audit logging is temporarily unavailable.
+  }
+}
+
 function parseSessionToken(token: string) {
   const parts = token.split(".");
   const [version, userId, expiresAtRaw, signature] = parts;
@@ -101,8 +133,10 @@ async function writeSessionCookie(user: Pick<User, "id" | "passwordHash">) {
 }
 
 export async function signOut() {
+  const user = await getCurrentUser();
   const cookieStore = await cookies();
   cookieStore.delete(AUTH_COOKIE_NAME);
+  if (user) await recordSecurityEvent({ eventType: "LOGOUT", userId: user.id, email: user.email });
 }
 
 const getUserById = cache(async (userId: string) => {
@@ -126,7 +160,7 @@ export async function getCurrentUser() {
   }
 
   const user = await getUserById(session.userId);
-  if (!user) {
+  if (!user || user.isActive === false) {
     return null;
   }
 
@@ -174,6 +208,7 @@ export async function registerUser(input: {
     return { ok: false as const, message: "Indique une adresse email valide." };
   }
   if (!await allowAuthRequest("signup", email)) {
+    await recordSecurityEvent({ eventType: "SIGNUP_RATE_LIMITED", email });
     return { ok: false as const, message: "Trop de tentatives. Reessaie dans 15 minutes." };
   }
 
@@ -252,6 +287,7 @@ export async function registerUser(input: {
   if (!user) return { ok: false as const, message: "Invitation invalide, expiree ou deja utilisee. Verifie aussi ton email et ton etablissement." };
 
   await writeSessionCookie(user);
+  await recordSecurityEvent({ eventType: "ACCOUNT_CREATED", userId: user.id, email: user.email });
 
   return {
     ok: true as const,
@@ -271,6 +307,7 @@ export async function loginUser(input: { email: string; password: string }) {
   }
 
   if (!await allowAuthRequest("login", email)) {
+    await recordSecurityEvent({ eventType: "LOGIN_RATE_LIMITED", email });
     return { ok: false as const, message: "Trop de tentatives. Reessaie dans 15 minutes." };
   }
 
@@ -279,13 +316,31 @@ export async function loginUser(input: { email: string; password: string }) {
   });
 
   if (!user?.passwordHash || !verifyPassword(password, user.passwordHash)) {
+    await recordSecurityEvent({ eventType: "LOGIN_FAILURE", userId: user?.id, email });
     return {
       ok: false as const,
       message: "Identifiants invalides."
     };
   }
 
+  if (user.isActive === false) {
+    await recordSecurityEvent({ eventType: "LOGIN_BLOCKED", userId: user.id, email });
+    return {
+      ok: false as const,
+      message: "Ce compte est suspendu. Contacte l'administrateur de la plateforme."
+    };
+  }
+
+  try {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date(), loginCount: { increment: 1 } }
+    });
+  } catch {
+    // A temporary statistics failure must not prevent a valid login.
+  }
   await writeSessionCookie(user);
+  await recordSecurityEvent({ eventType: "LOGIN_SUCCESS", userId: user.id, email });
 
   return {
     ok: true as const,
@@ -410,7 +465,7 @@ export async function resetPasswordFromToken(input: { token: string; password: s
   }
 
   const record = await getPasswordResetTokenRecord(input.token);
-  if (!record || record.usedAt || record.expiresAt.getTime() <= Date.now()) {
+  if (!record || record.user.isActive === false || record.usedAt || record.expiresAt.getTime() <= Date.now()) {
     return {
       ok: false as const,
       message: "Le lien de reinitialisation n'est plus valide."
@@ -448,6 +503,7 @@ export async function resetPasswordFromToken(input: { token: string; password: s
   }
 
   await writeSessionCookie(user);
+  await recordSecurityEvent({ eventType: "PASSWORD_RESET", userId: user.id, email: user.email });
 
   return {
     ok: true as const,
@@ -456,7 +512,11 @@ export async function resetPasswordFromToken(input: { token: string; password: s
 }
 
 export async function getUserLandingPath(user: Pick<User, "role" | "id">) {
-  if (user.role === UserRole.TEACHER || user.role === UserRole.ADMIN) {
+  if (user.role === UserRole.ADMIN) {
+    return "/admin";
+  }
+
+  if (user.role === UserRole.TEACHER) {
     return "/teacher/resources";
   }
 

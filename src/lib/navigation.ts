@@ -24,3 +24,11 @@ export const teacherNavigation: NavItem[] = [
   { href: "/teacher/grades", label: "Notes" },
   { href: "/teacher/rubrics", label: "Grilles" }
 ];
+
+export const adminNavigation: NavItem[] = [
+  { href: "/admin", label: "Vue d'ensemble" },
+  { href: "/admin/users", label: "Utilisateurs" },
+  { href: "/admin/establishments", label: "Etablissements" },
+  { href: "/admin/activity", label: "Connexions" },
+  { href: "/admin/system", label: "Systeme" }
+];

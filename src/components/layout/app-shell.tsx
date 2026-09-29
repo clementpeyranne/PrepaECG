@@ -7,7 +7,7 @@ import { ThemeSwitcher } from "@/components/layout/theme-switcher";
 import type { NavItem } from "@/lib/navigation";
 
 type AppShellProps = {
-  audience: "student" | "teacher";
+  audience: "student" | "teacher" | "admin";
   navigation: NavItem[];
   title: string;
   subtitle?: string;
@@ -52,7 +52,11 @@ export function AppShell({
         <aside className="panel-surface surface-grid w-full rounded-[32px] p-5 lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:w-[320px] lg:overflow-y-auto lg:p-6">
           <div className="mb-8">
             <div className="inline-flex rounded-full border border-white/70 bg-white/55 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-pine/70">
-              {audience === "student" ? "Prepa ECG OS" : "Espace professeur"}
+              {audience === "student"
+                ? "Prepa ECG OS"
+                : audience === "teacher"
+                  ? "Espace professeur"
+                  : "Administration"}
             </div>
             <h1 className="mt-4 font-display text-[2.15rem] tracking-[-0.04em] text-ink lg:text-[2.15rem]">
               {title}
