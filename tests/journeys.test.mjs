@@ -182,6 +182,43 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
       use(student);
       assert.deepEqual(await planningActions.markPlanningSessionDone(blockForm("unknown")), { ok: false, reason: "unavailable" });
     });
+    await t.test("planning: un bloc futur ne gonfle pas le classement du jour", async () => {
+      use(student);
+      const before = await planning.getStudentDashboardData();
+      const todayMinutes = before.anonymousRanking.windows.find((window) => window.id === "today").userMinutes;
+      const schedule = await planning.getStudentPlanningData();
+      const endOfToday = new Date(); endOfToday.setHours(24, 0, 0, 0);
+      const futureDay = schedule.week.find((day) => day.entries.some((entry) => new Date(entry.plannedStartAt).getTime() >= endOfToday.getTime()));
+      assert.ok(futureDay);
+      assert.deepEqual(await planningActions.markPlanningSessionDone(blockForm(futureDay.entries[0].id, true)), { ok: true });
+      const after = await planning.getStudentDashboardData();
+      assert.equal(after.anonymousRanking.windows.find((window) => window.id === "today").userMinutes, todayMinutes);
+    });
+    await t.test("configuration: modifier le profil conserve le travail et le classement", async () => {
+      use(student);
+      const completedBefore = await db.studySession.count({ where: { studentId: student.id, status: "COMPLETED" } });
+      const minutesBefore = (await planning.getStudentDashboardData()).anonymousRanking.windows.find((window) => window.id === "today").userMinutes;
+      await planning.saveStudentOnboarding({
+        firstName: "Test", lastName: "Parcours", prepYear: 1, classId: prepA.id, lv2Language: "ESPAGNOL",
+        weekdayDailyHours: 3, weekendDailyHours: 5, weekdayStart: "18:00", weekdayEnd: "21:30",
+        weekendStart: "09:30", weekendEnd: "14:30", sessionBlockMinutes: 50, shortBreakMinutes: 10,
+        longBreakMinutes: 25, breakEveryBlocks: 2, energyLevel: "modere", bacAverage: 14, bacMention: "B",
+        subjectAssessments: { MATHS: 11, ESH: 12, HGG: 10, CG: 13, ANG: 14 },
+        bacSubjectAssessments: { MATHS: 14, ESH: 14, HGG: 13, CG: 15, ANG: 16 },
+        bceSchools: ["HEC"], ecricomeSchools: []
+      });
+      assert.equal(await db.studySession.count({ where: { studentId: student.id, status: "COMPLETED" } }), completedBefore);
+      assert.equal((await planning.getStudentDashboardData()).anonymousRanking.windows.find((window) => window.id === "today").userMinutes, minutesBefore);
+      await assert.rejects(planning.saveStudentOnboarding({
+        firstName: "Test", lastName: "Parcours", prepYear: 1, classId: prepB.id, lv2Language: "ESPAGNOL",
+        weekdayDailyHours: 3, weekendDailyHours: 5, weekdayStart: "18:00", weekdayEnd: "21:30",
+        weekendStart: "09:30", weekendEnd: "14:30", sessionBlockMinutes: 50, shortBreakMinutes: 10,
+        longBreakMinutes: 25, breakEveryBlocks: 2, energyLevel: "modere",
+        subjectAssessments: { MATHS: null, ESH: null, HGG: null, CG: null, ANG: null },
+        bacSubjectAssessments: { MATHS: null, ESH: null, HGG: null, CG: null, ANG: null },
+        bceSchools: ["HEC"], ecricomeSchools: []
+      }), /INVALID_CLASS/);
+    });
 
     const resourceInput = () => ({ title: "Cours ESH", subjectCode: "ESH", chapterId: chapter.id, resourceType: "COURSE", description: "", content: "", file: pdf, aiEnabled: false, submissionKey: "resource-1" });
     const essayInput = () => ({ subjectCode: "ESH", chapterId: chapter.id, teacherId: teacher.id, submissionKey: "essay-1", title: "Dissertation", examType: "Dissertation", targetExam: "BCE", correctionMode: "teacher_only", instructions: "Verifier la structure du plan", planningEntryId: initialDay.entries[2].id, file: pdf });
@@ -227,6 +264,8 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
       use(student);
       assert.equal((await planning.getStudentPlanningData()).todayPlan.entries[2].hasSubmission, true);
       assert.deepEqual(await planningActions.markPlanningSessionDone(blockForm(initialDay.entries[2].id)), { ok: true });
+      const beforeFeedback = await planning.getStudentProgressData();
+      assert.equal(beforeFeedback.grades.length, 0, "Aucune fausse note ne doit etre injectee en production");
     });
     await t.test("photo PNG enregistree et faux PDF executable refuse", async () => {
       use(student);
@@ -247,6 +286,41 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
       const detail = await essays.getEssayDetailData(essayId);
       assert.equal(detail.teacherFeedback[0].scoreRange, "14/20");
       assert.equal(detail.teacherFeedback[0].overview, "Progression nette");
+      const progress = await planning.getStudentProgressData();
+      assert.equal(progress.grades.length, 1);
+      assert.equal(progress.grades[0].sourceLabel, "Copie corrigee");
+      assert.equal(progress.grades[0].score, 14);
+      const dashboard = await planning.getStudentDashboardData();
+      assert.ok(dashboard.weakPoints.some((point) => point.label === "Argumentation"));
+      const schedule = await planning.getStudentPlanningData();
+      assert.ok(schedule.upcomingTasks.some((task) => task.title === "Revoir les definitions"));
+      const feedbackBlock = schedule.week.flatMap((day) => day.entries).find((entry) => entry.title === "Revoir les definitions");
+      assert.ok(feedbackBlock?.taskId, "Le retour professeur doit devenir un bloc precis du planning");
+      assert.deepEqual(await planningActions.markPlanningSessionDone(blockForm(feedbackBlock.id, true)), { ok: true });
+      assert.equal(await db.task.findUnique({ where: { id: feedbackBlock.taskId } }).then((task) => task.status), "done");
+      assert.ok(!(await planning.getStudentPlanningData()).upcomingTasks.some((task) => task.title === "Revoir les definitions"));
+    });
+    await t.test("notes: un professeur alimente le bon eleve sans doublon ni autre prepa", async () => {
+      use(teacher);
+      const form = await planning.getTeacherGradeEntryData();
+      assert.ok(form.students.some((entry) => entry.id === student.id));
+      assert.ok(!form.students.some((entry) => entry.id === studentB.id));
+      const subject = await db.subject.findFirst({ where: { code: "MATHS" } });
+      const input = { studentId: student.id, subjectId: subject.id, title: "DS matrices", score: 12.5, capturedAt: "2026-09-20", sourceType: "teacher_entry" };
+      assert.deepEqual(await planning.createTeacherStudentGrade(input), { status: "created" });
+      assert.deepEqual(await planning.createTeacherStudentGrade(input), { status: "already_exists" });
+      assert.deepEqual(await planning.createTeacherStudentGrade({ ...input, studentId: studentB.id }), { status: "invalid" });
+      use(student);
+      const progress = await planning.getStudentProgressData();
+      assert.ok(progress.grades.some((grade) => grade.title === "DS matrices" && grade.teacherName === "Test Parcours"));
+    });
+    await t.test("grilles: l'espace professeur lit de vraies grilles en base", async () => {
+      use(teacher);
+      const subject = await db.subject.findFirst({ where: { code: "ESH" } });
+      assert.deepEqual(await essays.createTeacherRubric({ subjectId: subject.id, title: "Dissertation BCE", criteria: "Problematique\nStructure" }), { status: "created" });
+      assert.deepEqual(await essays.createTeacherRubric({ subjectId: subject.id, title: "Dissertation BCE", criteria: "Problematique" }), { status: "already_exists" });
+      const data = await essays.getTeacherRubricsData();
+      assert.ok(data.rubrics.some((rubric) => rubric.title === "Dissertation BCE" && rubric.criteria.length === 2));
     });
     await t.test("decks, sous-decks, cartes et export conservent la structure", async () => {
       use(student);
@@ -255,6 +329,7 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
       await cards.createFlashcardDeck({ title: "Croissance", subjectCode: "ESH", parentDeckId: rootDeck.id });
       subDeck = await db.flashcardDeck.findFirst({ where: { parentDeckId: rootDeck.id } });
       await cards.createFlashcard({ deckId: subDeck.id, frontText: "Question", backText: "Reponse" });
+      assert.ok((await planning.getStudentShellData()).dueFlashcards > 0);
       const payload = await cards.getFlashcardExportPayload(rootDeck.id);
       assert.ok(JSON.stringify(payload).includes("Croissance"));
       assert.ok(JSON.stringify(payload).includes("Reponse"));
@@ -270,9 +345,11 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
       let detail = await cards.getFlashcardDeckData(subDeck.id);
       assert.equal(detail.reviewOptions.length, 4);
       const cardId = detail.reviewCard.id;
+      const dueBeforeReview = (await planning.getStudentShellData()).dueFlashcards;
       await cards.reviewFlashcard({ cardId, deckId: subDeck.id, rating: "EASY" });
       const state = await db.flashcardState.findFirst({ where: { flashcardId: cardId, userId: student.id } });
       assert.equal(state.repetitionCount, 1);
+      assert.equal((await planning.getStudentShellData()).dueFlashcards, dueBeforeReview - 1);
       assert.ok(state.nextReviewAt.getTime() - Date.now() < 5 * 3600000);
       assert.ok(state.nextReviewAt.getTime() - Date.now() > 3 * 3600000);
       await cards.reviewFlashcard({ cardId, deckId: subDeck.id, rating: "EASY" });

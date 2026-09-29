@@ -27,7 +27,6 @@ export default async function ProgressPage() {
       <div className="mt-5">
         <ProgressDashboard
           subjectCharts={data.subjectCharts}
-          gradeFormSubjects={data.gradeFormSubjects}
           grades={data.grades}
           categories={data.categories}
           visualReading={data.visualReading}

@@ -3,7 +3,7 @@ import { UserRole } from "@prisma/client";
 import { redirect } from "next/navigation";
 
 import { AppShell } from "@/components/layout/app-shell";
-import { teacherNavigation } from "@/lib/mock-data";
+import { teacherNavigation } from "@/lib/navigation";
 import { getCurrentUser, getUserLandingPath, requireRole } from "@/lib/auth";
 
 export default async function TeacherLayout({ children }: { children: ReactNode }) {

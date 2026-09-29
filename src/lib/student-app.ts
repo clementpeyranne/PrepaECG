@@ -360,6 +360,10 @@ function getSemesterLabel(date: Date) {
 }
 
 async function ensureDemoGrades(studentId: string) {
+  if (!isDemoModeEnabled()) {
+    return;
+  }
+
   const existingGrades = await prisma.studentGrade.count({
     where: { studentId }
   });
@@ -637,7 +641,8 @@ function sumCompletedMinutesBetween(
     actualDurationMin: number | null;
     status: string;
   }>,
-  startDate: Date
+  startDate: Date,
+  endDate: Date
 ) {
   return sessions.reduce((total, session) => {
     if (session.status !== "COMPLETED") {
@@ -645,7 +650,7 @@ function sumCompletedMinutesBetween(
     }
 
     const sessionDate = session.plannedStartAt;
-    if (!sessionDate || sessionDate < startDate) {
+    if (!sessionDate || sessionDate < startDate || sessionDate >= endDate) {
       return total;
     }
 
@@ -665,8 +670,9 @@ async function getAnonymousWorkRanking(
   await ensureDemoBenchmarkStudents();
 
   const today = startOfToday();
+  const tomorrow = addDays(today, 1);
   const threeDaysStart = addDays(today, -2);
-  const weekStart = addDays(today, -6);
+  const weekStart = getCurrentWeekStart();
 
   const profiles = await prisma.studentProfile.findMany({
     include: {
@@ -699,7 +705,8 @@ async function getAnonymousWorkRanking(
       },
       status: "COMPLETED",
       plannedStartAt: {
-        gte: weekStart
+        gte: weekStart,
+        lt: tomorrow
       }
     },
     select: {
@@ -755,17 +762,17 @@ async function getAnonymousWorkRanking(
   };
 
   const currentTotals = {
-    today: sumCompletedMinutesBetween(currentUserSessions, boundaries.today),
-    threeDays: sumCompletedMinutesBetween(currentUserSessions, boundaries.threeDays),
-    week: sumCompletedMinutesBetween(currentUserSessions, boundaries.week)
+    today: sumCompletedMinutesBetween(currentUserSessions, boundaries.today, tomorrow),
+    threeDays: sumCompletedMinutesBetween(currentUserSessions, boundaries.threeDays, tomorrow),
+    week: sumCompletedMinutesBetween(currentUserSessions, boundaries.week, tomorrow)
   };
 
   for (const profile of comparableProfiles) {
     const peerSessions = sessionsByUser.get(profile.userId) ?? [];
     const peerTotals = {
-      today: sumCompletedMinutesBetween(peerSessions, boundaries.today),
-      threeDays: sumCompletedMinutesBetween(peerSessions, boundaries.threeDays),
-      week: sumCompletedMinutesBetween(peerSessions, boundaries.week)
+      today: sumCompletedMinutesBetween(peerSessions, boundaries.today, tomorrow),
+      threeDays: sumCompletedMinutesBetween(peerSessions, boundaries.threeDays, tomorrow),
+      week: sumCompletedMinutesBetween(peerSessions, boundaries.week, tomorrow)
     };
 
     if (peerTotals.today > currentTotals.today) {
@@ -827,7 +834,12 @@ export async function getOnboardingOptions() {
 }
 
 export async function saveStudentOnboarding(input: OnboardingInput) {
-  const { user } = await ensureDemoStudent();
+  const { user, prepClass } = await ensureDemoStudent();
+  if (input.classId !== prepClass.id) {
+    throw new Error("INVALID_CLASS");
+  }
+  const existingProfile = await prisma.studentProfile.findUnique({ where: { userId: user.id } });
+  const isFirstSetup = !existingProfile;
   const today = startOfToday();
   const tomorrow = addDays(today, 1);
   const inThreeDays = addDays(today, 3);
@@ -923,16 +935,12 @@ export async function saveStudentOnboarding(input: OnboardingInput) {
       data: [...weekdaySlots, ...weekendSlots]
     });
 
-    await tx.studySession.deleteMany({
-      where: { studentId: user.id }
-    });
-
     await tx.task.deleteMany({
-      where: { studentId: user.id }
+      where: { studentId: user.id, sourceType: "onboarding", status: { not: "done" } }
     });
 
     await tx.weakPoint.deleteMany({
-      where: { studentId: user.id }
+      where: { studentId: user.id, sourceType: { in: ["bac", "assessment"] } }
     });
 
     const subjectMapEntries = await tx.subject.findMany({
@@ -1037,8 +1045,9 @@ export async function saveStudentOnboarding(input: OnboardingInput) {
       secondSessionStart.getTime() + (input.sessionBlockMinutes + longBreak) * 60_000
     );
 
-    await tx.studySession.createMany({
-      data: [
+    if (isFirstSetup) {
+      await tx.studySession.createMany({
+        data: [
         {
           studentId: user.id,
           subjectId: taskSubjects[0]?.id,
@@ -1072,19 +1081,26 @@ export async function saveStudentOnboarding(input: OnboardingInput) {
           status: "PLANNED",
           createdByType: "onboarding"
         }
-      ]
-    });
+        ]
+      });
+    }
   });
 }
 
 export async function getStudentShellData() {
   const { user } = await ensureDemoStudent();
-  const profile = await prisma.studentProfile.findUnique({
-    where: { userId: user.id }
-  });
+  const now = new Date();
+  const [profile, dueStatesCount, neverReviewedCount] = await Promise.all([
+    prisma.studentProfile.findUnique({ where: { userId: user.id } }),
+    prisma.flashcardState.count({ where: { userId: user.id, nextReviewAt: { lte: now } } }),
+    prisma.flashcard.count({
+      where: { deck: { ownerUserId: user.id }, states: { none: { userId: user.id } } }
+    })
+  ]);
 
   return {
     title: profile ? user.firstName : "Configuration",
+    dueFlashcards: dueStatesCount + neverReviewedCount,
     subtitle: profile
       ? "Organisation, revisions et progression."
       : "Configure ton profil pour demarrer."
@@ -1115,20 +1131,12 @@ export async function getStudentDashboardData() {
   };
   const energyProfile = (profile.energyProfile as EnergyProfilePayload | null) ?? null;
   const languagePreferences = getLanguagePreferences(energyProfile);
-  const anonymousRanking = await getAnonymousWorkRanking(user.id, targetExams, profile.prepYear);
-
-  const [tasks, sessions, weakPoints, flashcards] = await Promise.all([
+  const [anonymousRanking, planning, tasks, weakPoints, flashcards] = await Promise.all([
+    getAnonymousWorkRanking(user.id, targetExams, profile.prepYear),
+    getStudentPlanningData(),
     prisma.task.findMany({
-      where: { studentId: user.id },
+      where: { studentId: user.id, status: { not: "done" } },
       orderBy: [{ dueAt: "asc" }, { priorityScore: "desc" }],
-      take: 3,
-      include: {
-        subject: true
-      }
-    }),
-    prisma.studySession.findMany({
-      where: { studentId: user.id },
-      orderBy: { plannedStartAt: "asc" },
       take: 3,
       include: {
         subject: true
@@ -1136,7 +1144,7 @@ export async function getStudentDashboardData() {
     }),
     prisma.weakPoint.findMany({
       where: { studentId: user.id },
-      orderBy: { severityScore: "desc" },
+      orderBy: [{ lastDetectedAt: "desc" }, { severityScore: "desc" }],
       take: 3,
       include: {
         subject: true
@@ -1158,13 +1166,11 @@ export async function getStudentDashboardData() {
 
   const weekdayDailyHours = energyProfile?.weekdayDailyHours ?? 3;
   const weekendDailyHours = energyProfile?.weekendDailyHours ?? 5;
-  const shortBreakMinutes = energyProfile?.shortBreakMinutes ?? 10;
-  const blockMinutes = energyProfile?.sessionBlockMinutes ?? 50;
   const targetExamSummary = getTargetExamSummary(targetExams);
-  const today = startOfToday();
+  const now = new Date();
   const dueFlashcards = flashcards.filter((card) => {
     const state = card.states[0];
-    return !state?.nextReviewAt || state.nextReviewAt <= today;
+    return !state?.nextReviewAt || state.nextReviewAt <= now;
   }).length;
 
   return {
@@ -1191,9 +1197,9 @@ export async function getStudentDashboardData() {
         helper: targetExamSummary
       },
       {
-        label: "Pauses cadencees",
-        value: `${shortBreakMinutes} min`,
-        helper: `pause longue : ${energyProfile?.longBreakMinutes ?? 20} min`
+        label: "Flashcards dues",
+        value: `${dueFlashcards}`,
+        helper: dueFlashcards > 0 ? "A reviser pour entretenir la memorisation" : "Revisions a jour"
       },
       {
         label: "Matiere(s) a remonter",
@@ -1201,16 +1207,24 @@ export async function getStudentDashboardData() {
         helper: "Sans laisser les autres sur le cote"
       }
     ],
-    sessions: sessions.map((session) => ({
-      id: session.id,
-      time: session.plannedStartAt
-        ? session.plannedStartAt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
-        : "--:--",
-      duration: session.plannedDurationMin,
-      title: session.goalText,
-      subject: session.subject?.name ?? "Matiere a definir",
-      reason: "Cree pour equilibrer la semaine a partir du profil et des resultats."
-    })),
+    sessions: planning.hasProfile
+      ? planning.todayPlan.entries.map((session) => ({
+          id: session.id,
+          time: session.time,
+          duration: session.duration,
+          title: session.title,
+          subject: session.subject,
+          status: session.status,
+          reason:
+            session.status === "COMPLETED"
+              ? "Bloc valide et comptabilise dans ton classement."
+              : session.requiresFlashcards
+                ? "Une revision reelle de cartes est necessaire pour le valider."
+                : session.requiresSubmission
+                  ? "Tu peux joindre ta production directement depuis le planning."
+                  : "Bloc propose a partir de ton profil et de tes resultats."
+        }))
+      : [],
     weakPoints: weakPoints.map((point) => ({
       label: point.label,
       severity: point.severityScore >= 0.75 ? "Forte" : point.severityScore >= 0.55 ? "Moyenne" : "Legere",
@@ -1268,7 +1282,7 @@ export async function getStudentPlanningData() {
       orderBy: { severityScore: "desc" }
     }),
     prisma.task.findMany({
-      where: { studentId: user.id },
+      where: { studentId: user.id, status: { not: "done" } },
       include: {
         subject: true
       },
@@ -1318,8 +1332,45 @@ export async function getStudentPlanningData() {
   );
 
   const weekStart = getCurrentWeekStart();
+  const weekEnd = addDays(weekStart, 7);
   const today = startOfToday();
   const todayKey = today.toDateString();
+  const persistedDayKeys = new Set(
+    sessions
+      .filter((session) => session.plannedStartAt && session.plannedStartAt >= weekStart && session.plannedStartAt < weekEnd)
+      .map((session) => startOfTodayFrom(session.plannedStartAt!).toDateString())
+  );
+  const linkedTaskIds = new Set(
+    sessions
+      .filter((session) => session.taskId && session.plannedStartAt && session.plannedStartAt >= weekStart && session.plannedStartAt < weekEnd)
+      .map((session) => session.taskId!)
+  );
+  const availableTaskSlots = Array.from({ length: 7 }, (_, dayIndex) => {
+    const date = addDays(weekStart, dayIndex);
+    if (persistedDayKeys.has(date.toDateString())) return [];
+    const availableHours = date.getDay() === 0 || date.getDay() === 6 ? weekendDailyHours : weekdayDailyHours;
+    const blockCount = Math.min(3, Math.max(1, Math.floor((availableHours * 60) / blockMinutes)));
+    return Array.from({ length: blockCount }, (_, sessionIndex) => ({ dayIndex, sessionIndex }));
+  }).flat();
+  const taskAssignments = new Map<string, (typeof tasks)[number]>();
+
+  for (const task of tasks.filter((candidate) => !linkedTaskIds.has(candidate.id))) {
+    if (availableTaskSlots.length === 0) break;
+    const preferredDayIndex = task.dueAt
+      ? clamp(Math.floor((startOfTodayFrom(task.dueAt).getTime() - weekStart.getTime()) / 86_400_000), 0, 6)
+      : 0;
+    let selectedIndex = 0;
+    let selectedScore = Number.POSITIVE_INFINITY;
+    availableTaskSlots.forEach((slot, slotIndex) => {
+      const score = Math.abs(slot.dayIndex - preferredDayIndex) * 100 + (slot.dayIndex > preferredDayIndex ? 10 : 0) + slot.sessionIndex;
+      if (score < selectedScore) {
+        selectedIndex = slotIndex;
+        selectedScore = score;
+      }
+    });
+    const [slot] = availableTaskSlots.splice(selectedIndex, 1);
+    taskAssignments.set(`${slot.dayIndex}:${slot.sessionIndex}`, task);
+  }
 
   const week = Array.from({ length: 7 }, (_, index) => {
     const date = addDays(weekStart, index);
@@ -1343,6 +1394,7 @@ export async function getStudentPlanningData() {
             : "--:--",
           plannedStartAt: session.plannedStartAt ? session.plannedStartAt.toISOString() : null,
           subjectId: session.subjectId,
+          taskId: session.taskId,
           subject: session.subject?.name ?? "Matiere",
           title: session.goalText,
           duration: session.plannedDurationMin,
@@ -1358,15 +1410,21 @@ export async function getStudentPlanningData() {
     const firstStart = setTime(date, startTime);
 
     const generatedEntries = Array.from({ length: Math.min(3, blockCount) }, (_, sessionIndex) => {
-      const subject = prioritizedSubjects[(index + sessionIndex) % prioritizedSubjects.length];
+      const assignedTask = taskAssignments.get(`${index}:${sessionIndex}`);
+      const subject = assignedTask?.subject ?? prioritizedSubjects[(index + sessionIndex) % prioritizedSubjects.length];
       const appliedBreak =
         sessionIndex === 0 ? 0 : sessionIndex % breakEveryBlocks === 0 ? longBreakMinutes : shortBreakMinutes;
       const offsetMinutes = sessionIndex * blockMinutes + appliedBreak * sessionIndex;
       const slotTime = new Date(firstStart.getTime() + offsetMinutes * 60_000);
 
       const entryId = `planning-${createHash("sha256").update(`${user.id}:${date.toISOString()}:${sessionIndex}`).digest("hex")}`;
-      const sessionType =
-        sessionIndex === 0
+      const sessionType = assignedTask
+        ? assignedTask.taskType === "FLASHCARDS"
+          ? SessionType.FLASHCARDS_REVIEW
+          : assignedTask.taskType === "ESSAY"
+            ? SessionType.ESSAY_PRACTICE
+            : SessionType.CHAPTER_REVISION
+        : sessionIndex === 0
           ? SessionType.CHAPTER_REVISION
           : sessionIndex === 1
             ? SessionType.FLASHCARDS_REVIEW
@@ -1377,13 +1435,14 @@ export async function getStudentPlanningData() {
         time: slotTime.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
         plannedStartAt: slotTime.toISOString(),
         subjectId: subject?.id ?? null,
+        taskId: assignedTask?.id ?? null,
         subject: subject?.name ?? "Matiere",
-        title:
-          sessionIndex === 0
+        title: assignedTask?.title ??
+          (sessionIndex === 0
             ? `Bloc de progression ${subject?.name ?? "matiere"}`
             : sessionIndex === 1
               ? `Repetition active ${subject?.name ?? "matiere"}`
-              : `Travail d'entretien ${subject?.name ?? "matiere"}`,
+              : `Travail d'entretien ${subject?.name ?? "matiere"}`),
         duration: sessionIndex === 1 ? Math.max(20, Math.min(blockMinutes, 35)) : blockMinutes,
         status: "PLANNED",
         persisted: false,
@@ -1593,10 +1652,6 @@ export async function getStudentProgressData() {
   return {
     hasProfile: true as const,
     subjectCharts,
-    gradeFormSubjects: subjects.map((subject) => ({
-      code: subject.code,
-      name: subject.name
-    })),
     grades: grades
       .slice()
       .sort((left, right) => right.capturedAt.getTime() - left.capturedAt.getTime())
@@ -1609,7 +1664,12 @@ export async function getStudentProgressData() {
         capturedAtIso: grade.capturedAt.toISOString(),
         teacherName: grade.teacherName ?? "Professeur",
         sourceType: grade.sourceType,
-        sourceLabel: grade.sourceType === "mock_exam" ? "Concours blanc" : "Controle / devoir",
+        sourceLabel:
+          grade.sourceType === "mock_exam"
+            ? "Concours blanc"
+            : grade.sourceType === "essay_feedback"
+              ? "Copie corrigee"
+              : "Controle / devoir",
         semesterLabel: getSemesterLabel(grade.capturedAt)
       })),
     visualReading: {
@@ -1629,40 +1689,90 @@ export async function getStudentProgressData() {
   };
 }
 
-export async function createStudentGrade(input: {
-  subjectCode: string;
+export async function getTeacherGradeEntryData() {
+  const teacher = await requireRole([UserRole.TEACHER, UserRole.ADMIN]);
+  const membership = await getCurrentUserClass(teacher.id);
+  if (!membership?.classId) return { students: [], subjects: [] };
+
+  const [students, subjects] = await Promise.all([
+    prisma.user.findMany({
+      where: {
+        role: UserRole.STUDENT,
+        memberships: { some: { classId: membership.classId, roleInClass: "student" } }
+      },
+      orderBy: [{ lastName: "asc" }, { firstName: "asc" }]
+    }),
+    prisma.subject.findMany({ orderBy: { name: "asc" } })
+  ]);
+
+  return {
+    students: students.map((student) => ({
+      id: student.id,
+      label: `${student.firstName} ${student.lastName}`.trim()
+    })),
+    subjects: subjects.map((subject) => ({ id: subject.id, name: subject.name }))
+  };
+}
+
+export async function createTeacherStudentGrade(input: {
+  studentId: string;
+  subjectId: string;
   title: string;
   score: number;
   capturedAt: string;
   sourceType: string;
-  teacherName?: string;
 }) {
-  const { user } = await ensureDemoStudent();
-  const subject = await prisma.subject.findUnique({
-    where: { code: input.subjectCode }
-  });
-
-  if (!subject || !input.title.trim() || Number.isNaN(input.score)) {
-    return;
-  }
-
+  const teacher = await requireRole([UserRole.TEACHER, UserRole.ADMIN]);
+  const membership = await getCurrentUserClass(teacher.id);
   const capturedAt = new Date(input.capturedAt);
-  if (Number.isNaN(capturedAt.getTime())) {
-    return;
+  const sourceType = input.sourceType === "mock_exam" ? "mock_exam" : "teacher_entry";
+
+  if (
+    !membership?.classId ||
+    !input.title.trim() ||
+    !Number.isFinite(input.score) ||
+    input.score < 0 ||
+    input.score > 20 ||
+    Number.isNaN(capturedAt.getTime())
+  ) {
+    return { status: "invalid" as const };
   }
+
+  const [student, subject] = await Promise.all([
+    prisma.user.findFirst({
+      where: {
+        id: input.studentId,
+        role: UserRole.STUDENT,
+        memberships: { some: { classId: membership.classId, roleInClass: "student" } }
+      }
+    }),
+    prisma.subject.findUnique({ where: { id: input.subjectId } })
+  ]);
+
+  if (!student || !subject) return { status: "invalid" as const };
+
+  const normalizedTitle = input.title.trim();
+  const gradeId = `teacher-grade-${createHash("sha256")
+    .update([teacher.id, student.id, subject.id, normalizedTitle, input.score, capturedAt.toISOString(), sourceType].join(":"))
+    .digest("hex")}`;
+  const existing = await prisma.studentGrade.findUnique({ where: { id: gradeId } });
+  if (existing) return { status: "already_exists" as const };
 
   await prisma.studentGrade.create({
     data: {
-      studentId: user.id,
+      id: gradeId,
+      studentId: student.id,
       subjectId: subject.id,
-      title: input.title.trim(),
-      score: clamp(input.score, 0, 20),
+      title: normalizedTitle,
+      score: input.score,
       maxScore: 20,
-      sourceType: input.sourceType.trim() || "teacher_entry",
-      teacherName: input.teacherName?.trim() || null,
+      sourceType,
+      teacherName: `${teacher.firstName} ${teacher.lastName}`.trim(),
       capturedAt
     }
   });
+
+  return { status: "created" as const };
 }
 
 export async function getStudentAssistantData() {

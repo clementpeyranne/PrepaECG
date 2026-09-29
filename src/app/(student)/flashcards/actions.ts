@@ -84,6 +84,8 @@ export async function reviewCardAction(formData: FormData) {
   revalidatePath(`/flashcards/${deckId}`);
   revalidatePath("/dashboard");
   revalidatePath("/planning");
+  revalidatePath("/progress");
+  revalidatePath("/assistant");
 }
 
 export async function createShareAction(formData: FormData) {
@@ -106,6 +108,8 @@ export async function importShareCodeAction(formData: FormData) {
   revalidatePath("/flashcards");
   revalidatePath("/dashboard");
   revalidatePath("/planning");
+  revalidatePath("/progress");
+  revalidatePath("/assistant");
   redirectWithFlashcardsMessage(
     result.ok ? "success" : "error",
     result.message,
@@ -125,6 +129,8 @@ export async function importFlashcardFileAction(formData: FormData) {
   revalidatePath("/flashcards");
   revalidatePath("/dashboard");
   revalidatePath("/planning");
+  revalidatePath("/progress");
+  revalidatePath("/assistant");
   redirectWithFlashcardsMessage(
     result.ok ? "success" : "error",
     result.message,

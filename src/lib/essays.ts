@@ -545,34 +545,92 @@ export async function addTeacherEssayFeedback(input: {
   }
 
   const rubric = await getDefaultRubric(essay.subjectId, teacher.id);
+  const strengths = linesFromTextarea(input.strengths);
+  const mistakes = linesFromTextarea(input.mistakes);
+  const nextSteps = linesFromTextarea(input.nextSteps);
+  const planningSignals = linesFromTextarea(input.planningSignals);
+  const score =
+    input.scoreMin != null && input.scoreMax != null
+      ? (input.scoreMin + input.scoreMax) / 2
+      : input.scoreMin ?? input.scoreMax ?? null;
+  const teacherName = getTeacherLabel(teacher.firstName, teacher.lastName);
 
   try {
     await prisma.$transaction(async (tx) => {
-    await tx.essayFeedback.create({
-      data: {
-        essayId: essay.id,
-        submissionKey: feedbackKey,
-        reviewerType: ReviewerType.TEACHER,
-        reviewerUserId: teacher.id,
-        rubricId: rubric.id,
-        scoreMin: input.scoreMin ?? null,
-        scoreMax: input.scoreMax ?? null,
-        feedbackJson: {
-          overview: input.overview.trim(),
-          strengths: linesFromTextarea(input.strengths),
-          mistakes: linesFromTextarea(input.mistakes),
-          nextSteps: linesFromTextarea(input.nextSteps),
-          planningSignals: linesFromTextarea(input.planningSignals)
+      const feedback = await tx.essayFeedback.create({
+        data: {
+          essayId: essay.id,
+          submissionKey: feedbackKey,
+          reviewerType: ReviewerType.TEACHER,
+          reviewerUserId: teacher.id,
+          rubricId: rubric.id,
+          scoreMin: input.scoreMin ?? null,
+          scoreMax: input.scoreMax ?? null,
+          feedbackJson: {
+            overview: input.overview.trim(),
+            strengths,
+            mistakes,
+            nextSteps,
+            planningSignals
+          }
         }
-      }
-    });
+      });
 
-    await tx.essay.update({
-      where: { id: essay.id },
-      data: {
-        status: "TEACHER_REVIEWED"
+      await tx.essay.update({
+        where: { id: essay.id },
+        data: { status: "TEACHER_REVIEWED" }
+      });
+
+      if (score !== null) {
+        await tx.studentGrade.create({
+          data: {
+            id: `essay-feedback-${feedback.id}`,
+            studentId: essay.studentId,
+            subjectId: essay.subjectId,
+            title: essay.title,
+            score,
+            maxScore: 20,
+            sourceType: "essay_feedback",
+            teacherName,
+            capturedAt: new Date()
+          }
+        });
       }
-    });
+
+      const priorityLabel = planningSignals[0] ?? mistakes[0] ?? null;
+      if (priorityLabel) {
+        await tx.weakPoint.create({
+          data: {
+            studentId: essay.studentId,
+            subjectId: essay.subjectId,
+            chapterId: essay.chapterId,
+            sourceType: `teacher_feedback:${essay.id}`,
+            severityScore: score === null ? 0.65 : score < 10 ? 0.9 : score < 13 ? 0.7 : 0.45,
+            label: priorityLabel.slice(0, 180),
+            description: [input.overview.trim(), nextSteps[0]].filter(Boolean).join(" Prochaine etape : "),
+            status: score !== null && score >= 14 ? "IMPROVING" : "ACTIVE",
+            lastDetectedAt: new Date()
+          }
+        });
+      }
+
+      const nextTask = nextSteps[0] ?? planningSignals[0] ?? null;
+      if (nextTask) {
+        await tx.task.create({
+          data: {
+            studentId: essay.studentId,
+            subjectId: essay.subjectId,
+            chapterId: essay.chapterId,
+            title: nextTask.slice(0, 180),
+            description: `Suite du retour de ${teacherName} sur ${essay.title}.`,
+            taskType: "REVISION",
+            dueAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+            priorityScore: score !== null && score < 10 ? 0.95 : 0.82,
+            status: "todo",
+            sourceType: `teacher_feedback:${essay.id}`
+          }
+        });
+      }
     });
 
     return { status: "saved" };
@@ -764,6 +822,52 @@ export async function getTeacherEssaysQueueData(): Promise<TeacherEssaysQueueDat
       })
     )
   };
+}
+
+export async function getTeacherRubricsData() {
+  const teacher = await requireRole([UserRole.TEACHER, UserRole.ADMIN]);
+  const [rubrics, subjects] = await Promise.all([
+    prisma.gradingRubric.findMany({
+      where: { creatorId: teacher.id },
+      include: { subject: true, _count: { select: { feedbacks: true } } },
+      orderBy: { createdAt: "desc" }
+    }),
+    prisma.subject.findMany({ orderBy: { name: "asc" } })
+  ]);
+
+  return {
+    rubrics: rubrics.map((rubric) => ({
+      id: rubric.id,
+      title: rubric.title,
+      subject: rubric.subject.name,
+      criteria: Array.isArray(rubric.criteriaJson) ? rubric.criteriaJson.map(String) : [],
+      usageCount: rubric._count.feedbacks
+    })),
+    subjects: subjects.map((subject) => ({ id: subject.id, name: subject.name }))
+  };
+}
+
+export async function createTeacherRubric(input: { subjectId: string; title: string; criteria: string }) {
+  const teacher = await requireRole([UserRole.TEACHER, UserRole.ADMIN]);
+  const criteria = linesFromTextarea(input.criteria);
+  const title = input.title.trim();
+  const subject = await prisma.subject.findUnique({ where: { id: input.subjectId } });
+  if (!subject || !title || criteria.length === 0) return { status: "invalid" as const };
+
+  const existing = await prisma.gradingRubric.findFirst({
+    where: { creatorId: teacher.id, subjectId: subject.id, title }
+  });
+  if (existing) return { status: "already_exists" as const };
+
+  await prisma.gradingRubric.create({
+    data: {
+      creatorId: teacher.id,
+      subjectId: subject.id,
+      title,
+      criteriaJson: criteria
+    }
+  });
+  return { status: "created" as const };
 }
 
 export async function getLatestEssaySignals(studentId: string) {

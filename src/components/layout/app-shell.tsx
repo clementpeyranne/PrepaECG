@@ -4,7 +4,7 @@ import Link from "next/link";
 import { logoutAction } from "@/app/actions/auth";
 import { SidebarNav } from "@/components/navigation/sidebar-nav";
 import { ThemeSwitcher } from "@/components/layout/theme-switcher";
-import type { NavItem } from "@/lib/mock-data";
+import type { NavItem } from "@/lib/navigation";
 
 type AppShellProps = {
   audience: "student" | "teacher";

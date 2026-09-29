@@ -4,9 +4,10 @@ import type { Route } from "next";
 type PageHeaderProps = {
   title: string;
   description?: string;
-  actionLabel?: string;
-  actionHref?: Route;
-};
+} & (
+  | { actionLabel?: undefined; actionHref?: undefined }
+  | { actionLabel: string; actionHref: Route }
+);
 
 export function PageHeader({ title, description, actionLabel, actionHref }: PageHeaderProps) {
   return (
@@ -20,17 +21,13 @@ export function PageHeader({ title, description, actionLabel, actionHref }: Page
           <p className="mt-3 max-w-3xl text-sm leading-7 text-sand/82 lg:text-[15px]">{description}</p>
         ) : null}
       </div>
-      {actionLabel ? actionHref ? (
+      {actionLabel ? (
         <Link
           href={actionHref}
           className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-white px-5 py-3 text-sm font-semibold text-ink transition hover:translate-y-[-1px] hover:bg-sand sm:w-auto"
         >
           {actionLabel}
         </Link>
-      ) : (
-        <button className="min-h-12 w-full rounded-full bg-white px-5 py-3 text-sm font-semibold text-ink transition hover:translate-y-[-1px] hover:bg-sand sm:w-auto">
-          {actionLabel}
-        </button>
       ) : null}
     </header>
   );

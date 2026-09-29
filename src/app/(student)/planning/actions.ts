@@ -53,6 +53,12 @@ async function persistPlanningEntry(formData: FormData, status: SessionStatus): 
           data: { status, actualDurationMin: status === SessionStatus.COMPLETED ? entry.duration : null }
         });
         if (result.count !== 1) throw new Error("PLANNING_ENTRY_UNAVAILABLE");
+        if (entry.taskId) {
+          await tx.task.updateMany({
+            where: { id: entry.taskId, studentId: user.id },
+            data: { status: status === SessionStatus.COMPLETED ? "done" : "todo" }
+          });
+        }
       });
       break;
     } catch (error) {

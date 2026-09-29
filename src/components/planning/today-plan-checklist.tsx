@@ -13,6 +13,7 @@ export type TodayPlanEntry = {
   time: string;
   plannedStartAt: string | null;
   subjectId: string | null;
+  taskId: string | null;
   subject: string;
   title: string;
   duration: number;

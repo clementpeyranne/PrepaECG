@@ -70,8 +70,8 @@ export async function submitOnboarding(formData: FormData) {
     ecricomeSchools
   });
 
-  revalidatePath("/dashboard");
-  revalidatePath("/onboarding");
-  revalidatePath("/actualites");
+  for (const path of ["/dashboard", "/onboarding", "/planning", "/progress", "/assistant", "/actualites"]) {
+    revalidatePath(path);
+  }
   redirect("/dashboard");
 }

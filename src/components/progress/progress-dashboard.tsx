@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 
-import { createGradeAction } from "@/app/actions/progress";
 import { SectionCard } from "@/components/ui/section-card";
 
 type ProgressDashboardProps = {
@@ -17,10 +16,6 @@ type ProgressDashboardProps = {
       value: number;
       title: string;
     }>;
-  }>;
-  gradeFormSubjects: Array<{
-    code: string;
-    name: string;
   }>;
   grades: Array<{
     id: string;
@@ -110,7 +105,6 @@ function MiniLineChart({
 
 export function ProgressDashboard({
   subjectCharts,
-  gradeFormSubjects,
   grades,
   categories,
   visualReading
@@ -133,8 +127,6 @@ export function ProgressDashboard({
 
     return filteredGrades.reduce((sum, grade) => sum + grade.score, 0) / filteredGrades.length;
   }, [filteredGrades]);
-
-  const defaultDate = new Date().toISOString().slice(0, 10);
 
   return (
     <div>
@@ -207,89 +199,6 @@ export function ProgressDashboard({
                 </button>
               ))}
             </div>
-          </SectionCard>
-
-          <SectionCard
-            eyebrow="Saisie"
-            title="Ajouter une note"
-            accent="soft"
-          >
-            <form action={createGradeAction} className="space-y-4">
-              <label className="block">
-                <span className="mb-2 block text-sm font-medium text-pine/80">Matiere</span>
-                <select
-                  name="subjectCode"
-                  className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-pine"
-                >
-                  {gradeFormSubjects.map((subject) => (
-                    <option key={subject.code} value={subject.code}>
-                      {subject.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="block">
-                <span className="mb-2 block text-sm font-medium text-pine/80">Type</span>
-                <select
-                  name="sourceType"
-                  defaultValue="teacher_entry"
-                  className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-pine"
-                >
-                  <option value="teacher_entry">Note classique</option>
-                  <option value="mock_exam">Concours blanc</option>
-                </select>
-              </label>
-
-              <label className="block">
-                <span className="mb-2 block text-sm font-medium text-pine/80">Intitule</span>
-                <input
-                  name="title"
-                  placeholder="Ex. Concours blanc maths"
-                  className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-pine"
-                />
-              </label>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-pine/80">Note /20</span>
-                  <input
-                    name="score"
-                    type="number"
-                    step="0.5"
-                    min="0"
-                    max="20"
-                    className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-pine"
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-pine/80">Date</span>
-                  <input
-                    name="capturedAt"
-                    type="date"
-                    defaultValue={defaultDate}
-                    className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-pine"
-                  />
-                </label>
-              </div>
-
-              <label className="block">
-                <span className="mb-2 block text-sm font-medium text-pine/80">Professeur</span>
-                <input
-                  name="teacherName"
-                  placeholder="Ex. Mme Laurent"
-                  className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-pine"
-                />
-              </label>
-
-              <button
-                type="submit"
-                className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-sand transition hover:bg-pine"
-              >
-                Ajouter la note
-              </button>
-            </form>
           </SectionCard>
 
           <SectionCard

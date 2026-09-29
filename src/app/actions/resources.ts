@@ -32,6 +32,7 @@ export async function createTeacherResourceAction(formData: FormData) {
   revalidatePath("/teacher/resources");
   revalidatePath("/teacher/resources/new");
   revalidatePath("/resources");
+  revalidatePath("/assistant");
   redirect(`/teacher/resources/new?status=${result.status}`);
 }
 
@@ -49,4 +50,7 @@ export async function generateResourceOutputAction(formData: FormData) {
   revalidatePath(`/resources/${resourceId}`);
   revalidatePath("/flashcards");
   revalidatePath("/planning");
+  revalidatePath("/dashboard");
+  revalidatePath("/progress");
+  revalidatePath("/assistant");
 }

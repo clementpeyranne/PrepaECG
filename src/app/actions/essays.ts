@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { addTeacherEssayFeedback, createEssaySubmission, generateEssayAiFeedback } from "@/lib/essays";
+import { addTeacherEssayFeedback, createEssaySubmission, createTeacherRubric, generateEssayAiFeedback } from "@/lib/essays";
 
 function getString(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
@@ -40,6 +40,8 @@ export async function createEssaySubmissionAction(formData: FormData) {
   revalidatePath("/essays/new");
   revalidatePath("/teacher/essays");
   revalidatePath("/planning");
+  revalidatePath("/dashboard");
+  revalidatePath("/progress");
   revalidatePath("/assistant");
 
   const planningEntryId = getString(formData, "planningEntryId");
@@ -91,6 +93,8 @@ export async function addTeacherEssayFeedbackAction(formData: FormData) {
   revalidatePath("/essays");
   revalidatePath(`/essays/${essayId}`);
   revalidatePath("/planning");
+  revalidatePath("/dashboard");
+  revalidatePath("/progress");
   revalidatePath("/assistant");
 
   if (result.status === "saved") {
@@ -102,4 +106,14 @@ export async function addTeacherEssayFeedbackAction(formData: FormData) {
   }
 
   redirect("/teacher/essays?status=feedback_invalid");
+}
+
+export async function createTeacherRubricAction(formData: FormData) {
+  const result = await createTeacherRubric({
+    subjectId: getString(formData, "subjectId"),
+    title: getString(formData, "title"),
+    criteria: getString(formData, "criteria")
+  });
+  revalidatePath("/teacher/rubrics");
+  redirect(`/teacher/rubrics?status=${result.status}`);
 }

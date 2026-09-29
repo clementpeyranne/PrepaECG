@@ -3,7 +3,7 @@ import { UserRole } from "@prisma/client";
 import { redirect } from "next/navigation";
 
 import { AppShell } from "@/components/layout/app-shell";
-import { studentNavigation } from "@/lib/mock-data";
+import { studentNavigation } from "@/lib/navigation";
 import { getCurrentUser, getUserLandingPath, requireRole } from "@/lib/auth";
 import { getStudentShellData } from "@/lib/student-app";
 
@@ -22,11 +22,16 @@ export default async function StudentLayout({ children }: { children: ReactNode 
 
   const user = await requireRole(allowedRoles);
   const shell = await getStudentShellData();
+  const navigation = studentNavigation.map((item) =>
+    item.href === "/flashcards" && shell.dueFlashcards > 0
+      ? { ...item, badge: String(shell.dueFlashcards) }
+      : item
+  );
 
   return (
     <AppShell
       audience="student"
-      navigation={studentNavigation}
+      navigation={navigation}
       title={shell.title}
       userLabel={`${user.firstName} ${user.lastName}`}
     >

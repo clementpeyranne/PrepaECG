@@ -285,7 +285,7 @@ function isTextResourceMimeType(mimeType: string) {
   return mimeType.startsWith("text/") || mimeType === "application/json";
 }
 
-async function getResourceReadableText(resource: { storageKey: string; mimeType: string; sourceKind: string }) {
+export async function getResourceReadableText(resource: { storageKey: string; mimeType: string; sourceKind: string }) {
   if (resource.sourceKind === "TEXT_PASTE") {
     return resource.storageKey.trim();
   }

@@ -26,6 +26,12 @@ for (const [email, password, expectedCourse] of [
   assert.equal((await response.text()).includes("Cours ESH"), expectedCourse);
   console.log(`PASS: connexion serveur et isolation des ressources pour ${email}`);
   if (expectedCourse) {
+    for (const route of ["/dashboard", "/planning", "/flashcards", "/resources", "/essays", "/assistant", "/actualites", "/progress", "/onboarding"]) {
+      const routeResponse = await fetch(base + route, { headers: { Cookie: cookie } });
+      assert.equal(routeResponse.status, 200, `${route} doit etre accessible depuis le menu eleve`);
+    }
+    console.log("PASS: tous les onglets eleve sont accessibles");
+
     const planning = await fetch(`${base}/planning`, { headers: { Cookie: cookie } });
     assert.equal(planning.status, 200);
     const html = await planning.text();
@@ -38,22 +44,33 @@ for (const [email, password, expectedCourse] of [
     const dashboard = await fetch(`${base}/dashboard`, { headers: { Cookie: cookie } });
     assert.equal(dashboard.status, 200);
     const dashboardHtml = await dashboard.text();
-    assert.equal((dashboardHtml.match(/Classement anonyme/g) || []).length, 1);
+    const visibleDashboardHtml = dashboardHtml.replace(/<script[\s\S]*?<\/script>/g, "");
+    assert.equal((visibleDashboardHtml.match(/Classement anonyme/g) || []).length, 1);
 
     const progress = await fetch(`${base}/progress`, { headers: { Cookie: cookie } });
     assert.equal(progress.status, 200);
     const progressHtml = await progress.text();
     assert.ok(!progressHtml.includes("Retours les plus utiles"));
     assert.ok(!progressHtml.includes(">Signal<"));
+    assert.ok(!progressHtml.includes("Ajouter une note"));
     console.log("PASS: classement unique et anciens panneaux de progression retires");
+
+    const teacherArea = await fetch(`${base}/teacher/grades`, { headers: { Cookie: cookie }, redirect: "manual" });
+    assert.ok([303, 307, 308].includes(teacherArea.status));
+    assert.equal(teacherArea.headers.get("location"), "/dashboard");
+    console.log("PASS: un eleve ne peut pas ouvrir l'espace professeur");
   }
 }
 const teacher = await login("teacher@example.test", "test-password-123");
-for (const route of ["/teacher/resources", "/teacher/resources/new", "/teacher/essays"]) {
+for (const route of ["/teacher/resources", "/teacher/resources/new", "/teacher/essays", "/teacher/grades", "/teacher/rubrics"]) {
   const response = await fetch(base + route, { headers: { Cookie: teacher } });
   assert.equal(response.status, 200);
   console.log(`PASS: ${route} HTTP 200`);
 }
+const studentArea = await fetch(`${base}/dashboard`, { headers: { Cookie: teacher }, redirect: "manual" });
+assert.ok([303, 307, 308].includes(studentArea.status));
+assert.equal(studentArea.headers.get("location"), "/teacher/resources");
+console.log("PASS: un professeur est renvoye vers son espace dedie");
 const page = await fetch(`${base}/forgot-password`, { headers: { Cookie: "prepa_auth=invalid" } });
 assert.equal(page.status, 200);
 assert.ok((await page.text()).includes("pas encore disponible"));

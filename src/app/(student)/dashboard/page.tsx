@@ -1,5 +1,7 @@
 export const dynamic = "force-dynamic";
 
+import Link from "next/link";
+
 import { PageHeader } from "@/components/ui/page-header";
 import { SectionCard } from "@/components/ui/section-card";
 import { getStudentDashboardData } from "@/lib/student-app";
@@ -40,7 +42,7 @@ export default async function DashboardPage() {
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm font-semibold text-sand">{window.label}</p>
                   <span className="rounded-full border border-white/20 px-3 py-1 text-xs text-sand/85">
-                    {Math.round(window.userMinutes / 60)}h travaillees
+                    {formatMinutes(window.userMinutes)} travaillees
                   </span>
                 </div>
                 <p className="mt-3 text-sm leading-7 text-sand/88">
@@ -52,6 +54,9 @@ export default async function DashboardPage() {
               </div>
             ))}
           </div>
+          <Link href="/planning" className="mt-4 inline-flex text-sm font-semibold text-sand underline decoration-sand/35 underline-offset-4">
+            Ouvrir le planning
+          </Link>
         </SectionCard>
 
         <SectionCard
@@ -67,6 +72,9 @@ export default async function DashboardPage() {
               </div>
             ))}
           </div>
+          <Link href="/progress" className="mt-4 inline-flex text-sm font-semibold text-pine underline decoration-pine/30 underline-offset-4">
+            Voir ma progression
+          </Link>
         </SectionCard>
       </div>
 
@@ -90,6 +98,9 @@ export default async function DashboardPage() {
               </div>
             ))}
           </div>
+          <Link href="/planning" className="mt-4 inline-flex text-sm font-semibold text-pine underline decoration-pine/30 underline-offset-4">
+            Voir et valider mes blocs
+          </Link>
         </SectionCard>
 
         <SectionCard
@@ -110,6 +121,9 @@ export default async function DashboardPage() {
               </div>
             ))}
           </div>
+          <Link href="/progress" className="mt-4 inline-flex text-sm font-semibold text-pine underline decoration-pine/30 underline-offset-4">
+            Comprendre mes points faibles
+          </Link>
         </SectionCard>
 
         <SectionCard
@@ -124,8 +138,18 @@ export default async function DashboardPage() {
               </div>
             ))}
           </div>
+          <Link href="/planning" className="mt-4 inline-flex text-sm font-semibold text-pine underline decoration-pine/30 underline-offset-4">
+            Organiser ces echeances
+          </Link>
         </SectionCard>
       </div>
     </div>
   );
+}
+
+function formatMinutes(totalMinutes: number) {
+  if (totalMinutes < 60) return `${totalMinutes} min`;
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return minutes > 0 ? `${hours}h${String(minutes).padStart(2, "0")}` : `${hours}h`;
 }

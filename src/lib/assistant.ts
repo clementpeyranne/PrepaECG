@@ -1,6 +1,7 @@
 import { generateAssistantReply } from "./ai";
 import { getCurrentUserClass } from "./auth";
 import { prisma } from "./db";
+import { getResourceReadableText } from "./resources";
 import { ensureDemoStudent, getStudentAssistantData } from "./student-app";
 
 export type AssistantWorkspaceData = {
@@ -162,6 +163,7 @@ export async function askStudentAssistant(input: {
   ]);
 
   const dueFlashcards = dueStatesCount + neverReviewedCount;
+  const selectedResourceContent = resource ? await getResourceReadableText(resource) : null;
 
   const reply = await generateAssistantReply({
     userId: user.id,
@@ -170,7 +172,7 @@ export async function askStudentAssistant(input: {
     weakPointLabels: weakPoints.map((point) => point.label),
     dueFlashcards,
     selectedResourceTitle: resource?.title,
-    selectedResourceContent: resource?.storageKey,
+    selectedResourceContent: selectedResourceContent ?? undefined,
     selectedEssayTitle: essay?.title,
     selectedEssaySummary:
       essayFeedback && typeof essayFeedback.feedbackJson === "object" && essayFeedback.feedbackJson
