@@ -479,6 +479,33 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
       assert.match(importedAnkiCard.frontText, /data:image\/png;base64,/);
       assert.ok(importedAnkiCard.backText.includes("\\[\\frac{1}{2}\\]"));
     });
+    await t.test("les gros decks sont pagines et restent recherchables", async () => {
+      use(student);
+      await cards.createFlashcardDeck({ title: "Deck pagination", subjectCode: "ESH" });
+      const paginationDeck = await db.flashcardDeck.findFirst({
+        where: { ownerUserId: student.id, title: "Deck pagination" }
+      });
+      await db.flashcard.createMany({
+        data: Array.from({ length: 60 }, (_, index) => ({
+          deckId: paginationDeck.id,
+          frontText: `Question pagination ${index + 1}`,
+          backText: index === 59 ? "Reponse cible introuvable autrement" : `Reponse ${index + 1}`,
+          position: index + 1
+        }))
+      });
+      const deckData = await cards.getFlashcardDeckData(paginationDeck.id);
+      assert.equal(deckData.browserCards.length, 50);
+      assert.equal(deckData.browserTotal, 60);
+      const secondPage = await cards.getFlashcardBrowserPage({ deckId: paginationDeck.id, offset: 50 });
+      assert.equal(secondPage.cards.length, 10);
+      assert.equal(secondPage.total, 60);
+      const searchPage = await cards.getFlashcardBrowserPage({
+        deckId: paginationDeck.id,
+        query: "introuvable autrement"
+      });
+      assert.equal(searchPage.total, 1);
+      assert.match(searchPage.cards[0].backText, /Reponse cible/);
+    });
     await t.test("revision enregistree une seule fois, pas de reproposition avant echeance", async () => {
       use(student);
       let detail = await cards.getFlashcardDeckData(subDeck.id);

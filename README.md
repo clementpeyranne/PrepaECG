@@ -171,6 +171,12 @@ L'application installable ne conserve plus les pages privees en cache hors conne
 
 Avant de deployer cette version, executer `npm run db:auth:prod`. Ce script ajoute uniquement les tables d'invitations/limitation et les colonnes anti-doublons ; il ne supprime pas de donnees. Il est relancable. Ne pas deployer le code tant que cette commande n'a pas reussi. En local, `npm run db:push` applique le schema SQLite.
 
+Pour une base deja creee, appliquer aussi les index de performance additifs. La commande est relancable et ne supprime aucune donnee :
+
+```bash
+npm run db:indexes:prod
+```
+
 Les inscriptions professeurs exigent une invitation personnelle, y compris en demonstration. Pour creer une invitation apres verification de l'identite du professeur :
 
 ```bash

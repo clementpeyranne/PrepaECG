@@ -364,7 +364,11 @@ export default async function FlashcardsPage({
       </div>
 
       <div className="mt-5">
-        <FlashcardBrowser cards={data.browserCards} />
+        <FlashcardBrowser
+          cards={data.browserCards}
+          totalCards={data.browserTotal}
+          remoteSearch
+        />
       </div>
     </div>
   );

@@ -74,7 +74,13 @@ export default async function DeckDetailPage({
       </div>
 
       <div className="mt-5">
-        <FlashcardBrowser cards={data.browserCards} title="Cartes du deck" />
+        <FlashcardBrowser
+          cards={data.browserCards}
+          totalCards={data.browserTotal}
+          remoteSearch
+          deckId={data.deck.id}
+          title="Cartes du deck"
+        />
       </div>
     </div>
   );

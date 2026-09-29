@@ -421,18 +421,17 @@ async function ensureDemoGrades(studentId: string) {
 }
 
 export const ensureDemoStudent = cache(async () => {
-  const { prepClass, subjects } = await ensureReferenceData();
   const user = await requireRole([UserRole.STUDENT, UserRole.ADMIN]);
   const membership = await getCurrentUserClass(user.id);
 
   if (membership?.class) {
     return {
       user,
-      prepClass: membership.class,
-      subjects
+      prepClass: membership.class
     };
   }
 
+  const { prepClass } = await ensureReferenceData();
   if (!isDemoModeEnabled() || !prepClass) {
     throw new Error("CLASS_REQUIRED");
   }
@@ -455,8 +454,7 @@ export const ensureDemoStudent = cache(async () => {
   });
   return {
     user,
-    prepClass,
-    subjects
+    prepClass
   };
 });
 
@@ -811,10 +809,11 @@ async function getAnonymousWorkRanking(
 }
 
 export async function getOnboardingOptions() {
-  const { prepClass, subjects, user } = await ensureDemoStudent();
-  const profile = await prisma.studentProfile.findUnique({
-    where: { userId: user.id }
-  });
+  const { prepClass, user } = await ensureDemoStudent();
+  const [profile, subjects] = await Promise.all([
+    prisma.studentProfile.findUnique({ where: { userId: user.id } }),
+    prisma.subject.findMany({ orderBy: { name: "asc" } })
+  ]);
   const energyProfile = (profile?.energyProfile as EnergyProfilePayload | null) ?? null;
   const languagePreferences = getLanguagePreferences(energyProfile);
 
@@ -1088,20 +1087,35 @@ export async function saveStudentOnboarding(input: OnboardingInput) {
   });
 }
 
+async function countDueFlashcards(userId: string, now = new Date()) {
+  return prisma.flashcard.count({
+    where: {
+      deck: { ownerUserId: userId },
+      OR: [
+        { states: { none: { userId } } },
+        {
+          states: {
+            some: {
+              userId,
+              OR: [{ nextReviewAt: null }, { nextReviewAt: { lte: now } }]
+            }
+          }
+        }
+      ]
+    }
+  });
+}
+
 export async function getStudentShellData() {
   const { user } = await ensureDemoStudent();
-  const now = new Date();
-  const [profile, dueStatesCount, neverReviewedCount] = await Promise.all([
+  const [profile, dueFlashcards] = await Promise.all([
     prisma.studentProfile.findUnique({ where: { userId: user.id } }),
-    prisma.flashcardState.count({ where: { userId: user.id, nextReviewAt: { lte: now } } }),
-    prisma.flashcard.count({
-      where: { deck: { ownerUserId: user.id }, states: { none: { userId: user.id } } }
-    })
+    countDueFlashcards(user.id)
   ]);
 
   return {
     title: profile ? user.firstName : "Configuration",
-    dueFlashcards: dueStatesCount + neverReviewedCount,
+    dueFlashcards,
     subtitle: profile
       ? "Organisation, revisions et progression."
       : "Configure ton profil pour demarrer."
@@ -1132,7 +1146,7 @@ export async function getStudentDashboardData() {
   };
   const energyProfile = (profile.energyProfile as EnergyProfilePayload | null) ?? null;
   const languagePreferences = getLanguagePreferences(energyProfile);
-  const [anonymousRanking, planning, tasks, weakPoints, flashcards] = await Promise.all([
+  const [anonymousRanking, planning, tasks, weakPoints, dueFlashcards] = await Promise.all([
     getAnonymousWorkRanking(user.id, targetExams, profile.prepYear),
     getStudentPlanningData(),
     prisma.task.findMany({
@@ -1151,29 +1165,12 @@ export async function getStudentDashboardData() {
         subject: true
       }
     }),
-    prisma.flashcard.findMany({
-      where: {
-        deck: {
-          ownerUserId: user.id
-        }
-      },
-      include: {
-        states: {
-          where: { userId: user.id }
-        }
-      }
-    })
+    countDueFlashcards(user.id)
   ]);
 
   const weekdayDailyHours = energyProfile?.weekdayDailyHours ?? 3;
   const weekendDailyHours = energyProfile?.weekendDailyHours ?? 5;
   const targetExamSummary = getTargetExamSummary(targetExams);
-  const now = new Date();
-  const dueFlashcards = flashcards.filter((card) => {
-    const state = card.states[0];
-    return !state?.nextReviewAt || state.nextReviewAt <= now;
-  }).length;
-
   return {
     hasProfile: true as const,
     userFirstName: user.firstName,
@@ -1266,10 +1263,15 @@ export async function getStudentPlanningData() {
     ecricomeSchools: []
   };
   const energyProfile = (profile.energyProfile as EnergyProfilePayload | null) ?? null;
+  const weekStart = getCurrentWeekStart();
+  const weekEnd = addDays(weekStart, 7);
 
   const [sessions, weakPoints, tasks, subjects, planningEssays] = await Promise.all([
     prisma.studySession.findMany({
-      where: { studentId: user.id },
+      where: {
+        studentId: user.id,
+        plannedStartAt: { gte: weekStart, lt: weekEnd }
+      },
       include: {
         subject: true
       },
@@ -1336,8 +1338,6 @@ export async function getStudentPlanningData() {
     (subject, index, array) => array.findIndex((candidate) => candidate.id === subject.id) === index
   );
 
-  const weekStart = getCurrentWeekStart();
-  const weekEnd = addDays(weekStart, 7);
   const today = startOfToday();
   const todayKey = today.toDateString();
   const persistedDayKeys = new Set(
@@ -1519,7 +1519,7 @@ export async function getStudentProgressData() {
 
   await ensureDemoGrades(user.id);
 
-  const [subjects, grades, weakPoints, flashcards, essays] = await Promise.all([
+  const [subjects, grades, weakPoints, dueFlashcards, essays] = await Promise.all([
     prisma.subject.findMany({
       orderBy: { name: "asc" }
     }),
@@ -1537,24 +1537,7 @@ export async function getStudentProgressData() {
       },
       orderBy: { severityScore: "desc" }
     }),
-    prisma.flashcard.findMany({
-      where: {
-        deck: {
-          ownerUserId: user.id
-        }
-      },
-      include: {
-        deck: {
-          include: {
-            subject: true,
-            chapter: true
-          }
-        },
-        states: {
-          where: { userId: user.id }
-        }
-      }
-    }),
+    countDueFlashcards(user.id),
     prisma.essay.findMany({
       where: { studentId: user.id },
       include: {
@@ -1567,10 +1550,6 @@ export async function getStudentProgressData() {
     })
   ]);
 
-  const dueFlashcards = flashcards.filter((card) => {
-    const state = card.states[0];
-    return !state?.nextReviewAt || state.nextReviewAt <= new Date();
-  }).length;
   const groupedGrades = subjects
     .map((subject) => {
       const subjectGrades = grades.filter((grade) => grade.subjectId === subject.id);

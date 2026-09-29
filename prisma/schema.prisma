@@ -158,6 +158,7 @@ model ClassMembership {
   class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
 
   @@unique([userId, classId])
+  @@index([classId, roleInClass])
 }
 
 model StudentProfile {
@@ -175,6 +176,8 @@ model StudentProfile {
   user              User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
   class             Class                     @relation(fields: [classId], references: [id], onDelete: Cascade)
   availabilitySlots StudentAvailabilitySlot[]
+
+  @@index([classId, prepYear])
 }
 
 model StudentAvailabilitySlot {
@@ -185,6 +188,8 @@ model StudentAvailabilitySlot {
   endTime   String
   slotType  String
   student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId, dayOfWeek])
 }
 
 model Subject {
@@ -215,6 +220,8 @@ model Chapter {
   sessions   StudySession[]
   weakPoints WeakPoint[]
   essays     Essay[]
+
+  @@index([subjectId])
 }
 
 model Resource {
@@ -239,6 +246,10 @@ model Resource {
   accessRules        ResourceAccess[]
   aiOutputs          ResourceAIOutput[]
   sourceDecks        FlashcardDeck[]
+
+  @@index([classId, createdAt])
+  @@index([uploaderId, createdAt])
+  @@index([subjectId, chapterId])
 }
 
 model ResourceAccess {
@@ -247,6 +258,9 @@ model ResourceAccess {
   userId     String?
   classId    String?
   resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@index([resourceId, userId])
+  @@index([classId])
 }
 
 model ResourceAIOutput {
@@ -258,6 +272,8 @@ model ResourceAIOutput {
   createdAt   DateTime @default(now())
   resource    Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([resourceId, userId, createdAt])
 }
 
 model FlashcardDeck {
@@ -281,6 +297,10 @@ model FlashcardDeck {
   sourceResource   Resource?   @relation(fields: [sourceResourceId], references: [id], onDelete: SetNull)
   flashcards       Flashcard[]
   shares           FlashcardShare[]
+
+  @@index([ownerUserId, createdAt])
+  @@index([parentDeckId])
+  @@index([classId, subjectId])
 }
 
 model Flashcard {
@@ -295,6 +315,8 @@ model Flashcard {
   deck      FlashcardDeck     @relation(fields: [deckId], references: [id], onDelete: Cascade)
   reviews   FlashcardReview[]
   states    FlashcardState[]
+
+  @@index([deckId, position])
 }
 
 model FlashcardReview {
@@ -312,6 +334,7 @@ model FlashcardReview {
   user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, planningEntryId])
+  @@index([flashcardId, userId, reviewedAt])
 }
 
 model FlashcardState {
@@ -330,6 +353,8 @@ model FlashcardState {
   user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([flashcardId, userId])
+  @@index([userId, nextReviewAt])
+  @@index([userId, status])
 }
 
 model Task {
@@ -349,6 +374,8 @@ model Task {
   subject       Subject?       @relation(fields: [subjectId], references: [id], onDelete: SetNull)
   chapter       Chapter?       @relation(fields: [chapterId], references: [id], onDelete: SetNull)
   sessions      StudySession[]
+
+  @@index([studentId, status, dueAt])
 }
 
 model StudySession {
@@ -371,6 +398,9 @@ model StudySession {
   subject            Subject?      @relation(fields: [subjectId], references: [id], onDelete: SetNull)
   chapter            Chapter?      @relation(fields: [chapterId], references: [id], onDelete: SetNull)
   task               Task?         @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@index([studentId, plannedStartAt])
+  @@index([studentId, status, plannedStartAt])
 }
 
 model WeakPoint {
@@ -387,6 +417,8 @@ model WeakPoint {
   student        User            @relation(fields: [studentId], references: [id], onDelete: Cascade)
   subject        Subject         @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   chapter        Chapter?        @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+
+  @@index([studentId, status, severityScore])
 }
 
 model Essay {
@@ -415,6 +447,8 @@ model Essay {
   feedbacks      EssayFeedback[]
 
   @@index([studentId, planningEntryId])
+  @@index([studentId, createdAt])
+  @@index([teacherId, status, createdAt])
 }
 
 model GradingRubric {
@@ -428,6 +462,8 @@ model GradingRubric {
   creator      User            @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   subject      Subject         @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   feedbacks    EssayFeedback[]
+
+  @@index([creatorId, subjectId])
 }
 
 model EssayFeedback {
@@ -443,6 +479,8 @@ model EssayFeedback {
   createdAt      DateTime       @default(now())
   essay          Essay          @relation(fields: [essayId], references: [id], onDelete: Cascade)
   rubric         GradingRubric? @relation(fields: [rubricId], references: [id], onDelete: SetNull)
+
+  @@index([essayId, createdAt])
 }
 
 model AIGeneration {
@@ -458,6 +496,8 @@ model AIGeneration {
   costEstimate     Float?
   createdAt        DateTime @default(now())
   user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
 
 model StudentGrade {
@@ -473,6 +513,9 @@ model StudentGrade {
   createdAt  DateTime @default(now())
   student    User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
   subject    Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@index([studentId, capturedAt])
+  @@index([studentId, subjectId, capturedAt])
 }
 
 model FlashcardShare {
@@ -485,6 +528,8 @@ model FlashcardShare {
   createdAt   DateTime      @default(now())
   owner       User          @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
   rootDeck    FlashcardDeck @relation(fields: [rootDeckId], references: [id], onDelete: Cascade)
+
+  @@index([ownerUserId, createdAt])
 }
 
 model NewsSelection {
@@ -498,6 +543,8 @@ model NewsSelection {
   selectedAt   DateTime @default(now())
   expiresAt    DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, sectionId, expiresAt])
 }
 
 model PasswordResetToken {

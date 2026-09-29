@@ -1,4 +1,4 @@
-import { FlashcardRating, FlashcardStatus } from "@prisma/client";
+import { FlashcardRating, FlashcardStatus, type Prisma } from "@prisma/client";
 import { randomBytes } from "node:crypto";
 import path from "node:path";
 import { unzipSync } from "fflate";
@@ -10,6 +10,18 @@ import { isDemoModeEnabled } from "./app-config";
 import { prisma } from "./db";
 import { deleteStoredFile, resolveDirectUpload } from "./storage";
 import { ensureDemoStudent } from "./student-app";
+
+export type FlashcardBrowserCard = {
+  id: string;
+  deckId?: string;
+  deckTitle?: string;
+  deckPath?: string;
+  subject?: string;
+  frontText: string;
+  backText: string;
+  nextReviewLabel: string;
+  statusLabel: string;
+};
 
 export type FlashcardsOverviewData = {
   subjectGroups: Array<{
@@ -51,17 +63,8 @@ export type FlashcardsOverviewData = {
     code: string;
     name: string;
   }>;
-  browserCards: Array<{
-    id: string;
-    deckId: string;
-    deckTitle: string;
-    deckPath: string;
-    subject: string;
-    frontText: string;
-    backText: string;
-    nextReviewLabel: string;
-    statusLabel: string;
-  }>;
+  browserCards: FlashcardBrowserCard[];
+  browserTotal: number;
 };
 
 export type FlashcardsOverviewDeckNode = {
@@ -137,13 +140,8 @@ export type FlashcardDeckData = {
     tags: string[];
   } | null;
   reviewOptions: ReviewOption[];
-  browserCards: Array<{
-    id: string;
-    frontText: string;
-    backText: string;
-    nextReviewLabel: string;
-    statusLabel: string;
-  }>;
+  browserCards: FlashcardBrowserCard[];
+  browserTotal: number;
 };
 
 type ReviewDecision = {
@@ -1760,7 +1758,15 @@ export async function getFlashcardsOverviewData(): Promise<FlashcardsOverviewDat
   const { user } = await ensureDemoFlashcards();
   const now = new Date();
 
-  const [decks, allCards, reviews, subjectsForForms, recentShares] = await Promise.all([
+  const [
+    decks,
+    stateCards,
+    reviewTotals,
+    successfulReviewTotals,
+    initialBrowserCards,
+    subjectsForForms,
+    recentShares
+  ] = await Promise.all([
     prisma.flashcardDeck.findMany({
       where: { ownerUserId: user.id },
       select: {
@@ -1789,20 +1795,6 @@ export async function getFlashcardsOverviewData(): Promise<FlashcardsOverviewDat
       select: {
         id: true,
         deckId: true,
-        position: true,
-        frontText: true,
-        backText: true,
-        deck: {
-          select: {
-            id: true,
-            title: true,
-            subject: {
-              select: {
-                name: true
-              }
-            }
-          }
-        },
         states: {
           where: { userId: user.id },
           select: {
@@ -1811,9 +1803,10 @@ export async function getFlashcardsOverviewData(): Promise<FlashcardsOverviewDat
           }
         }
       },
-      orderBy: [{ deck: { title: "asc" } }, { position: "asc" }]
+      orderBy: { position: "asc" }
     }),
-    prisma.flashcardReview.findMany({
+    prisma.flashcardReview.groupBy({
+      by: ["flashcardId"],
       where: {
         userId: user.id,
         flashcard: {
@@ -1822,10 +1815,37 @@ export async function getFlashcardsOverviewData(): Promise<FlashcardsOverviewDat
           }
         }
       },
+      _count: { _all: true }
+    }),
+    prisma.flashcardReview.groupBy({
+      by: ["flashcardId"],
+      where: {
+        userId: user.id,
+        rating: { not: FlashcardRating.AGAIN },
+        flashcard: { deck: { ownerUserId: user.id } }
+      },
+      _count: { _all: true }
+    }),
+    prisma.flashcard.findMany({
+      where: { deck: { ownerUserId: user.id } },
       select: {
-        flashcardId: true,
-        rating: true
-      }
+        id: true,
+        deckId: true,
+        frontText: true,
+        backText: true,
+        deck: {
+          select: {
+            title: true,
+            subject: { select: { name: true } }
+          }
+        },
+        states: {
+          where: { userId: user.id },
+          select: { status: true, nextReviewAt: true }
+        }
+      },
+      orderBy: [{ deck: { title: "asc" } }, { position: "asc" }],
+      take: 50
     }),
     prisma.subject.findMany({
       orderBy: { name: "asc" }
@@ -1841,20 +1861,18 @@ export async function getFlashcardsOverviewData(): Promise<FlashcardsOverviewDat
     })
   ]);
 
-  const reviewStatsByCardId = reviews.reduce((map, review) => {
-    const current = map.get(review.flashcardId) ?? {
-      totalReviews: 0,
-      successfulReviews: 0
-    };
-
-    current.totalReviews += 1;
-    if (review.rating !== FlashcardRating.AGAIN) {
-      current.successfulReviews += 1;
-    }
-
-    map.set(review.flashcardId, current);
-    return map;
-  }, new Map<string, { totalReviews: number; successfulReviews: number }>());
+  const successfulReviewsByCardId = new Map(
+    successfulReviewTotals.map((entry) => [entry.flashcardId, entry._count._all])
+  );
+  const reviewStatsByCardId = new Map(
+    reviewTotals.map((entry) => [
+      entry.flashcardId,
+      {
+        totalReviews: entry._count._all,
+        successfulReviews: successfulReviewsByCardId.get(entry.flashcardId) ?? 0
+      }
+    ])
+  );
 
   const deckStatsById = decks.reduce((map, deck) => {
     map.set(deck.id, {
@@ -1867,7 +1885,7 @@ export async function getFlashcardsOverviewData(): Promise<FlashcardsOverviewDat
     return map;
   }, new Map<string, { due: number; newCards: number; total: number; totalReviews: number; successfulReviews: number }>());
 
-  for (const card of allCards) {
+  for (const card of stateCards) {
     const deckStats = deckStatsById.get(card.deckId);
     if (!deckStats) {
       continue;
@@ -2011,7 +2029,7 @@ export async function getFlashcardsOverviewData(): Promise<FlashcardsOverviewDat
     }))
     .sort((left, right) => left.subject.localeCompare(right.subject, "fr"));
 
-  const browserCards = allCards
+  const browserCards = initialBrowserCards
     .map((card) => {
       const state = card.states[0];
       const deckPath = getDeckPath(card.deckId) || card.deck.title;
@@ -2105,7 +2123,96 @@ export async function getFlashcardsOverviewData(): Promise<FlashcardsOverviewDat
       code: subject.code,
       name: subject.name
     })),
-    browserCards
+    browserCards,
+    browserTotal: stateCards.length
+  };
+}
+
+const FLASHCARD_BROWSER_PAGE_SIZE = 50;
+
+export async function getFlashcardBrowserPage(input: {
+  query?: string;
+  offset?: number;
+  deckId?: string;
+}) {
+  const { user } = await ensureDemoFlashcards();
+  const query = input.query?.trim().slice(0, 120) ?? "";
+  const offset = Math.max(0, Math.min(Math.trunc(input.offset ?? 0), 20_000));
+  const deckId = input.deckId?.trim() || "";
+  const where: Prisma.FlashcardWhereInput = {
+    deck: { ownerUserId: user.id },
+    ...(deckId ? { deckId } : {})
+  };
+
+  if (query) {
+    where.OR = [
+      { frontText: { contains: query } },
+      { backText: { contains: query } },
+      { deck: { title: { contains: query } } },
+      { deck: { subject: { name: { contains: query } } } }
+    ];
+  }
+
+  const [cards, total, decks] = await Promise.all([
+    prisma.flashcard.findMany({
+      where,
+      select: {
+        id: true,
+        deckId: true,
+        frontText: true,
+        backText: true,
+        deck: {
+          select: {
+            title: true,
+            subject: { select: { name: true } }
+          }
+        },
+        states: {
+          where: { userId: user.id },
+          select: { status: true, nextReviewAt: true }
+        }
+      },
+      orderBy: [{ deck: { title: "asc" } }, { position: "asc" }],
+      skip: offset,
+      take: FLASHCARD_BROWSER_PAGE_SIZE
+    }),
+    prisma.flashcard.count({ where }),
+    prisma.flashcardDeck.findMany({
+      where: { ownerUserId: user.id },
+      select: { id: true, title: true, parentDeckId: true }
+    })
+  ]);
+
+  const decksById = new Map(decks.map((deck) => [deck.id, deck]));
+  const pathCache = new Map<string, string>();
+  const getDeckPath = (currentDeckId: string): string => {
+    const cached = pathCache.get(currentDeckId);
+    if (cached) return cached;
+    const currentDeck = decksById.get(currentDeckId);
+    if (!currentDeck) return "";
+    const parentPath = currentDeck.parentDeckId ? getDeckPath(currentDeck.parentDeckId) : "";
+    const fullPath = parentPath ? `${parentPath} / ${currentDeck.title}` : currentDeck.title;
+    pathCache.set(currentDeckId, fullPath);
+    return fullPath;
+  };
+
+  return {
+    cards: cards.map((card) => {
+      const state = card.states[0];
+      return {
+        id: card.id,
+        deckId: card.deckId,
+        deckTitle: card.deck.title,
+        deckPath: getDeckPath(card.deckId) || card.deck.title,
+        subject: card.deck.subject.name,
+        frontText: card.frontText,
+        backText: card.backText,
+        nextReviewLabel: getNextReviewLabel(state?.nextReviewAt ?? null, state?.status ?? null),
+        statusLabel: getStatusLabel(state?.status ?? null)
+      } satisfies FlashcardBrowserCard;
+    }),
+    total,
+    nextOffset: offset + cards.length < total ? offset + cards.length : null
   };
 }
 
@@ -2118,35 +2225,70 @@ export async function getFlashcardDeckData(deckId: string): Promise<FlashcardDec
       id: deckId,
       ownerUserId: user.id
     },
-    include: {
-      subject: true,
-      chapter: true,
-      flashcards: {
-        include: {
-          states: {
-            where: { userId: user.id }
-          },
-          reviews: {
-            where: { userId: user.id },
-            orderBy: { reviewedAt: "desc" },
-            take: 12
-          }
-        },
-        orderBy: { position: "asc" }
-      }
-    }
+    include: { subject: true, chapter: true }
   });
 
   if (!deck) {
     return null;
   }
 
-  const dueCards = deck.flashcards.filter((card) => {
+  const [stateCards, reviewTotals, successfulReviewTotals, reviewCardSource, browserPage] = await Promise.all([
+    prisma.flashcard.findMany({
+      where: { deckId: deck.id },
+      select: {
+        id: true,
+        states: {
+          where: { userId: user.id },
+          select: { status: true, nextReviewAt: true }
+        }
+      }
+    }),
+    prisma.flashcardReview.groupBy({
+      by: ["flashcardId"],
+      where: { userId: user.id, flashcard: { deckId: deck.id } },
+      _count: { _all: true }
+    }),
+    prisma.flashcardReview.groupBy({
+      by: ["flashcardId"],
+      where: {
+        userId: user.id,
+        rating: { not: FlashcardRating.AGAIN },
+        flashcard: { deckId: deck.id }
+      },
+      _count: { _all: true }
+    }),
+    prisma.flashcard.findFirst({
+      where: {
+        deckId: deck.id,
+        OR: [
+          { states: { none: { userId: user.id } } },
+          {
+            states: {
+              some: {
+                userId: user.id,
+                OR: [{ nextReviewAt: null }, { nextReviewAt: { lte: now } }]
+              }
+            }
+          }
+        ]
+      },
+      include: {
+        states: { where: { userId: user.id } },
+        reviews: {
+          where: { userId: user.id },
+          orderBy: { reviewedAt: "desc" },
+          take: 1
+        }
+      },
+      orderBy: { position: "asc" }
+    }),
+    getFlashcardBrowserPage({ deckId: deck.id })
+  ]);
+
+  const dueCards = stateCards.filter((card) => {
     const state = card.states[0];
     return !state?.nextReviewAt || state.nextReviewAt <= now;
   });
-
-  const reviewCardSource = dueCards[0] ?? null;
   const reviewCardState = reviewCardSource?.states[0] ?? null;
   const reviewCardLatestReview = reviewCardSource?.reviews[0] ?? null;
   const reviewCardCurrentIntervalDays = reviewCardSource
@@ -2156,6 +2298,9 @@ export async function getFlashcardDeckData(deckId: string): Promise<FlashcardDec
         reviewCardState?.nextReviewAt ?? null
       ))
     : 0;
+
+  const totalReviews = reviewTotals.reduce((sum, entry) => sum + entry._count._all, 0);
+  const successfulReviews = successfulReviewTotals.reduce((sum, entry) => sum + entry._count._all, 0);
 
   return {
     deck: {
@@ -2167,13 +2312,13 @@ export async function getFlashcardDeckData(deckId: string): Promise<FlashcardDec
     },
     stats: {
       due: dueCards.length,
-      newCards: deck.flashcards.filter((card) => {
+      newCards: stateCards.filter((card) => {
         const state = card.states[0];
         return !state || state.status === FlashcardStatus.NEW;
       }).length,
-      retention: getRetention(deck.flashcards.flatMap((card) => card.reviews)),
-      total: deck.flashcards.length,
-      reviewedCards: deck.flashcards.filter((card) => card.reviews.length > 0).length
+      retention: totalReviews > 0 ? Math.round((successfulReviews / totalReviews) * 100) : 0,
+      total: stateCards.length,
+      reviewedCards: reviewTotals.length
     },
     reviewCard: reviewCardSource
       ? {
@@ -2195,17 +2340,8 @@ export async function getFlashcardDeckData(deckId: string): Promise<FlashcardDec
           storedDifficultyScore: reviewCardState?.difficultyScore ?? null
         })
       : [],
-    browserCards: deck.flashcards.map((card) => {
-      const state = card.states[0];
-
-      return {
-        id: card.id,
-        frontText: card.frontText,
-        backText: card.backText,
-        nextReviewLabel: getNextReviewLabel(state?.nextReviewAt ?? null, state?.status ?? null),
-        statusLabel: getStatusLabel(state?.status ?? null)
-      };
-    })
+    browserCards: browserPage.cards,
+    browserTotal: browserPage.total
   };
 }
 
