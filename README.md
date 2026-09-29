@@ -234,6 +234,23 @@ Ce point renvoie l'etat de :
 - le stockage de fichiers ;
 - la configuration OpenAI.
 
+Controler une phase pilote sans afficher de donnees personnelles :
+
+```bash
+npm run pilot:audit:prod
+npm run pilot:load:prod
+npm run pilot:smoke:prod
+```
+
+La derniere commande cree un eleve de recette sur le vrai site, verifie l'inscription, la configuration, tous les onglets et la reconnexion, puis supprime ce compte et ses donnees. Elle ne depose aucun document.
+
+Le stockage peut etre controle sans suppression, puis nettoye uniquement pour les fichiers de plus de 24 heures qui ne sont lies a aucune copie ou ressource :
+
+```bash
+npm run storage:cleanup:prod
+npm run storage:cleanup:prod -- --apply
+```
+
 Generer le schema Prisma pour PostgreSQL avant un deploiement :
 
 ```bash

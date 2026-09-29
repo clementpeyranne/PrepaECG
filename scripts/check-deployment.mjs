@@ -84,6 +84,17 @@ if (!supportEmail) {
   warnings.push("NEXT_PUBLIC_SUPPORT_EMAIL n'est pas defini.");
 }
 
+const missingLegalFields = [
+  "NEXT_PUBLIC_LEGAL_NAME",
+  "NEXT_PUBLIC_LEGAL_ADDRESS",
+  "NEXT_PUBLIC_PUBLICATION_DIRECTOR",
+  "NEXT_PUBLIC_HOSTING_NAME",
+  "NEXT_PUBLIC_HOSTING_ADDRESS"
+].filter((key) => !env[key]?.trim() || env[key].toLowerCase().includes("a renseigner"));
+if (missingLegalFields.length > 0) {
+  warnings.push(`Informations legales incompletes : ${missingLegalFields.join(", ")}.`);
+}
+
 if (passwordResetMode === "direct-link") {
   warnings.push(
     "PASSWORD_RESET_MODE=direct-link est ignore en production : un lien de recuperation ne doit jamais etre affiche publiquement."

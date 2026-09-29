@@ -138,13 +138,23 @@ export async function createDirectUpload(userId: string, folder: UploadFolder, n
   return { signedUrl: data.signedUrl, receipt: `${payload}.${signUpload(payload)}` };
 }
 
-export async function resolveDirectUpload(receipt: string, userId: string, folder: UploadFolder) {
+function verifyDirectUploadReceipt(receipt: string, userId: string, folder: UploadFolder) {
   if (receipt.length > 4096) throw new Error("INVALID_UPLOAD");
   const [payload, signature, extra] = receipt.split(".");
   if (!payload || extra !== undefined || !/^[a-f0-9]{64}$/.test(signature ?? "") ||
     !timingSafeEqual(Buffer.from(signature), Buffer.from(signUpload(payload)))) throw new Error("INVALID_UPLOAD");
   const data = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as UploadReceipt;
   if (data.userId !== userId || data.folder !== folder || data.expiresAt <= Date.now()) throw new Error("INVALID_UPLOAD");
+  return data;
+}
+
+export async function discardDirectUpload(receipt: string, userId: string, folder: UploadFolder) {
+  const data = verifyDirectUploadReceipt(receipt, userId, folder);
+  await deleteStoredFile(data.storageKey);
+}
+
+export async function resolveDirectUpload(receipt: string, userId: string, folder: UploadFolder) {
+  const data = verifyDirectUploadReceipt(receipt, userId, folder);
   const buffer = await readStoredFileBuffer(data.storageKey);
   if (buffer.length !== data.size) throw new Error("INVALID_UPLOAD");
   validateDocumentBytes(buffer, data.mimeType, folder);

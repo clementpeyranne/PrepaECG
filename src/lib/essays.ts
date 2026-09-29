@@ -6,7 +6,7 @@ import { getCurrentUserClass, requireRole } from "./auth";
 import { generateEssayReview } from "./ai";
 import { prisma } from "./db";
 import { ensureDemoResources } from "./resources";
-import { getStoredFileName, getStoredFileUrl, readStoredFileBuffer, saveUploadedFile, resolveDirectUpload } from "./storage";
+import { deleteStoredFile, discardDirectUpload, getStoredFileName, getStoredFileUrl, readStoredFileBuffer, saveUploadedFile, resolveDirectUpload } from "./storage";
 import { validateDocumentBytes } from "./upload-rules";
 import { ensureDemoStudent } from "./student-app";
 
@@ -456,6 +456,9 @@ export async function createEssaySubmission(input: {
   });
 
   if (existingBySubmissionKey) {
+    if (input.uploadReceipt) {
+      await discardDirectUpload(input.uploadReceipt, user.id, "essays").catch(() => undefined);
+    }
     return { status: "already_exists", essayId: existingBySubmissionKey.id };
   }
 
@@ -490,6 +493,9 @@ export async function createEssaySubmission(input: {
   });
 
   if (existingDuplicate) {
+    if (directUpload) {
+      await deleteStoredFile(directUpload.storedFile.storageKey).catch(() => undefined);
+    }
     return { status: "already_exists", essayId: existingDuplicate.id };
   }
 
@@ -524,6 +530,7 @@ export async function createEssaySubmission(input: {
 
     return { status: "created", essayId: essay.id };
   } catch (error) {
+    await deleteStoredFile(storedFile.storageKey).catch(() => undefined);
     if (!isKnownUniqueConstraintError(error)) {
       throw error;
     }

@@ -6,7 +6,7 @@ import { getCurrentUserClass, requireRole } from "./auth";
 import { generateResourceFlashcards, generateResourceSheet, generateResourceSummary } from "./ai";
 import { prisma } from "./db";
 import { ensureReferenceData } from "./reference-data";
-import { getStoredFileName, getStoredFileUrl, readStoredFileBuffer, saveUploadedFile, resolveDirectUpload } from "./storage";
+import { deleteStoredFile, discardDirectUpload, getStoredFileName, getStoredFileUrl, readStoredFileBuffer, saveUploadedFile, resolveDirectUpload } from "./storage";
 import { createHash } from "node:crypto";
 import { ensureDemoStudent } from "./student-app";
 
@@ -744,7 +744,12 @@ export async function createTeacherResource(input: {
   }
   const submissionKey = createHash("sha256").update(`${teacher.id}:${input.submissionKey}`).digest("hex");
   const existing = await prisma.resource.findUnique({ where: { submissionKey } });
-  if (existing) return { status: "already_exists" as const, resourceId: existing.id };
+  if (existing) {
+    if (input.uploadReceipt) {
+      await discardDirectUpload(input.uploadReceipt, teacher.id, "resources").catch(() => undefined);
+    }
+    return { status: "already_exists" as const, resourceId: existing.id };
+  }
 
   const normalizedType = Object.values(ResourceType).includes(input.resourceType as ResourceType)
     ? (input.resourceType as ResourceType)
@@ -768,24 +773,27 @@ export async function createTeacherResource(input: {
         : null);
 
   try {
-  const resource = await prisma.resource.create({
-    data: {
-      submissionKey,
-      uploaderId: teacher.id,
-      classId: membership.classId,
-      subjectId: chapter.subject.id,
-      chapterId: chapter.id,
-      title: input.title.trim(),
-      description,
-      resourceType: normalizedType,
-      storageKey,
-      mimeType,
-      sourceKind,
-      isAiActionsEnabled: input.aiEnabled
-    }
-  });
-  return { status: "created" as const, resourceId: resource.id };
+    const resource = await prisma.resource.create({
+      data: {
+        submissionKey,
+        uploaderId: teacher.id,
+        classId: membership.classId,
+        subjectId: chapter.subject.id,
+        chapterId: chapter.id,
+        title: input.title.trim(),
+        description,
+        resourceType: normalizedType,
+        storageKey,
+        mimeType,
+        sourceKind,
+        isAiActionsEnabled: input.aiEnabled
+      }
+    });
+    return { status: "created" as const, resourceId: resource.id };
   } catch (error) {
+    if (uploadedFile) {
+      await deleteStoredFile(uploadedFile.storageKey).catch(() => undefined);
+    }
     if (error && typeof error === "object" && "code" in error && error.code === "P2002") {
       return { status: "already_exists" as const };
     }

@@ -178,11 +178,13 @@ test("health reports missing email recovery and does not leak database errors", 
   const config = loadModule("src/lib/app-config.ts", production);
   const status = loadModule("src/lib/runtime-status.ts", production, {
     "./app-config": config,
+    "./public-site": { getPublicSiteConfig: () => ({ isIncomplete: true }) },
     "./mail": { isRecoveryEmailConfigured: () => false },
     "./db": { prisma: { $queryRaw: async () => { throw new Error("private-host-and-credentials"); } } }
   });
   const result = await status.getRuntimeStatus();
   assert.equal(result.checks.find((check) => check.label === "password_reset").state, "warn");
+  assert.equal(result.checks.find((check) => check.label === "legal").state, "warn");
   assert.equal(result.checks.find((check) => check.label === "database").state, "fail");
   assert.doesNotMatch(JSON.stringify(result), /private-host-and-credentials/);
 });

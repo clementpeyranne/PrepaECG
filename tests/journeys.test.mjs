@@ -26,6 +26,7 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
   let cookie;
   const sessions = new Map();
   const objects = new Map();
+  const removedObjects = [];
   let uploadPath;
   let lastAiReviewInput;
   const mocks = {
@@ -41,7 +42,14 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
     "./supabase-admin": { getSupabaseAdminClient: () => ({ storage: { from: () => ({
       createSignedUploadUrl: async (key) => { uploadPath = key; return { data: { signedUrl: `https://storage.example.test/${key}` }, error: null }; },
       download: async (key) => ({ data: objects.has(key) ? new Blob([objects.get(key)]) : null, error: objects.has(key) ? null : new Error("missing") }),
-      createSignedUrl: async (key) => ({ data: { signedUrl: `https://storage.example.test/read/${key}` }, error: null })
+      createSignedUrl: async (key) => ({ data: { signedUrl: `https://storage.example.test/read/${key}` }, error: null }),
+      remove: async (keys) => {
+        for (const key of keys) {
+          objects.delete(key);
+          removedObjects.push(key);
+        }
+        return { data: [], error: null };
+      }
     }) } }) }
   };
   const load = createAppLoader(mocks);
@@ -292,6 +300,14 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
       assert.equal(detail.subject, "ESH");
       const data = await readFile(path.join(dir, "public", detail.fileUrl));
       assert.equal(data.toString(), await pdf.text());
+      const duplicateUpload = await storage.createDirectUpload(teacher.id, "resources", pdf.name, pdf.type, pdf.size);
+      objects.set(uploadPath, Buffer.from(await pdf.arrayBuffer()));
+      const duplicatePath = uploadPath;
+      assert.equal((await resources.createTeacherResource({
+        ...resourceInput(), file: null, uploadReceipt: duplicateUpload.receipt
+      })).status, "already_exists");
+      assert.ok(removedObjects.includes(duplicatePath));
+      assert.equal(objects.has(duplicatePath), false);
     });
     await t.test("ressources visibles par la bonne prepa et modifiables seulement par leur auteur", async () => {
       use(student); assert.ok(await resources.getResourceDetailData(resourceId));
@@ -314,6 +330,14 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
       assert.equal((await essays.createEssaySubmission(essayInput())).status, "already_exists");
       assert.equal((await essays.createEssaySubmission({ ...essayInput(), submissionKey: "new-form" })).status, "already_exists");
       assert.equal(await db.essay.count(), 1);
+      const duplicateUpload = await storage.createDirectUpload(student.id, "essays", pdf.name, pdf.type, pdf.size);
+      objects.set(uploadPath, Buffer.from(await pdf.arrayBuffer()));
+      const duplicatePath = uploadPath;
+      assert.equal((await essays.createEssaySubmission({
+        ...essayInput(), file: null, uploadReceipt: duplicateUpload.receipt
+      })).status, "already_exists");
+      assert.ok(removedObjects.includes(duplicatePath));
+      assert.equal(objects.has(duplicatePath), false);
       use(teacher); const queue = await essays.getTeacherEssaysQueueData();
       assert.equal(queue.essays.length, 1);
       assert.equal(queue.essays[0].instructions, "Verifier la structure du plan");

@@ -9,6 +9,7 @@ import {
   getSupabaseUrl,
   isDemoModeEnabled
 } from "./app-config";
+import { getPublicSiteConfig } from "./public-site";
 
 type CheckState = "pass" | "warn" | "fail";
 
@@ -157,12 +158,29 @@ function getAiStatus(): RuntimeCheck {
   };
 }
 
+function getLegalStatus(): RuntimeCheck {
+  if (getPublicSiteConfig().isIncomplete) {
+    return {
+      label: "legal",
+      state: "warn",
+      detail: "Les informations legales et de support doivent encore etre renseignees."
+    };
+  }
+
+  return {
+    label: "legal",
+    state: "pass",
+    detail: "Informations legales et de support configurees."
+  };
+}
+
 export async function getRuntimeStatus() {
   const checks: RuntimeCheck[] = [
     getAuthSecretStatus(),
     getStorageStatus(),
     getAppUrlStatus(),
     getPasswordResetStatus(),
+    getLegalStatus(),
     getAiStatus()
   ];
 
