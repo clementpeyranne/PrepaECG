@@ -1758,17 +1758,49 @@ export async function createTeacherStudentGrade(input: {
   const existing = await prisma.studentGrade.findUnique({ where: { id: gradeId } });
   if (existing) return { status: "already_exists" as const };
 
-  await prisma.studentGrade.create({
-    data: {
-      id: gradeId,
-      studentId: student.id,
-      subjectId: subject.id,
-      title: normalizedTitle,
-      score: input.score,
-      maxScore: 20,
-      sourceType,
-      teacherName: `${teacher.firstName} ${teacher.lastName}`.trim(),
-      capturedAt
+  await prisma.$transaction(async (tx) => {
+    await tx.studentGrade.create({
+      data: {
+        id: gradeId,
+        studentId: student.id,
+        subjectId: subject.id,
+        title: normalizedTitle,
+        score: input.score,
+        maxScore: 20,
+        sourceType,
+        teacherName: `${teacher.firstName} ${teacher.lastName}`.trim(),
+        capturedAt
+      }
+    });
+
+    if (input.score < 12) {
+      await tx.weakPoint.create({
+        data: {
+          id: `${gradeId}-weak`,
+          studentId: student.id,
+          subjectId: subject.id,
+          sourceType: `grade:${gradeId}`,
+          severityScore: input.score < 8 ? 0.9 : input.score < 10 ? 0.78 : 0.62,
+          label: `${subject.name} : resultat a consolider`,
+          description: `${normalizedTitle} - ${input.score}/20.`,
+          status: "ACTIVE",
+          lastDetectedAt: capturedAt
+        }
+      });
+      await tx.task.create({
+        data: {
+          id: `${gradeId}-task`,
+          studentId: student.id,
+          subjectId: subject.id,
+          title: `Reprendre ${normalizedTitle}`.slice(0, 180),
+          description: `Tache creee a partir de la note de ${input.score}/20 en ${subject.name}.`,
+          taskType: "REVISION",
+          dueAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+          priorityScore: input.score < 8 ? 0.96 : input.score < 10 ? 0.88 : 0.76,
+          status: "todo",
+          sourceType: `grade:${gradeId}`
+        }
+      });
     }
   });
 

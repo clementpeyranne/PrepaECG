@@ -26,6 +26,7 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
   const sessions = new Map();
   const objects = new Map();
   let uploadPath;
+  let lastAiReviewInput;
   const mocks = {
     react: { cache: (fn) => fn }, "./db": { prisma: db },
     "@/lib/db": { prisma: db }, "next/cache": { revalidatePath: () => {} },
@@ -36,7 +37,6 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
         set: (_, value) => { cookie = value; }, delete: () => { cookie = undefined; }
       })
     },
-    "./ai": new Proxy({}, { get: () => async () => { throw new Error("AI must not be called in these journeys"); } }),
     "./supabase-admin": { getSupabaseAdminClient: () => ({ storage: { from: () => ({
       createSignedUploadUrl: async (key) => { uploadPath = key; return { data: { signedUrl: `https://storage.example.test/${key}` }, error: null }; },
       download: async (key) => ({ data: objects.has(key) ? new Blob([objects.get(key)]) : null, error: objects.has(key) ? null : new Error("missing") }),
@@ -46,6 +46,23 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
   const load = createAppLoader(mocks);
   const auth = load("src/lib/auth.ts");
   const refs = load("src/lib/reference-data.ts");
+  const ai = load("src/lib/ai.ts");
+  const aiTasks = load("src/lib/ai-task-catalog.ts");
+  mocks["./ai"] = {
+    ...ai,
+    generateEssayReview: async (input) => {
+      lastAiReviewInput = input;
+      return {
+        scoreMin: 10,
+        scoreMax: 12,
+        overview: "La copie doit gagner en precision.",
+        strengths: ["Structure visible"],
+        mistakes: ["Definitions trop vagues"],
+        nextSteps: ["Reprendre les definitions du chapitre"],
+        planningSignals: ["Precision des notions"]
+      };
+    }
+  };
   mocks["./student-app"] = { ensureDemoStudent: async () => {
     const user = await auth.requireRole(["STUDENT", "ADMIN"]);
     const membership = await auth.getCurrentUserClass(user.id);
@@ -54,6 +71,7 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
   } };
   const resources = load("src/lib/resources.ts");
   const essays = load("src/lib/essays.ts");
+  const assistant = load("src/lib/assistant.ts");
   const cards = load("src/lib/flashcards.ts");
   const storage = load("src/lib/storage.ts");
   const limits = load("src/lib/auth-rate-limit.ts");
@@ -122,6 +140,28 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
       assert.equal((await auth.loginUser({ email: student.email, password: "wrong" })).ok, false);
       assert.equal((await auth.loginUser({ email: student.email, password: "test-password-123" })).ok, true);
       assert.equal((await auth.getCurrentUser()).id, student.id); sessions.set(student.id, cookie);
+    });
+    await t.test("moteur IA: toutes les missions ont un contrat de donnees et de sortie", async () => {
+      const catalog = aiTasks.getAITaskCatalog();
+      for (const taskId of ["assistant_reply", "essay_review", "planning_guidance", "resource_summary", "resource_sheet", "resource_flashcards", "weekly_review"]) {
+        const task = catalog.find((entry) => entry.id === taskId);
+        assert.ok(task, `Mission IA manquante : ${taskId}`);
+        assert.ok(task.inputSources.length > 0);
+        assert.ok(task.outputs.length > 0);
+        assert.ok(task.writes.length > 0);
+      }
+      const weeklyReview = await ai.generateWeeklyReview({
+        userId: student.id,
+        completedMinutes: 120,
+        completedBlocks: 3,
+        reviewedFlashcards: 24,
+        dueFlashcards: 5,
+        recentGrades: [{ subject: "ESH", score: 13 }],
+        weakPointLabels: ["Precision des definitions"],
+        completedTaskTitles: ["Revoir le chapitre croissance"]
+      });
+      assert.match(weeklyReview.summary, /3 blocs/);
+      assert.ok(weeklyReview.focusAreas.includes("Precision des definitions"));
     });
 
     const planning = load("src/lib/student-app.ts");
@@ -267,6 +307,25 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
       const beforeFeedback = await planning.getStudentProgressData();
       assert.equal(beforeFeedback.grades.length, 0, "Aucune fausse note ne doit etre injectee en production");
     });
+    await t.test("correction IA: les lacunes et la prochaine action alimentent le planning sans doublon", async () => {
+      use(teacher);
+      const esh = await db.subject.findFirst({ where: { code: "ESH" } });
+      assert.deepEqual(await essays.createTeacherRubric({
+        subjectId: esh.id,
+        title: "Correction IA ESH",
+        criteria: "Problematique\nReferences"
+      }), { status: "created" });
+      use(student);
+      await essays.generateEssayAiFeedback(essayId);
+      await essays.generateEssayAiFeedback(essayId);
+      assert.equal(lastAiReviewInput.rubric.title, "Correction IA ESH");
+      assert.deepEqual(lastAiReviewInput.rubric.criteria, ["Problematique", "References"]);
+      assert.equal(await db.essayFeedback.count({ where: { essayId, reviewerType: "AI" } }), 1);
+      assert.equal(await db.weakPoint.count({ where: { sourceType: `ai_feedback:${essayId}` } }), 1);
+      assert.equal(await db.task.count({ where: { sourceType: `ai_feedback:${essayId}` } }), 1);
+      const schedule = await planning.getStudentPlanningData();
+      assert.ok(schedule.week.flatMap((day) => day.entries).some((entry) => entry.title === "Reprendre les definitions du chapitre"));
+    });
     await t.test("photo PNG enregistree et faux PDF executable refuse", async () => {
       use(student);
       const photo = new File([pngBytes], "page.png", { type: "image/png" });
@@ -281,7 +340,7 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
       assert.equal((await essays.addTeacherEssayFeedback({ ...feedback(), scoreMax: 30 })).status, "invalid");
       assert.equal((await essays.addTeacherEssayFeedback(feedback())).status, "saved");
       assert.equal((await essays.addTeacherEssayFeedback({ ...feedback(), submissionKey: "new" })).status, "already_exists");
-      assert.equal(await db.essayFeedback.count({ where: { essayId } }), 1);
+      assert.equal(await db.essayFeedback.count({ where: { essayId, reviewerType: "TEACHER" } }), 1);
       use(student);
       const detail = await essays.getEssayDetailData(essayId);
       assert.equal(detail.teacherFeedback[0].scoreRange, "14/20");
@@ -293,7 +352,6 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
       const dashboard = await planning.getStudentDashboardData();
       assert.ok(dashboard.weakPoints.some((point) => point.label === "Argumentation"));
       const schedule = await planning.getStudentPlanningData();
-      assert.ok(schedule.upcomingTasks.some((task) => task.title === "Revoir les definitions"));
       const feedbackBlock = schedule.week.flatMap((day) => day.entries).find((entry) => entry.title === "Revoir les definitions");
       assert.ok(feedbackBlock?.taskId, "Le retour professeur doit devenir un bloc precis du planning");
       assert.deepEqual(await planningActions.markPlanningSessionDone(blockForm(feedbackBlock.id, true)), { ok: true });
@@ -310,9 +368,24 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
       assert.deepEqual(await planning.createTeacherStudentGrade(input), { status: "created" });
       assert.deepEqual(await planning.createTeacherStudentGrade(input), { status: "already_exists" });
       assert.deepEqual(await planning.createTeacherStudentGrade({ ...input, studentId: studentB.id }), { status: "invalid" });
+      const hgg = await db.subject.findFirst({ where: { code: "HGG" } });
+      assert.deepEqual(await planning.createTeacherStudentGrade({
+        ...input,
+        subjectId: hgg.id,
+        title: "Concours blanc geopolitique",
+        score: 9,
+        capturedAt: "2026-09-21",
+        sourceType: "mock_exam"
+      }), { status: "created" });
       use(student);
       const progress = await planning.getStudentProgressData();
       assert.ok(progress.grades.some((grade) => grade.title === "DS matrices" && grade.teacherName === "Test Parcours"));
+      assert.ok((await planning.getStudentPlanningData()).week
+        .flatMap((day) => day.entries)
+        .some((entry) => entry.title === "Reprendre Concours blanc geopolitique"));
+      const reply = await assistant.askStudentAssistant({ prompt: "Quelles sont mes notes et mes lacunes ?" });
+      assert.match(reply.answer, /12\.5\/20/);
+      assert.match(reply.answer, /Argumentation|Precision des notions/);
     });
     await t.test("grilles: l'espace professeur lit de vraies grilles en base", async () => {
       use(teacher);

@@ -281,6 +281,13 @@ export async function generateEssayAiFeedback(essayId: string) {
     return;
   }
 
+  const rubric = essay.teacherId
+    ? await prisma.gradingRubric.findFirst({
+        where: { creatorId: essay.teacherId, subjectId: essay.subjectId },
+        orderBy: { createdAt: "desc" }
+      })
+    : null;
+
   const essayContent =
     essay.submissionType === "FILE_UPLOAD"
       ? {
@@ -300,36 +307,103 @@ export async function generateEssayAiFeedback(essayId: string) {
     subject: essay.subject.name,
     examType: essay.examType,
     targetExam: essay.targetExam,
+    rubric: rubric
+      ? {
+          title: rubric.title,
+          criteria: Array.isArray(rubric.criteriaJson) ? rubric.criteriaJson.map(String) : []
+        }
+      : undefined,
     essayContent
   });
+  const score = (review.scoreMin + review.scoreMax) / 2;
+  const priorityLabel = review.planningSignals[0] ?? review.mistakes[0] ?? null;
+  const nextTask = review.nextSteps[0] ?? review.planningSignals[0] ?? null;
+  const weakPointId = `ai-review-weak-${essay.id}`;
+  const taskId = `ai-review-task-${essay.id}`;
 
-  await prisma.essayFeedback.deleteMany({
-    where: {
-      essayId: essay.id,
-      reviewerType: ReviewerType.AI
-    }
-  });
-
-  await prisma.essayFeedback.create({
-    data: {
-      essayId: essay.id,
-      reviewerType: ReviewerType.AI,
-      scoreMin: review.scoreMin,
-      scoreMax: review.scoreMax,
-      feedbackJson: {
-        overview: review.overview,
-        strengths: review.strengths,
-        mistakes: review.mistakes,
-        nextSteps: review.nextSteps,
-        planningSignals: review.planningSignals
+  await prisma.$transaction(async (tx) => {
+    await tx.essayFeedback.deleteMany({
+      where: {
+        essayId: essay.id,
+        reviewerType: ReviewerType.AI
       }
-    }
-  });
+    });
 
-  await prisma.essay.update({
-    where: { id: essay.id },
-    data: {
-      status: "AI_REVIEWED"
+    await tx.essayFeedback.create({
+      data: {
+        essayId: essay.id,
+        reviewerType: ReviewerType.AI,
+        scoreMin: review.scoreMin,
+        scoreMax: review.scoreMax,
+        feedbackJson: {
+          overview: review.overview,
+          strengths: review.strengths,
+          mistakes: review.mistakes,
+          nextSteps: review.nextSteps,
+          planningSignals: review.planningSignals
+        }
+      }
+    });
+
+    await tx.essay.update({
+      where: { id: essay.id },
+      data: {
+        status: essay.status === "TEACHER_REVIEWED" ? "TEACHER_REVIEWED" : "AI_REVIEWED"
+      }
+    });
+
+    if (priorityLabel) {
+      await tx.weakPoint.upsert({
+        where: { id: weakPointId },
+        update: {
+          label: priorityLabel.slice(0, 180),
+          description: [review.overview, review.nextSteps[0]].filter(Boolean).join(" Prochaine etape : "),
+          severityScore: score < 10 ? 0.9 : score < 13 ? 0.7 : 0.45,
+          status: score >= 14 ? "IMPROVING" : "ACTIVE",
+          lastDetectedAt: new Date()
+        },
+        create: {
+          id: weakPointId,
+          studentId: essay.studentId,
+          subjectId: essay.subjectId,
+          chapterId: essay.chapterId,
+          sourceType: `ai_feedback:${essay.id}`,
+          severityScore: score < 10 ? 0.9 : score < 13 ? 0.7 : 0.45,
+          label: priorityLabel.slice(0, 180),
+          description: [review.overview, review.nextSteps[0]].filter(Boolean).join(" Prochaine etape : "),
+          status: score >= 14 ? "IMPROVING" : "ACTIVE",
+          lastDetectedAt: new Date()
+        }
+      });
+    } else {
+      await tx.weakPoint.deleteMany({ where: { id: weakPointId } });
+    }
+
+    if (nextTask) {
+      await tx.task.upsert({
+        where: { id: taskId },
+        update: {
+          title: nextTask.slice(0, 180),
+          description: `Suite de la correction IA sur ${essay.title}.`,
+          priorityScore: score < 10 ? 0.95 : 0.82,
+          dueAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
+        },
+        create: {
+          id: taskId,
+          studentId: essay.studentId,
+          subjectId: essay.subjectId,
+          chapterId: essay.chapterId,
+          title: nextTask.slice(0, 180),
+          description: `Suite de la correction IA sur ${essay.title}.`,
+          taskType: "REVISION",
+          dueAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+          priorityScore: score < 10 ? 0.95 : 0.82,
+          status: "todo",
+          sourceType: `ai_feedback:${essay.id}`
+        }
+      });
+    } else {
+      await tx.task.deleteMany({ where: { id: taskId, status: { not: "done" } } });
     }
   });
 }

@@ -1,4 +1,5 @@
 import { prisma } from "./db";
+import { getAITaskDefinition, type AITaskId } from "./ai-task-catalog";
 
 type ReasoningEffort = "low" | "medium" | "high";
 
@@ -50,6 +51,13 @@ export type PlanningGuidanceResult = {
   nextStep: string;
 };
 
+export type WeeklyReviewResult = {
+  summary: string;
+  wins: string[];
+  focusAreas: string[];
+  nextActions: string[];
+};
+
 export type AssistantSnapshotResult = {
   headline: string;
   summary: string;
@@ -61,6 +69,23 @@ export type AssistantReplyResult = {
   answer: string;
   actions: string[];
   citations: string[];
+};
+
+export type StudentAssistantContext = {
+  prepYear: number | null;
+  targetExams: string[];
+  completedMinutesThisWeek: number;
+  recentGrades: Array<{
+    subject: string;
+    title: string;
+    score: number;
+  }>;
+  upcomingTasks: Array<{
+    subject: string;
+    title: string;
+    dueLabel: string;
+  }>;
+  recentFeedback: string[];
 };
 
 export type NewsInsightResult = {
@@ -142,10 +167,10 @@ async function recordAIGeneration(input: {
 
 async function callOpenAIJson<T>(input: {
   userId: string;
-  featureName: string;
+  taskId: AITaskId;
   sourceEntityType: string;
   sourceEntityId: string;
-  instructions: string;
+  additionalInstructions?: string;
   prompt: string;
   schemaName: string;
   schema: Record<string, unknown>;
@@ -156,6 +181,8 @@ async function callOpenAIJson<T>(input: {
   if (!shouldUseOpenAI() || !apiKey) {
     return null;
   }
+
+  const task = getAITaskDefinition(input.taskId);
 
   try {
     const response = await fetch("https://api.openai.com/v1/responses", {
@@ -169,7 +196,7 @@ async function callOpenAIJson<T>(input: {
         reasoning: {
           effort: input.reasoningEffort ?? "medium"
         },
-        instructions: input.instructions,
+        instructions: [task.systemInstructions, input.additionalInstructions].filter(Boolean).join("\n"),
         input: input.prompt,
         max_output_tokens: input.maxOutputTokens ?? 1400,
         text: {
@@ -197,25 +224,25 @@ async function callOpenAIJson<T>(input: {
 
     await recordAIGeneration({
       userId: input.userId,
-      featureName: input.featureName,
+      featureName: task.featureName,
       sourceEntityType: input.sourceEntityType,
       sourceEntityId: input.sourceEntityId,
       modelName: getOpenAIModel(),
       status: "COMPLETED",
-      inputSummary: input.prompt,
-      outputSummary: outputText
+      inputSummary: `${task.label} - ${input.sourceEntityType}`,
+      outputSummary: "Sortie structuree validee."
     });
 
     return parsed;
   } catch (error) {
     await recordAIGeneration({
       userId: input.userId,
-      featureName: input.featureName,
+      featureName: task.featureName,
       sourceEntityType: input.sourceEntityType,
       sourceEntityId: input.sourceEntityId,
       modelName: getOpenAIModel(),
       status: "FAILED",
-      inputSummary: input.prompt,
+      inputSummary: `${task.label} - ${input.sourceEntityType}`,
       outputSummary: error instanceof Error ? error.message : "Erreur IA"
     });
 
@@ -647,11 +674,9 @@ export async function generateResourceSummary(input: {
   const local = { items: buildLocalSummary(input.text, 4) };
   const remote = await callOpenAIJson<ResourceSummaryResult>({
     userId: input.userId,
-    featureName: "resource_summary",
+    taskId: "resource_summary",
     sourceEntityType: "Resource",
     sourceEntityId: input.resourceId,
-    instructions:
-      "Tu es un coach de prepa ECG. Produis un resume en francais, concret, fiable, directement utile pour reviser.",
     prompt: `Ressource : ${input.title}\nMatiere : ${input.subject}\nChapitre : ${input.chapter}\n\nContenu :\n${input.text}\n\nRetourne 4 points de resume tres utiles pour un etudiant de prepa.`,
     schemaName: "resource_summary",
     schema: {
@@ -680,8 +705,8 @@ export async function generateResourceSummary(input: {
     sourceEntityId: input.resourceId,
     modelName: "local-rules",
     status: "COMPLETED",
-    inputSummary: input.text,
-    outputSummary: local.items.join(" ")
+    inputSummary: `${input.title} - ${input.subject} - ${input.chapter}`,
+    outputSummary: `${local.items.length} elements generes.`
   });
 
   return local;
@@ -698,11 +723,9 @@ export async function generateResourceSheet(input: {
   const local = { items: buildLocalSummary(input.text, 6) };
   const remote = await callOpenAIJson<ResourceSummaryResult>({
     userId: input.userId,
-    featureName: "resource_sheet",
+    taskId: "resource_sheet",
     sourceEntityType: "Resource",
     sourceEntityId: input.resourceId,
-    instructions:
-      "Tu es un coach de prepa ECG. Produis une fiche de revision concise, mobilisable en copie, sans blabla.",
     prompt: `Ressource : ${input.title}\nMatiere : ${input.subject}\nChapitre : ${input.chapter}\n\nContenu :\n${input.text}\n\nRetourne 6 lignes de fiche de revision directement memorisables.`,
     schemaName: "resource_sheet",
     schema: {
@@ -731,8 +754,8 @@ export async function generateResourceSheet(input: {
     sourceEntityId: input.resourceId,
     modelName: "local-rules",
     status: "COMPLETED",
-    inputSummary: input.text,
-    outputSummary: local.items.join(" ")
+    inputSummary: `${input.title} - ${input.subject} - ${input.chapter}`,
+    outputSummary: `${local.items.length} elements generes.`
   });
 
   return local;
@@ -749,11 +772,9 @@ export async function generateResourceFlashcards(input: {
   const local = { cards: buildLocalFlashcards(input.text, input.chapter) };
   const remote = await callOpenAIJson<ResourceFlashcardsResult>({
     userId: input.userId,
-    featureName: "resource_flashcards",
+    taskId: "resource_flashcards",
     sourceEntityType: "Resource",
     sourceEntityId: input.resourceId,
-    instructions:
-      "Tu es un coach de prepa ECG. Cree des flashcards simples, courtes, utiles pour une revision type Anki. Pas d'indice. Question au recto, reponse au verso.",
     prompt: `Ressource : ${input.title}\nMatiere : ${input.subject}\nChapitre : ${input.chapter}\n\nContenu :\n${input.text}\n\nRetourne jusqu'a 12 flashcards de revision utiles et precises.`,
     schemaName: "resource_flashcards",
     schema: {
@@ -790,8 +811,8 @@ export async function generateResourceFlashcards(input: {
     sourceEntityId: input.resourceId,
     modelName: "local-rules",
     status: "COMPLETED",
-    inputSummary: input.text,
-    outputSummary: local.cards.map((card) => card.frontText).join(" | ")
+    inputSummary: `${input.title} - ${input.subject} - ${input.chapter}`,
+    outputSummary: `${local.cards.length} cartes generees.`
   });
 
   return local;
@@ -803,8 +824,15 @@ export async function generateEssayReview(input: {
   subject: string;
   examType: string;
   targetExam: string;
+  rubric?: {
+    title: string;
+    criteria: string[];
+  };
   essayContent: EssayDocumentInput;
 }) {
+  const rubricContext = input.rubric?.criteria.length
+    ? `\nGrille professeur : ${input.rubric.title}\nCriteres : ${input.rubric.criteria.join(" | ")}`
+    : "\nAucune grille professeur specifique n'est disponible.";
   const local =
     input.essayContent.kind === "text"
       ? buildLocalEssayReview({
@@ -858,12 +886,10 @@ export async function generateEssayReview(input: {
   if (input.essayContent.kind === "text") {
     const remote = await callOpenAIJson<EssayReviewResult>({
       userId: input.userId,
-      featureName: "essay_review",
+      taskId: "essay_review",
       sourceEntityType: "Essay",
       sourceEntityId: input.essayId,
-      instructions:
-        "Tu es un correcteur exigeant de prepa ECG. Tu rends un feedback utile, structure, concret et actionnable. Tu n'inventes pas d'informations non visibles dans la copie.",
-      prompt: `Matiere : ${input.subject}\nType d'epreuve : ${input.examType}\nConcours cible : ${input.targetExam}\n\nCopie etudiante :\n${input.essayContent.text}\n\nRetourne une correction structuree avec fourchette de note, points forts, erreurs majeures et prochaines actions de travail.`,
+      prompt: `Matiere : ${input.subject}\nType d'epreuve : ${input.examType}\nConcours cible : ${input.targetExam}${rubricContext}\n\nCopie etudiante :\n${input.essayContent.text}\n\nRetourne une correction structuree avec fourchette de note, points forts, erreurs majeures et prochaines actions de travail.`,
       schemaName: "essay_review",
       schema: baseSchema,
       reasoningEffort: "medium",
@@ -875,12 +901,13 @@ export async function generateEssayReview(input: {
     }
   } else if (shouldUseOpenAI() && process.env.OPENAI_API_KEY) {
     try {
+      const task = getAITaskDefinition("essay_review");
       const content =
         input.essayContent.mimeType === "application/pdf"
           ? [
               {
                 type: "input_text",
-                text: `Matiere : ${input.subject}\nType d'epreuve : ${input.examType}\nConcours cible : ${input.targetExam}\n\nAnalyse ce PDF de copie et retourne une correction structuree.`,
+                text: `Matiere : ${input.subject}\nType d'epreuve : ${input.examType}\nConcours cible : ${input.targetExam}${rubricContext}\n\nAnalyse ce PDF de copie et retourne une correction structuree.`,
               },
               {
                 type: "input_file",
@@ -891,7 +918,7 @@ export async function generateEssayReview(input: {
           : [
               {
                 type: "input_text",
-                text: `Matiere : ${input.subject}\nType d'epreuve : ${input.examType}\nConcours cible : ${input.targetExam}\n\nAnalyse cette photo de copie et retourne une correction structuree.`,
+                text: `Matiere : ${input.subject}\nType d'epreuve : ${input.examType}\nConcours cible : ${input.targetExam}${rubricContext}\n\nAnalyse cette photo de copie et retourne une correction structuree.`,
               },
               {
                 type: "input_image",
@@ -908,8 +935,7 @@ export async function generateEssayReview(input: {
         body: JSON.stringify({
           model: getOpenAIModel(),
           reasoning: { effort: "medium" },
-          instructions:
-            "Tu es un correcteur exigeant de prepa ECG. Tu rends un feedback utile, structure, concret et actionnable. Tu n'inventes pas d'informations non visibles dans la copie.",
+          instructions: task.systemInstructions,
           input: [{ role: "user", content }],
           max_output_tokens: 1800,
           text: {
@@ -931,13 +957,13 @@ export async function generateEssayReview(input: {
 
           await recordAIGeneration({
             userId: input.userId,
-            featureName: "essay_review",
+            featureName: task.featureName,
             sourceEntityType: "Essay",
             sourceEntityId: input.essayId,
             modelName: getOpenAIModel(),
             status: "COMPLETED",
             inputSummary: input.essayContent.fileName,
-            outputSummary: outputText
+            outputSummary: "Correction structuree validee."
           });
 
           return parsed;
@@ -955,8 +981,8 @@ export async function generateEssayReview(input: {
     sourceEntityId: input.essayId,
     modelName: "local-rules",
     status: "COMPLETED",
-    inputSummary: input.essayContent.kind === "text" ? input.essayContent.text : input.essayContent.fileName,
-    outputSummary: `${local.scoreMin}-${local.scoreMax} ${local.overview}`
+    inputSummary: `${input.subject} - ${input.examType} - ${input.targetExam}`,
+    outputSummary: `Correction locale ${local.scoreMin}-${local.scoreMax}.`
   });
 
   return local;
@@ -975,11 +1001,9 @@ export async function generatePlanningGuidance(input: {
   const local = buildLocalPlanningGuidance(input);
   const remote = await callOpenAIJson<PlanningGuidanceResult>({
     userId: input.userId,
-    featureName: "planning_guidance",
+    taskId: "planning_guidance",
     sourceEntityType: "Student",
     sourceEntityId: input.userId,
-    instructions:
-      "Tu es un coach de prepa ECG. Tu ajustes un planning hebdomadaire pour faire progresser l'etudiant sans abandonner aucune matiere.",
     prompt: `Objectif concours : ${input.targetExamSummary}\nCohérence actuelle : ${input.coherenceTitle} - ${input.coherenceHelper}\nLacunes : ${input.weakPointLabels.join(", ") || "aucune"}\nErreurs recentes en copie : ${input.recentEssayMistakes.join(" | ") || "aucune"}\nCartes dues : ${input.dueFlashcards}\nSessions deja completees : ${input.completedSessions}\n\nRetourne 4 raisons pedagogiques, un titre d'etat IA, une description et une prochaine etape.`,
     schemaName: "planning_guidance",
     schema: {
@@ -1004,6 +1028,57 @@ export async function generatePlanningGuidance(input: {
   return local;
 }
 
+export async function generateWeeklyReview(input: {
+  userId: string;
+  completedMinutes: number;
+  completedBlocks: number;
+  reviewedFlashcards: number;
+  dueFlashcards: number;
+  recentGrades: Array<{ subject: string; score: number }>;
+  weakPointLabels: string[];
+  completedTaskTitles: string[];
+}) {
+  const strongestGrade = input.recentGrades.slice().sort((left, right) => right.score - left.score)[0];
+  const local: WeeklyReviewResult = {
+    summary: `${input.completedBlocks} blocs valides pour ${input.completedMinutes} minutes de travail cette semaine.`,
+    wins: [
+      input.completedBlocks > 0 ? `${input.completedBlocks} blocs menes jusqu'a validation.` : "Aucun bloc valide pour le moment.",
+      input.reviewedFlashcards > 0 ? `${input.reviewedFlashcards} flashcards revisees.` : "La repetition espacee reste a relancer.",
+      strongestGrade ? `${strongestGrade.subject} : ${strongestGrade.score}/20 sur une note recente.` : "Les prochaines notes permettront de mesurer la progression."
+    ],
+    focusAreas: [
+      ...input.weakPointLabels.slice(0, 2),
+      ...(input.dueFlashcards > 0 ? [`${input.dueFlashcards} flashcards dues`] : [])
+    ].slice(0, 3),
+    nextActions: input.completedTaskTitles.length > 0
+      ? input.completedTaskTitles.slice(0, 3)
+      : ["Valider le prochain bloc propose dans le planning."]
+  };
+  const remote = await callOpenAIJson<WeeklyReviewResult>({
+    userId: input.userId,
+    taskId: "weekly_review",
+    sourceEntityType: "Student",
+    sourceEntityId: input.userId,
+    prompt: `Blocs valides : ${input.completedBlocks}\nMinutes validees : ${input.completedMinutes}\nFlashcards revisees : ${input.reviewedFlashcards}\nFlashcards dues : ${input.dueFlashcards}\nNotes recentes : ${input.recentGrades.map((grade) => `${grade.subject} ${grade.score}/20`).join(" | ") || "aucune"}\nPoints faibles : ${input.weakPointLabels.join(" | ") || "aucun"}\nTaches terminees : ${input.completedTaskTitles.join(" | ") || "aucune"}\n\nRetourne un bilan court, trois reussites maximum, trois points de vigilance maximum et trois prochaines actions maximum.`,
+    schemaName: "weekly_review",
+    schema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        summary: { type: "string" },
+        wins: { type: "array", items: { type: "string" } },
+        focusAreas: { type: "array", items: { type: "string" } },
+        nextActions: { type: "array", items: { type: "string" } }
+      },
+      required: ["summary", "wins", "focusAreas", "nextActions"]
+    },
+    reasoningEffort: "low",
+    maxOutputTokens: 700
+  });
+
+  return remote ?? local;
+}
+
 export async function generateAssistantSnapshot(input: {
   userId: string;
   weakPointLabels: string[];
@@ -1014,11 +1089,9 @@ export async function generateAssistantSnapshot(input: {
   const local = buildLocalAssistantSnapshot(input);
   const remote = await callOpenAIJson<AssistantSnapshotResult>({
     userId: input.userId,
-    featureName: "assistant_snapshot",
+    taskId: "assistant_snapshot",
     sourceEntityType: "Student",
     sourceEntityId: input.userId,
-    instructions:
-      "Tu es l'assistant central d'un etudiant de prepa ECG. Tu parles de maniere concrete et relies toujours tes recommandations a des actions de travail.",
     prompt: `Lacunes : ${input.weakPointLabels.join(", ") || "aucune"}\nCartes dues : ${input.dueFlashcards}\nDerniere ressource utile : ${input.resourceTitle ?? "aucune"}\nDerniere copie : ${input.essayTitle ?? "aucune"}\n\nRetourne une synthese courte, 5 entrees rapides et 3 actions creees.`,
     schemaName: "assistant_snapshot",
     schema: {
@@ -1055,11 +1128,9 @@ export async function generateNewsInsight(input: {
   const local = buildLocalNewsInsight(input);
   const remote = await callOpenAIJson<NewsInsightResult>({
     userId: input.userId,
-    featureName: "news_insight",
+    taskId: "news_insight",
     sourceEntityType: "NewsArticle",
     sourceEntityId: input.articleUrl,
-    instructions:
-      "Tu es un coach de prepa ECG specialise en langues vivantes. Tu aides l'etudiant a comprendre pourquoi un article de presse internationale est utile pour ses oraux, ses essais et sa culture generale.",
     prompt: `Rubrique : ${input.sectionLabel}\nLangue cible : ${input.targetLanguage}\nSource : ${input.sourceName}\nTitre : ${input.articleTitle}\nExtrait : ${input.excerpt}\n\nRetourne une synthese tres concrete en 3 champs : un resume court, pourquoi cet article vaut le detour pour un eleve de prepa, et une question d'oral dans la langue cible.`,
     schemaName: "news_insight",
     schema: {
@@ -1096,6 +1167,7 @@ export async function generateAssistantReply(input: {
   selectedResourceContent?: string;
   selectedEssayTitle?: string;
   selectedEssaySummary?: string;
+  studentContext: StudentAssistantContext;
 }) {
   const lowerPrompt = input.prompt.toLowerCase();
   const normalizedPrompt = lowerPrompt.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -1114,7 +1186,10 @@ export async function generateAssistantReply(input: {
   const citations = [
     input.selectedResourceTitle ? `Ressource : ${input.selectedResourceTitle}` : null,
     input.selectedEssayTitle ? `Copie : ${input.selectedEssayTitle}` : null,
-    input.weakPointLabels[0] ? `Point a surveiller : ${input.weakPointLabels[0]}` : null
+    input.weakPointLabels[0] ? `Point a surveiller : ${input.weakPointLabels[0]}` : null,
+    input.studentContext.recentGrades[0]
+      ? `Progression : ${input.studentContext.recentGrades[0].subject} ${input.studentContext.recentGrades[0].score}/20`
+      : null
   ].filter((value): value is string => Boolean(value));
 
   let answer =
@@ -1137,8 +1212,27 @@ export async function generateAssistantReply(input: {
     normalizedPrompt.includes("soir") ||
     normalizedPrompt.includes("semaine")
   ) {
-    answer =
-      "Pour l'organisation, utilise plutot l'onglet planning : c'est lui qui centralise deja la charge de travail, les priorites et les ajustements de rythme. Ici, je me concentre surtout sur le contenu, la methode, les cours et les copies.";
+    const nextTasks = input.studentContext.upcomingTasks.slice(0, 3);
+    answer = nextTasks.length > 0
+      ? `Le planning reste l'endroit ou valider tes blocs. D'apres les donnees actuelles, les prochaines priorites sont :\n\n${nextTasks
+          .map((task, index) => `${index + 1}. ${task.title} en ${task.subject} (${task.dueLabel}).`)
+          .join("\n")}\n\nTu as valide ${input.studentContext.completedMinutesThisWeek} minutes cette semaine. Le planning placera ces taches dans les premiers creneaux compatibles.`
+      : `Le planning reste l'endroit ou valider tes blocs. Tu as valide ${input.studentContext.completedMinutesThisWeek} minutes cette semaine et aucune tache urgente n'est actuellement en attente.`;
+  } else if (
+    normalizedPrompt.includes("progres") ||
+    normalizedPrompt.includes("niveau") ||
+    normalizedPrompt.includes("note") ||
+    normalizedPrompt.includes("moyenne") ||
+    normalizedPrompt.includes("lacune") ||
+    normalizedPrompt.includes("faible")
+  ) {
+    const grades = input.studentContext.recentGrades.slice(0, 4);
+    const feedback = input.studentContext.recentFeedback.slice(0, 3);
+    answer = grades.length > 0 || feedback.length > 0
+      ? `Voici ce que montrent tes donnees recentes :\n\n${grades
+          .map((grade) => `- ${grade.subject} : ${grade.score}/20 (${grade.title})`)
+          .join("\n")}${feedback.length > 0 ? `\n\nRetours a retenir :\n${feedback.map((item) => `- ${item}`).join("\n")}` : ""}${input.weakPointLabels.length > 0 ? `\n\nPoints a consolider : ${input.weakPointLabels.join(", ")}.` : ""}`
+      : "Je n'ai pas encore assez de notes ou de corrections pour evaluer ta progression. Les prochaines donnees saisies par tes professeurs permettront une analyse plus fiable.";
   } else if (normalizedPrompt.includes("flashcard") || normalizedPrompt.includes("anki")) {
     if (input.selectedResourceTitle && resourceLines.length > 0) {
       answer = `A partir de ${input.selectedResourceTitle}, je construirais des cartes tres courtes et tres ciblees.\n\nExemples utiles :\n${resourceLines
@@ -1231,17 +1325,23 @@ export async function generateAssistantReply(input: {
 
   const remote = await callOpenAIJson<AssistantReplyResult>({
     userId: input.userId,
-    featureName: "assistant_reply",
+    taskId: "assistant_reply",
     sourceEntityType: "Student",
     sourceEntityId: input.userId,
-    instructions:
-      "Tu es le chatbot central d'un etudiant de prepa ECG. Tu reponds en francais, de maniere directe, concrete et utile. Tu aides surtout sur les cours, les documents, les copies, les flashcards et la methode de concours. Tu n'insistes pas sur l'organisation du temps sauf si l'etudiant le demande explicitement.",
+    additionalInstructions:
+      "N'insiste pas sur l'organisation du temps sauf si l'etudiant le demande explicitement.",
     prompt: `Question etudiant : ${input.prompt}
 Historique recent :
 ${historyText || "aucun"}
 
 Points de vigilance connus : ${input.weakPointLabels.join(", ") || "aucun"}
 Cartes deja disponibles : ${input.dueFlashcards}
+Annee de prepa : ${input.studentContext.prepYear ?? "non renseignee"}
+Concours et ecoles vises : ${input.studentContext.targetExams.join(", ") || "non renseignes"}
+Travail valide cette semaine : ${input.studentContext.completedMinutesThisWeek} minutes
+Notes recentes : ${input.studentContext.recentGrades.map((grade) => `${grade.subject} ${grade.score}/20 (${grade.title})`).join(" | ") || "aucune"}
+Taches en attente : ${input.studentContext.upcomingTasks.map((task) => `${task.title} - ${task.subject} - ${task.dueLabel}`).join(" | ") || "aucune"}
+Retours recents : ${input.studentContext.recentFeedback.join(" | ") || "aucun"}
 Ressource selectionnee : ${input.selectedResourceTitle ?? "aucune"}
 Contenu ressource : ${input.selectedResourceContent ?? "aucun"}
 Copie selectionnee : ${input.selectedEssayTitle ?? "aucune"}
@@ -1274,8 +1374,8 @@ Retourne une reponse de vrai chatbot utile, 3 suites possibles et les elements d
     sourceEntityId: input.userId,
     modelName: "local-rules",
     status: "COMPLETED",
-    inputSummary: input.prompt,
-    outputSummary: answer
+    inputSummary: `Question assistant de ${input.prompt.length} caracteres.`,
+    outputSummary: "Reponse locale generee."
   });
 
   return {
