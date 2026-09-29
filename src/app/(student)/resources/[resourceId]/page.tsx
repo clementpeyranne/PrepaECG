@@ -87,23 +87,18 @@ export default async function ResourceDetailPage({
           accent="dark"
         >
           {resource.aiEnabled ? (
-            <>
-              <div className="space-y-3">
-                {actions.map((action) => (
-                  <form key={action.value} action={generateResourceOutputAction}>
-                    <input type="hidden" name="resourceId" value={resource.id} />
-                    <input type="hidden" name="outputType" value={action.value} />
-                    <button className="flex w-full items-center justify-between rounded-2xl bg-white/10 px-4 py-3 text-left text-sm transition hover:bg-white/15">
-                      <span>{action.label}</span>
-                      <span className="text-sand/45">IA</span>
-                    </button>
-                  </form>
-                ))}
-              </div>
-              <div className="mt-4 rounded-[24px] bg-white/10 p-4 text-sm leading-7 text-sand/84">
-                Resume, fiche ou creation de flashcards a partir du contenu lisible.
-              </div>
-            </>
+            <div className="space-y-3">
+              {actions.map((action) => (
+                <form key={action.value} action={generateResourceOutputAction}>
+                  <input type="hidden" name="resourceId" value={resource.id} />
+                  <input type="hidden" name="outputType" value={action.value} />
+                  <button className="flex w-full items-center justify-between rounded-2xl bg-white/10 px-4 py-3 text-left text-sm transition hover:bg-white/15">
+                    <span>{action.label}</span>
+                    <span className="text-sand/45">IA</span>
+                  </button>
+                </form>
+              ))}
+            </div>
           ) : (
             <div className="rounded-[24px] bg-white/10 p-4 text-sm leading-7 text-sand/84">
               Les actions IA restent disponibles sur les ressources textuelles lisibles directement
@@ -115,8 +110,7 @@ export default async function ResourceDetailPage({
 
       <div className="mt-5">
         <SectionCard
-          eyebrow="Sorties"
-          title="Ce que l'IA a deja produit"
+          title="Sortie"
         >
           {resource.outputs.length === 0 ? (
             <div className="rounded-[24px] bg-sand p-6 text-sm leading-7 text-pine/75">

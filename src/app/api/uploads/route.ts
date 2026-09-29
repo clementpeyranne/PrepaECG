@@ -14,11 +14,15 @@ export async function POST(request: NextRequest) {
   if (!await consumeAuthLimit(`upload:${user.id}`, 30)) return reply({ error: "Trop de depots. Reessaie dans 15 minutes." }, 429);
   try {
     const input = await request.json();
-    const role = input.folder === "essays" ? "STUDENT" : input.folder === "resources" ? "TEACHER" : null;
+    const role = input.folder === "essays" || input.folder === "flashcards"
+      ? "STUDENT"
+      : input.folder === "resources"
+        ? "TEACHER"
+        : null;
     if (!role || (user.role !== role && user.role !== "ADMIN")) return reply({ error: "Acces refuse." }, 403);
     if (typeof input.name !== "string" || typeof input.mimeType !== "string" || typeof input.size !== "number") return reply({ error: "Fichier invalide." }, 400);
     return reply(await createDirectUpload(user.id, input.folder, input.name, input.mimeType, input.size));
   } catch {
-    return reply({ error: "Envoi impossible. Utilise un PDF, JPG, PNG ou WebP de moins de 50 Mo." }, 400);
+    return reply({ error: "Envoi impossible. Verifie le format et la taille du fichier." }, 400);
   }
 }

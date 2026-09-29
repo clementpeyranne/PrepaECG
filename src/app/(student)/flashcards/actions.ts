@@ -120,12 +120,13 @@ export async function importShareCodeAction(formData: FormData) {
 
 export async function importFlashcardFileAction(formData: FormData) {
   const archive = formData.get("archive");
-  if (!(archive instanceof File)) {
+  const archiveReceipt = getString(formData, "archiveReceipt");
+  if (!(archive instanceof File) && !archiveReceipt) {
     redirectWithFlashcardsMessage("error", "Aucun fichier n'a ete selectionne.");
   }
 
-  const file = archive;
-  const result = await importFlashcardArchive(file);
+  const file = archive instanceof File ? archive : null;
+  const result = await importFlashcardArchive(file, archiveReceipt);
   revalidatePath("/flashcards");
   revalidatePath("/dashboard");
   revalidatePath("/planning");

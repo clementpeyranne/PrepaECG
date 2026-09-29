@@ -193,12 +193,30 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
     });
     await t.test("planning: nouvelle validation sans doublon, autre bloc puis annulation persistante", async () => {
       await planningActions.markPlanningSessionDone(blockForm(initialDay.entries[0].id, true));
-      assert.deepEqual(await planningActions.markPlanningSessionDone(blockForm(initialDay.entries[1].id)), { ok: false, reason: "flashcards_required" });
+      assert.deepEqual(await planningActions.markPlanningSessionDone(blockForm(initialDay.entries[1].id)), { ok: false, reason: "flashcards_time_required" });
       const planningSubject = await db.subject.findFirst({ where: { code: "ESH" } });
       const planningDeck = await db.flashcardDeck.create({ data: { ownerUserId: student.id, classId: prepA.id, subjectId: planningSubject.id, title: "Planning", createdByType: "MANUAL" } });
       const planningCard = await db.flashcard.create({ data: { deckId: planningDeck.id, frontText: "Planning ?", backText: "Fait", position: 1 } });
       await cards.reviewFlashcard({ cardId: planningCard.id, deckId: planningDeck.id, rating: "EASY", planningEntryId: initialDay.entries[1].id });
-      assert.equal((await planning.getStudentPlanningData()).todayPlan.entries[1].hasFlashcardReview, true);
+      assert.deepEqual(await planningActions.markPlanningSessionDone(blockForm(initialDay.entries[1].id)), { ok: false, reason: "flashcards_time_required" }, "Une seule carte ne suffit pas a valider le bloc");
+      const firstHeartbeat = await planningActions.recordFlashcardFocusHeartbeat(initialDay.entries[1].id);
+      assert.equal(firstHeartbeat.ok, true);
+      assert.equal(firstHeartbeat.elapsedSeconds, 0);
+      await db.studySession.update({
+        where: { id: initialDay.entries[1].id },
+        data: {
+          usefulnessFeedback: `flashcard-focus:v1:${JSON.stringify({
+            elapsedSeconds: initialDay.entries[1].duration * 60 - 10,
+            heartbeatAt: new Date(Date.now() - 10_500).toISOString()
+          })}`
+        }
+      });
+      const completedHeartbeat = await planningActions.recordFlashcardFocusHeartbeat(initialDay.entries[1].id);
+      assert.equal(completedHeartbeat.ok, true);
+      assert.equal(completedHeartbeat.complete, true);
+      const focusedPlanning = await planning.getStudentPlanningData();
+      assert.equal(focusedPlanning.todayPlan.entries[1].hasCompletedFlashcardTime, true);
+      assert.ok(focusedPlanning.todayPlan.entries[1].flashcardFocusSeconds >= initialDay.entries[1].duration * 60);
       assert.deepEqual(await planningActions.markPlanningSessionDone(blockForm(initialDay.entries[1].id)), { ok: true });
       assert.equal(await db.studySession.count({ where: { studentId: student.id } }), initialDay.entries.length);
       await planningActions.markPlanningSessionPlanned(blockForm(initialDay.entries[0].id));
@@ -406,12 +424,18 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
       const payload = await cards.getFlashcardExportPayload(rootDeck.id);
       assert.ok(JSON.stringify(payload).includes("Croissance"));
       assert.ok(JSON.stringify(payload).includes("Reponse"));
+      const exportedFile = new File([JSON.stringify(payload)], "esh.json", { type: "application/json" });
       share = await cards.createFlashcardShare(rootDeck.id);
       use(studentB);
       assert.equal(await cards.getFlashcardDeckData(subDeck.id), null);
       assert.equal(await cards.getFlashcardExportPayload(rootDeck.id), null);
       assert.equal((await cards.importSharedFlashcardDeck(share.shareCode)).ok, true);
       assert.equal(await db.flashcardDeck.count({ where: { ownerUserId: studentB.id } }), 2);
+      const fileImport = await cards.importFlashcardArchive(exportedFile);
+      assert.equal(fileImport.ok, true);
+      assert.equal(fileImport.decksImported, 2);
+      assert.equal(fileImport.cardsImported, 1);
+      assert.equal(await db.flashcardDeck.count({ where: { ownerUserId: studentB.id } }), 4);
     });
     await t.test("revision enregistree une seule fois, pas de reproposition avant echeance", async () => {
       use(student);

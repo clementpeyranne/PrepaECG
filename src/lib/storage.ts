@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID, createHmac, timingSafeEqual } from "node:crypto";
 
@@ -8,7 +8,7 @@ import {
   getSupabaseStorageBucket
 } from "./app-config";
 import { getSupabaseAdminClient } from "./supabase-admin";
-import { allowedDocumentType, MAX_DOCUMENT_BYTES, validateDocumentBytes, type UploadFolder } from "./upload-rules";
+import { allowedDocumentType, getMaximumUploadBytes, validateDocumentBytes, type UploadFolder } from "./upload-rules";
 
 const SUPABASE_STORAGE_PREFIX = "supabase:";
 
@@ -128,7 +128,7 @@ function signUpload(payload: string) {
 }
 
 export async function createDirectUpload(userId: string, folder: UploadFolder, name: string, mimeType: string, size: number) {
-  if (!name || name.length > 150 || !allowedDocumentType(mimeType, folder) || !Number.isSafeInteger(size) || size < 1 || size > MAX_DOCUMENT_BYTES) throw new Error("INVALID_DOCUMENT");
+  if (!name || name.length > 150 || !allowedDocumentType(mimeType, folder) || !Number.isSafeInteger(size) || size < 1 || size > getMaximumUploadBytes(folder)) throw new Error("INVALID_DOCUMENT");
   const bucket = getSupabaseStorageBucket();
   const objectPath = createObjectPath(`${folder}/${userId}`, name.slice(0, 150));
   const { data, error } = await getSupabaseAdminClient().storage.from(bucket).createSignedUploadUrl(objectPath);
@@ -193,6 +193,18 @@ export async function readStoredFileBuffer(storageKey: string) {
   }
 
   return Buffer.from(await data.arrayBuffer());
+}
+
+export async function deleteStoredFile(storageKey: string) {
+  if (storageKey.startsWith("/")) {
+    await rm(path.join(process.cwd(), "public", storageKey), { force: true });
+    return;
+  }
+
+  const supabaseRef = parseSupabaseStorageKey(storageKey);
+  if (!supabaseRef) return;
+  const { error } = await getSupabaseAdminClient().storage.from(supabaseRef.bucket).remove([supabaseRef.objectPath]);
+  if (error) throw new Error(`SUPABASE_STORAGE_DELETE_FAILED:${error.message}`);
 }
 
 export function getStoredFileName(storageKey: string) {

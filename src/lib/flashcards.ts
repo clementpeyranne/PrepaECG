@@ -10,6 +10,7 @@ import { promisify } from "node:util";
 
 import { isDemoModeEnabled } from "./app-config";
 import { prisma } from "./db";
+import { deleteStoredFile, resolveDirectUpload } from "./storage";
 import { ensureDemoStudent } from "./student-app";
 
 const execFileAsync = promisify(execFile);
@@ -37,7 +38,7 @@ export type FlashcardsOverviewData = {
   globalState: {
     due: number;
     active: number;
-    stable: number;
+    completed: number;
   };
   reviewDeckId: string | null;
   decksForForms: Array<{
@@ -1669,7 +1670,32 @@ export async function importSharedFlashcardDeck(shareCode: string) {
   };
 }
 
-export async function importFlashcardArchive(file: File | null): Promise<FlashcardImportResult> {
+export async function importFlashcardArchive(
+  inputFile: File | null,
+  uploadReceipt = ""
+): Promise<FlashcardImportResult> {
+  let file = inputFile;
+  let temporaryStorageKey = "";
+
+  if (!file && uploadReceipt) {
+    try {
+      const { user } = await ensureDemoFlashcards();
+      const directUpload = await resolveDirectUpload(uploadReceipt, user.id, "flashcards");
+      temporaryStorageKey = directUpload.storedFile.storageKey;
+      file = new File([directUpload.buffer], directUpload.storedFile.originalName, {
+        type: directUpload.storedFile.mimeType
+      });
+    } catch {
+      return {
+        ok: false,
+        source: "apkg",
+        decksImported: 0,
+        cardsImported: 0,
+        message: "Le fichier envoye n'a pas pu etre verifie. Reessaie l'import."
+      };
+    }
+  }
+
   if (!file || !file.name) {
     return {
       ok: false,
@@ -1764,6 +1790,10 @@ export async function importFlashcardArchive(file: File | null): Promise<Flashca
       cardsImported: 0,
       message: "L'import a echoue. Le fichier est peut-etre incompatible ou incomplet."
     };
+  } finally {
+    if (temporaryStorageKey) {
+      await deleteStoredFile(temporaryStorageKey).catch(() => undefined);
+    }
   }
 }
 
@@ -2061,14 +2091,14 @@ export async function getFlashcardsOverviewData(): Promise<FlashcardsOverviewDat
     .filter((deck) => (childrenByParentId.get(deck.id) ?? []).length === 0);
   const activeLeafDecks = leafDeckSummaries.filter((deck) => deck.total > 0);
   const totalDue = activeLeafDecks.reduce((sum, deck) => sum + deck.due, 0);
-  const stableDecks = activeLeafDecks.filter((deck) => deck.retention >= 75).length;
+  const completedDecks = activeLeafDecks.filter((deck) => deck.due === 0 && deck.newCards === 0).length;
 
   return {
     subjectGroups,
     globalState: {
       due: totalDue,
       active: activeLeafDecks.length,
-      stable: stableDecks
+      completed: completedDecks
     },
     reviewDeckId:
       activeLeafDecks.find((deck) => deck.total > 0 && (deck.due > 0 || deck.newCards > 0))?.id ??

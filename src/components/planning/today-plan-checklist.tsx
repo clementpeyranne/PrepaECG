@@ -23,7 +23,9 @@ export type TodayPlanEntry = {
   requiresSubmission: boolean;
   hasSubmission: boolean;
   requiresFlashcards: boolean;
-  hasFlashcardReview: boolean;
+  flashcardFocusSeconds: number;
+  flashcardRequiredSeconds: number;
+  hasCompletedFlashcardTime: boolean;
 };
 
 type TodayPlanChecklistProps = {
@@ -46,8 +48,10 @@ export function TodayPlanChecklist({ entries }: TodayPlanChecklistProps) {
                   <p className="mt-2 text-xs font-semibold text-clay">Attention : copie non deposee.</p>
                 ) : null}
                 {entry.requiresFlashcards ? (
-                  <p className={`mt-2 text-xs font-semibold ${entry.hasFlashcardReview ? "text-pine" : "text-clay"}`}>
-                    {entry.hasFlashcardReview ? "Revision de flashcards detectee." : "Revise au moins une carte pour valider ce bloc."}
+                  <p className={`mt-2 text-xs font-semibold ${entry.hasCompletedFlashcardTime ? "text-pine" : "text-clay"}`}>
+                    {entry.hasCompletedFlashcardTime
+                      ? "Temps de flashcards termine."
+                      : `Temps effectue : ${formatFocusTime(entry.flashcardFocusSeconds)} sur ${formatFocusTime(entry.flashcardRequiredSeconds)}.`}
                   </p>
                 ) : null}
               </div>
@@ -84,7 +88,7 @@ function ValidationControls({ entry }: { entry: TodayPlanEntry }) {
   function handleResult(result: PlanningActionResult) {
     if (result.ok) return;
     if (result.reason === "missing_copy") setShowMissingCopyWarning(true);
-    else if (result.reason === "flashcards_required") setError("Termine d'abord une revision de flashcards.");
+    else if (result.reason === "flashcards_time_required") setError("Termine d'abord le temps de flashcards prevu.");
     else setError("Ce bloc n'est plus disponible. Recharge la page.");
   }
 
@@ -101,7 +105,7 @@ function ValidationControls({ entry }: { entry: TodayPlanEntry }) {
           action={markPlanningSessionDone}
           entry={entry}
           label="Valider"
-          disabled={entry.requiresFlashcards && !entry.hasFlashcardReview}
+          disabled={entry.requiresFlashcards && !entry.hasCompletedFlashcardTime}
           onResult={handleResult}
         />
       )}
@@ -113,7 +117,7 @@ function ValidationControls({ entry }: { entry: TodayPlanEntry }) {
       ) : null}
       {entry.requiresFlashcards ? (
         <Link href={`/flashcards?${planningQuery}`} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-blue-600 px-3 py-2 text-center text-xs font-semibold text-white transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 sm:text-sm">
-          <Layers3 size={16} aria-hidden="true" /> Faire les cartes
+          <Layers3 size={16} aria-hidden="true" /> {entry.flashcardFocusSeconds > 0 ? "Continuer" : "Commencer"}
         </Link>
       ) : null}
 
@@ -126,6 +130,13 @@ function ValidationControls({ entry }: { entry: TodayPlanEntry }) {
       {error ? <p role="alert" className="text-xs text-clay">{error}</p> : null}
     </div>
   );
+}
+
+function formatFocusTime(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  if (minutes === 0) return `${remainingSeconds} s`;
+  return remainingSeconds === 0 ? `${minutes} min` : `${minutes} min ${remainingSeconds} s`;
 }
 
 function StatusForm({ action, entry, label, forceMissingSubmission = false, disabled = false, onResult }: StatusFormProps) {

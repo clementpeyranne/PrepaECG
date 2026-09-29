@@ -5,6 +5,7 @@ import { createHash } from "node:crypto";
 import { getCurrentUserClass, requireRole } from "./auth";
 import { generateAssistantSnapshot, getAIStatusMeta } from "./ai";
 import { prisma } from "./db";
+import { parseFlashcardFocusState } from "./planning-focus";
 import { isDemoModeEnabled } from "./app-config";
 import { ensureReferenceData, SUBJECT_REFERENCES } from "./reference-data";
 
@@ -1266,7 +1267,7 @@ export async function getStudentPlanningData() {
   };
   const energyProfile = (profile.energyProfile as EnergyProfilePayload | null) ?? null;
 
-  const [sessions, weakPoints, tasks, subjects, planningEssays, planningReviews] = await Promise.all([
+  const [sessions, weakPoints, tasks, subjects, planningEssays] = await Promise.all([
     prisma.studySession.findMany({
       where: { studentId: user.id },
       include: {
@@ -1294,23 +1295,27 @@ export async function getStudentPlanningData() {
     prisma.essay.findMany({
       where: { studentId: user.id, planningEntryId: { not: null } },
       select: { planningEntryId: true }
-    }),
-    prisma.flashcardReview.findMany({
-      where: { userId: user.id, planningEntryId: { not: null } },
-      select: { planningEntryId: true }
     })
   ]);
 
   const submittedPlanningEntries = new Set(planningEssays.map((essay) => essay.planningEntryId).filter(Boolean));
-  const reviewedPlanningEntries = new Set(planningReviews.map((review) => review.planningEntryId).filter(Boolean));
-  const getCompletionRequirements = (entryId: string, sessionType: SessionType | string) => ({
+  const getCompletionRequirements = (
+    entryId: string,
+    sessionType: SessionType | string,
+    focusElapsedSeconds = 0,
+    plannedDurationMin = 0
+  ) => ({
     requiresSubmission:
       sessionType === SessionType.ESSAY_PRACTICE ||
       sessionType === SessionType.CHAPTER_REVISION ||
       sessionType === SessionType.EXERCISE_TRAINING,
     hasSubmission: submittedPlanningEntries.has(entryId),
     requiresFlashcards: sessionType === SessionType.FLASHCARDS_REVIEW,
-    hasFlashcardReview: reviewedPlanningEntries.has(entryId)
+    flashcardFocusSeconds: focusElapsedSeconds,
+    flashcardRequiredSeconds: plannedDurationMin * 60,
+    hasCompletedFlashcardTime:
+      sessionType !== SessionType.FLASHCARDS_REVIEW ||
+      focusElapsedSeconds >= plannedDurationMin * 60
   });
 
   const weekdayDailyHours = energyProfile?.weekdayDailyHours ?? 3;
@@ -1401,7 +1406,12 @@ export async function getStudentPlanningData() {
           status: session.status,
           persisted: true,
           sessionType: session.sessionType,
-          ...getCompletionRequirements(session.id, session.sessionType)
+          ...getCompletionRequirements(
+            session.id,
+            session.sessionType,
+            parseFlashcardFocusState(session.usefulnessFeedback).elapsedSeconds,
+            session.plannedDurationMin
+          )
         }))
       };
     }
@@ -1447,7 +1457,7 @@ export async function getStudentPlanningData() {
         status: "PLANNED",
         persisted: false,
         sessionType,
-        ...getCompletionRequirements(entryId, sessionType)
+        ...getCompletionRequirements(entryId, sessionType, 0, sessionIndex === 1 ? Math.max(20, Math.min(blockMinutes, 35)) : blockMinutes)
       };
     });
 

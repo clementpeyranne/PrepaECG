@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { notFound } from "next/navigation";
 
 import { FlashcardBrowser } from "@/components/flashcards/flashcard-browser";
+import { FlashcardFocusTimer } from "@/components/flashcards/flashcard-focus-timer";
 import { FlashcardMathProvider } from "@/components/flashcards/flashcard-math-provider";
 import { ReviewCardPanel } from "@/components/flashcards/review-card-panel";
 import { PageHeader } from "@/components/ui/page-header";
@@ -32,6 +33,8 @@ export default async function DeckDetailPage({
     <div>
       <FlashcardMathProvider />
       <PageHeader title={data.deck.title} />
+
+      {planningEntryId ? <FlashcardFocusTimer planningEntryId={planningEntryId} /> : null}
 
       <div className="space-y-5">
         <ReviewCardPanel

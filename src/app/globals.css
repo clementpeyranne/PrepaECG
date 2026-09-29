@@ -216,6 +216,31 @@ a {
   text-decoration: none;
 }
 
+select:not([multiple]) {
+  appearance: none;
+  cursor: pointer;
+  padding-right: 2.9rem !important;
+  background-image:
+    linear-gradient(45deg, transparent 50%, rgb(var(--color-pine) / 0.72) 50%),
+    linear-gradient(135deg, rgb(var(--color-pine) / 0.72) 50%, transparent 50%);
+  background-position:
+    calc(100% - 1.2rem) calc(50% - 2px),
+    calc(100% - 0.9rem) calc(50% - 2px);
+  background-repeat: no-repeat;
+  background-size: 0.34rem 0.34rem, 0.34rem 0.34rem;
+  box-shadow: 0 8px 20px rgba(20, 34, 29, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+select:not([multiple]):hover {
+  border-color: rgb(var(--color-pine) / 0.3);
+}
+
+select:not([multiple]):focus-visible {
+  border-color: rgb(var(--color-clay) / 0.72);
+  box-shadow: 0 0 0 3px rgb(var(--color-clay) / 0.13);
+  outline: none;
+}
+
 ::selection {
   background: rgba(var(--accent-primary), 0.26);
   color: var(--foreground);

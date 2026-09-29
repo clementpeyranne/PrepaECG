@@ -81,28 +81,7 @@ export function ResourcesExplorer({ resources }: ResourcesExplorerProps) {
         </div>
       </SectionCard>
 
-      <div className="grid gap-5 xl:grid-cols-[0.8fr_1.2fr]">
-        <SectionCard
-          eyebrow="Vue rapide"
-          title="Le cloud de cours"
-          accent="soft"
-        >
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl bg-white/75 p-4">
-              <p className="text-xs uppercase tracking-[0.22em] text-pine/55">Documents</p>
-              <p className="mt-3 font-display text-3xl text-ink">{resources.length}</p>
-            </div>
-            <div className="rounded-2xl bg-white/75 p-4">
-              <p className="text-xs uppercase tracking-[0.22em] text-pine/55">Profs</p>
-              <p className="mt-3 font-display text-3xl text-ink">{teachers.length - 1}</p>
-            </div>
-            <div className="rounded-2xl bg-white/75 p-4">
-              <p className="text-xs uppercase tracking-[0.22em] text-pine/55">Chapitres</p>
-              <p className="mt-3 font-display text-3xl text-ink">{chapters.length - 1}</p>
-            </div>
-          </div>
-        </SectionCard>
-
+      <div>
         <SectionCard
           eyebrow="Recherche"
           title="Filtres rapides"

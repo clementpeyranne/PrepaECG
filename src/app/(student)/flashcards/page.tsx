@@ -4,6 +4,8 @@ import Link from "next/link";
 import type { Route } from "next";
 
 import { FlashcardBrowser } from "@/components/flashcards/flashcard-browser";
+import { FlashcardFocusTimer } from "@/components/flashcards/flashcard-focus-timer";
+import { FlashcardImportForm } from "@/components/flashcards/flashcard-import-form";
 import { FlashcardMathProvider } from "@/components/flashcards/flashcard-math-provider";
 import { PageHeader } from "@/components/ui/page-header";
 import { SectionCard } from "@/components/ui/section-card";
@@ -15,6 +17,7 @@ import {
   importShareCodeAction
 } from "@/app/(student)/flashcards/actions";
 import { getFlashcardsOverviewData, type FlashcardsOverviewDeckNode } from "@/lib/flashcards";
+import { getFileStorageDriver } from "@/lib/app-config";
 
 export default async function FlashcardsPage({
   searchParams
@@ -23,6 +26,7 @@ export default async function FlashcardsPage({
 }) {
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const data = await getFlashcardsOverviewData();
+  const cloudUploadsEnabled = getFileStorageDriver() === "supabase";
   const planningEntryId =
     typeof resolvedSearchParams.planningEntryId === "string" && /^[a-zA-Z0-9_-]{1,100}$/.test(resolvedSearchParams.planningEntryId)
       ? resolvedSearchParams.planningEntryId
@@ -55,6 +59,8 @@ export default async function FlashcardsPage({
         actionHref={reviewHref}
       />
 
+      {planningEntryId ? <FlashcardFocusTimer planningEntryId={planningEntryId} /> : null}
+
       {flashcardsMessage ? (
         <div
           className={`mb-5 rounded-[24px] border px-5 py-4 text-sm ${
@@ -75,12 +81,12 @@ export default async function FlashcardsPage({
         </div>
       ) : null}
 
-      <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+      <div className="grid items-start gap-5 xl:grid-cols-[1.05fr_0.95fr]">
         <SectionCard
           eyebrow="Organisation"
           title="Matieres, decks et sous-decks"
         >
-          <div className="max-h-[860px] space-y-4 overflow-y-auto pr-2">
+          <div className="max-h-[560px] space-y-4 overflow-y-auto pr-2">
             {data.subjectGroups.map((group) => (
               <div key={group.subject} className="rounded-[24px] border border-ink/8 bg-sand/50 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -118,8 +124,8 @@ export default async function FlashcardsPage({
               <p className="mt-3 font-display text-3xl text-ink">{data.globalState.active}</p>
             </div>
             <div className="rounded-2xl bg-white/75 p-4">
-              <p className="text-xs uppercase tracking-[0.22em] text-pine/55">Decks stables</p>
-              <p className="mt-3 font-display text-3xl text-ink">{data.globalState.stable}</p>
+              <p className="text-xs uppercase tracking-[0.22em] text-pine/55">Decks termines</p>
+              <p className="mt-3 font-display text-3xl text-ink">{data.globalState.completed}</p>
             </div>
           </div>
         </SectionCard>
@@ -329,7 +335,7 @@ export default async function FlashcardsPage({
               </button>
             </form>
 
-            <form action={importFlashcardFileAction} className="space-y-3">
+            <FlashcardImportForm action={importFlashcardFileAction} cloud={cloudUploadsEnabled}>
               <label className="block">
                 <span className="mb-2 block text-sm font-medium text-pine/80">Fichier deck</span>
                 <input
@@ -351,7 +357,7 @@ export default async function FlashcardsPage({
               >
                 Importer le fichier
               </button>
-            </form>
+            </FlashcardImportForm>
           </div>
         </SectionCard>
       </div>
@@ -390,12 +396,11 @@ function renderDeckTree(deck: FlashcardsOverviewDeckNode, planningEntryId = "") 
   return (
     <details
       key={deck.id}
-      open={deck.depth <= 1}
       className="rounded-[22px] border border-ink/8 bg-white p-4"
     >
       <summary className="cursor-pointer list-none">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
+          <div className="min-w-0">
             <p className="font-semibold text-ink">{deck.title}</p>
             <p className="mt-1 text-sm text-pine/75">
               {deck.childCount} sous-decks - {deck.total} cartes au total
