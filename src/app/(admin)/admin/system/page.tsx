@@ -28,7 +28,7 @@ export default async function AdminSystemPage() {
           <form action={purgeSecurityDataAction} className="mt-6">
             <PendingSubmitButton label="Nettoyer les journaux anciens" pendingLabel="Nettoyage..." className="rounded-full bg-white px-5 py-3 text-sm font-semibold text-ink" />
           </form>
-          <p className="mt-3 text-xs leading-6 text-sand/60">Conserve 90 jours d'activite et supprime uniquement les compteurs expires.</p>
+          <p className="mt-3 text-xs leading-6 text-sand/60">Conserve 90 jours de journal de securite et supprime les compteurs, jetons et invitations expires.</p>
         </SectionCard>
       </div>
     </div>

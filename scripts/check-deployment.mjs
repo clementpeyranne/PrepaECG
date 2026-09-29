@@ -86,10 +86,10 @@ if (!supportEmail) {
 
 const missingLegalFields = [
   "NEXT_PUBLIC_LEGAL_NAME",
+  "NEXT_PUBLIC_LEGAL_STATUS",
   "NEXT_PUBLIC_LEGAL_ADDRESS",
-  "NEXT_PUBLIC_PUBLICATION_DIRECTOR",
-  "NEXT_PUBLIC_HOSTING_NAME",
-  "NEXT_PUBLIC_HOSTING_ADDRESS"
+  "NEXT_PUBLIC_LEGAL_PHONE",
+  "NEXT_PUBLIC_PUBLICATION_DIRECTOR"
 ].filter((key) => !env[key]?.trim() || env[key].toLowerCase().includes("a renseigner"));
 if (missingLegalFields.length > 0) {
   warnings.push(`Informations legales incompletes : ${missingLegalFields.join(", ")}.`);

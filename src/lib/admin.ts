@@ -176,6 +176,9 @@ export async function getAdminUsersData(filters: { query?: string; role?: string
       createdAt: formatDate(user.createdAt),
       lastLoginAt: formatDate(user.lastLoginAt),
       loginCount: user.loginCount,
+      legalStatus: user.termsAcceptedAt && user.termsVersion
+        ? `CGU ${user.termsVersion}`
+        : "Acceptation non tracee",
       contentCount: user._count.uploadedResources + user._count.decks + user._count.essays + user._count.assignedEssays
     }))
   };
@@ -351,16 +354,34 @@ export async function getAdminSystemData() {
 
 export async function purgeAdminSecurityData() {
   const admin = await requireRole([UserRole.ADMIN]);
+  const now = new Date();
   const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
-  const [events, limits] = await prisma.$transaction([
+  const [events, limits, resetTokens, invitations] = await prisma.$transaction([
     prisma.authEvent.deleteMany({ where: { createdAt: { lt: cutoff } } }),
-    prisma.authRateLimit.deleteMany({ where: { expiresAt: { lt: new Date() } } })
+    prisma.authRateLimit.deleteMany({ where: { expiresAt: { lt: now } } }),
+    prisma.passwordResetToken.deleteMany({ where: { expiresAt: { lt: now } } }),
+    prisma.teacherInvitation.deleteMany({
+      where: {
+        OR: [
+          { expiresAt: { lt: cutoff } },
+          { usedAt: { not: null }, createdAt: { lt: cutoff } }
+        ]
+      }
+    })
   ]);
   await recordSecurityEvent({
     eventType: "SECURITY_LOG_PURGED",
     userId: admin.id,
     email: admin.email,
-    metadata: { eventsDeleted: events.count, limitsDeleted: limits.count }
+    metadata: {
+      eventsDeleted: events.count,
+      limitsDeleted: limits.count,
+      resetTokensDeleted: resetTokens.count,
+      invitationsDeleted: invitations.count
+    }
   });
-  return { ok: true, message: `${events.count} ancien(s) evenement(s) et ${limits.count} limite(s) expiree(s) supprimes.` };
+  return {
+    ok: true,
+    message: `${events.count} evenement(s), ${limits.count} limite(s), ${resetTokens.count} jeton(s) et ${invitations.count} invitation(s) expires supprimes.`
+  };
 }

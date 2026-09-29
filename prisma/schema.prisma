@@ -94,6 +94,10 @@ model User {
   isActive          Boolean            @default(true)
   lastLoginAt       DateTime?
   loginCount        Int                @default(0)
+  termsAcceptedAt   DateTime?
+  termsVersion      String?
+  privacyAcknowledgedAt DateTime?
+  privacyVersion    String?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   memberships       ClassMembership[]

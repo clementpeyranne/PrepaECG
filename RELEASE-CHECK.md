@@ -3,7 +3,7 @@
 ## Controles effectues
 
 - 11 tests de securite reussis : sessions, recuperation, liens a usage unique, cache prive.
-- 28 scenarios de parcours reussis sur SQLite isole : invitations professeurs, deux prepas, connexion, PDF/photos, corrections, doublons, flashcards, pagination et progression. Les scenarios planning verifient aussi la conservation de tous les blocs, l'annulation, l'absence de doublon et le temps reporte au tableau de bord.
+- 29 scenarios de parcours reussis sur SQLite isole : invitations professeurs, deux prepas, connexion, PDF/photos, corrections, doublons, flashcards, pagination, progression et administration. Les scenarios planning verifient aussi la conservation de tous les blocs, l'annulation, l'absence de doublon et le temps reporte au tableau de bord.
 - Recette HTTP du vrai serveur Next reussie : connexion eleve/professeur, ressources isolees, pages professeur, recuperation indisponible explicite, refus d'origine etrangere.
 - Build optimise et verification TypeScript reussis. Lint non execute par le build.
 - Installation reproductible avec npm ci ; npm audit : aucune vulnerabilite signalee au moment du controle. Cela ne constitue pas un audit exhaustif du code.
@@ -18,6 +18,9 @@
 - Controle de charge public reussi : 30 requetes avec une concurrence de 6, aucune erreur, mediane 105 ms et p95 1 026 ms.
 - Audit anonyme de production : aucun professeur sans etablissement et aucun eleve sans configuration terminee.
 - Nettoyage des doubles depots ajoute dans l'application. Un outil de nettoyage Supabase ne supprime que les fichiers anciens non references et fonctionne en apercu par defaut.
+- Espace administrateur deploye et recette sur les cinq pages reussie. Les journaux de connexion sont pseudonymises et limites a la securite du service.
+- Mentions legales, politique de confidentialite, CGU, page cookies et checklist RGPD completees. Les nouvelles inscriptions exigent et enregistrent une acceptation versionnee.
+- Migration legale additive appliquee a Supabase sans suppression de donnees.
 
 ## Publication
 
@@ -28,7 +31,8 @@ Chaque publication doit etre suivie de la verification du build Vercel puis de `
 ## Restant avant ouverture publique
 
 - Recuperation par email : choisir un domaine, verifier l'adresse d'envoi dans Resend, configurer PASSWORD_RESET_MODE=email, RESEND_API_KEY et EMAIL_FROM dans Vercel. Verifier une reception reelle et le lien a usage unique. Les tests actuels simulent le fournisseur, aucun email reel n'a ete envoye.
-- Renseigner une adresse de support et les informations legales reelles.
+- Renseigner dans Vercel l'identite, le statut, l'adresse, le telephone, l'email public et le directeur de publication de l'editeur. Les pages restent signalees comme incompletes tant que ces donnees manquent.
+- Faire relire les textes et le registre des traitements par un professionnel avant une commercialisation ou un deploiement a grande echelle.
 - Confirmer humainement l'identite du professeur existant. L'audit confirme que son compte est bien rattache a l'etablissement ; les nouvelles inscriptions exigent une invitation personnelle liee a l'email et a l'etablissement.
 - Recette navigateur sur ordinateur et iPhone : inscription invitee, connexion, depot, ouverture du document, retour professeur, lecture par l'eleve et revision. Le lancement automatise de Chrome est bloque par les permissions de l'environnement ; aucune validation visuelle n'est revendiquee.
 - Le planning dispose des vues semaine/jour et de la validation sur chaque ligne de la vue jour. Le script tests/planning-browser.mjs prepare la recette navigation, validation, annulation et largeur mobile sur la base jetable ; son execution navigateur reste bloquee dans cet environnement.

@@ -62,7 +62,8 @@ export async function signupAction(formData: FormData) {
     password: getString(formData, "password"),
     role,
     accessCode: getString(formData, "accessCode"),
-    invitationToken: getString(formData, "invitationToken")
+    invitationToken: getString(formData, "invitationToken"),
+    legalAccepted: getString(formData, "legalAccepted") === "yes"
   });
 
   if (!result.ok) {

@@ -37,11 +37,11 @@ export default async function AdminUsersPage({
         </form>
 
         <div className="mt-5 overflow-x-auto rounded-[22px] border border-ink/8">
-          <table className="min-w-[1050px] w-full text-left text-sm">
+          <table className="min-w-[1160px] w-full text-left text-sm">
             <thead className="border-b border-ink/8 bg-sand/70 text-xs uppercase tracking-[0.14em] text-pine/60">
               <tr>
                 <th className="px-4 py-3">Compte</th><th className="px-4 py-3">Role</th><th className="px-4 py-3">Etablissement</th>
-                <th className="px-4 py-3">Derniere connexion</th><th className="px-4 py-3">Connexions</th><th className="px-4 py-3">Contenus</th><th className="px-4 py-3">Action</th>
+                <th className="px-4 py-3">Derniere connexion</th><th className="px-4 py-3">CGU</th><th className="px-4 py-3">Connexions</th><th className="px-4 py-3">Contenus</th><th className="px-4 py-3">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-ink/6 bg-white/60">
@@ -51,6 +51,7 @@ export default async function AdminUsersPage({
                   <td className="px-4 py-4">{user.roleLabel}</td>
                   <td className="px-4 py-4">{user.establishment}</td>
                   <td className="px-4 py-4">{user.lastLoginAt}</td>
+                  <td className="px-4 py-4 text-xs text-pine/65">{user.legalStatus}</td>
                   <td className="px-4 py-4">{user.loginCount}</td>
                   <td className="px-4 py-4">{user.contentCount}</td>
                   <td className="px-4 py-4">

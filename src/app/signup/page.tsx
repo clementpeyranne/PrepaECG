@@ -123,6 +123,26 @@ export default async function SignupPage({
                 </label>
               </details>
 
+              <label className="flex items-start gap-3 rounded-2xl border border-ink/10 bg-sand/70 p-4 text-xs leading-6 text-pine/75">
+                <input
+                  type="checkbox"
+                  name="legalAccepted"
+                  value="yes"
+                  required
+                  className="mt-1 h-4 w-4 shrink-0 accent-pine"
+                />
+                <span>
+                  J&apos;accepte les{" "}
+                  <Link href="/cgu" target="_blank" className="font-semibold text-ink underline underline-offset-2">
+                    CGU
+                  </Link>{" "}
+                  et je confirme avoir lu la{" "}
+                  <Link href="/confidentialite" target="_blank" className="font-semibold text-ink underline underline-offset-2">
+                    politique de confidentialite
+                  </Link>.
+                </span>
+              </label>
+
               <button
                 type="submit"
                 className="w-full rounded-full bg-ink px-5 py-3 text-sm font-semibold text-sand transition hover:bg-pine"
@@ -130,17 +150,6 @@ export default async function SignupPage({
                 Creer mon compte
               </button>
 
-              <p className="text-xs leading-6 text-pine/68">
-                En creant un compte, tu acceptes les{" "}
-                <Link href="/cgu" className="font-semibold text-ink transition hover:text-pine">
-                  CGU
-                </Link>{" "}
-                et la{" "}
-                <Link href="/confidentialite" className="font-semibold text-ink transition hover:text-pine">
-                  politique de confidentialite
-                </Link>
-                .
-              </p>
             </form>
 
             <p className="mt-5 text-sm text-pine/76">

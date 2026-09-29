@@ -8,6 +8,7 @@ import { prisma } from "./db";
 import { ensureReferenceData } from "./reference-data";
 import { allowAuthRequest } from "./auth-rate-limit";
 import { isRecoveryEmailConfigured, sendRecoveryEmail } from "./mail";
+import { PRIVACY_VERSION, TERMS_VERSION } from "./legal";
 
 const AUTH_COOKIE_NAME = "prepa_auth";
 const SESSION_DURATION_MS = 1000 * 60 * 60 * 24 * 14;
@@ -196,6 +197,7 @@ export async function registerUser(input: {
   role: UserRole;
   accessCode: string;
   invitationToken?: string;
+  legalAccepted?: boolean;
 }) {
   const email = normalizeEmail(input.email);
   const firstName = input.firstName.trim();
@@ -216,6 +218,13 @@ export async function registerUser(input: {
     return {
       ok: false as const,
       message: "Tous les champs sont obligatoires."
+    };
+  }
+
+  if (!input.legalAccepted) {
+    return {
+      ok: false as const,
+      message: "Tu dois accepter les CGU et confirmer avoir lu la politique de confidentialite."
     };
   }
 
@@ -270,9 +279,14 @@ export async function registerUser(input: {
         });
         if (claimed.count !== 1) return null;
       }
+      const acceptedAt = new Date();
       return tx.user.create({
         data: {
           email, passwordHash, firstName, lastName, role: input.role,
+          termsAcceptedAt: acceptedAt,
+          termsVersion: TERMS_VERSION,
+          privacyAcknowledgedAt: acceptedAt,
+          privacyVersion: PRIVACY_VERSION,
           memberships: { create: {
             classId: prepClass.id,
             roleInClass: input.role === UserRole.TEACHER ? "teacher" : "student"

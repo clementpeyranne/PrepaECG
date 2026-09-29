@@ -86,6 +86,7 @@ try {
   signup.set("role", "student");
   signup.set("accessCode", prep.accessCode);
   signup.set("invitationToken", "");
+  signup.set("legalAccepted", "yes");
   const signupResponse = await postForm("/signup", signup);
   if (signupResponse.status !== 303 || signupResponse.headers.get("location") !== "/onboarding") {
     throw new Error(`Inscription refusee: HTTP ${signupResponse.status}, destination ${signupResponse.headers.get("location") || "absente"}.`);

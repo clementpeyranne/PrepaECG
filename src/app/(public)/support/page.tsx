@@ -35,6 +35,20 @@ export default function SupportPage() {
           </div>
         </section>
       </div>
+      <section className="mt-5 rounded-[26px] bg-white/80 p-5 shadow-panel">
+        <h2 className="font-display text-2xl text-ink">Donnees personnelles</h2>
+        <p className="mt-3 text-sm leading-8 text-pine/82">
+          Pour demander l'acces, la rectification, la portabilite ou la suppression de tes donnees,
+          ecris depuis l'adresse liee a ton compte en precisant la demande. Une verification d'identite
+          complementaire n'est demandee qu'en cas de doute raisonnable.
+        </p>
+        <a
+          href={`mailto:${site.privacyEmail}?subject=Exercice%20de%20mes%20droits%20RGPD`}
+          className="mt-5 inline-flex items-center rounded-full border border-ink/10 px-5 py-3 text-sm font-semibold text-ink transition hover:border-pine"
+        >
+          {site.privacyEmail}
+        </a>
+      </section>
     </PublicPageShell>
   );
 }

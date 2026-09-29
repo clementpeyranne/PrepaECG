@@ -60,6 +60,7 @@ function createAuth(env = production) {
       })
     },
     "./app-config": config, "./db": { prisma: db },
+    "./legal": { TERMS_VERSION: "test-terms", PRIVACY_VERSION: "test-privacy" },
     "./auth-rate-limit": { allowAuthRequest: async () => true },
     "./mail": { isRecoveryEmailConfigured: () => false, sendRecoveryEmail: async () => { throw new Error("Unexpected email"); } },
     "./reference-data": { ensureReferenceData: async () => {} }

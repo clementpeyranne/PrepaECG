@@ -86,7 +86,8 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
   const limits = load("src/lib/auth-rate-limit.ts");
   const mail = load("src/lib/mail.ts");
   const signup = (email, role = "STUDENT", code = "PREPA-A", invitationToken = "") => auth.registerUser({
-    email, firstName: "Test", lastName: "Parcours", password: "test-password-123", role, accessCode: code, invitationToken
+    email, firstName: "Test", lastName: "Parcours", password: "test-password-123", role, accessCode: code, invitationToken,
+    legalAccepted: true
   });
   const invite = async (email, classId, options = {}) => {
     const token = randomBytes(32).toString("hex");
@@ -103,6 +104,12 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
 
   try {
     await t.test("un code inconnu ne cree pas d'etablissement", async () => {
+      const refused = await auth.registerUser({
+        email: "legal@example.test", firstName: "Test", lastName: "Legal", password: "test-password-123",
+        role: "STUDENT", accessCode: "PREPA-A", legalAccepted: false
+      });
+      assert.equal(refused.ok, false);
+      assert.match(refused.message, /accepter les CGU/);
       assert.equal((await signup("unknown@example.test")).ok, false);
       assert.equal(await db.class.count(), 0);
       prepA = await db.class.create({ data: { name: "A", yearLabel: "2026", track: "ECG", accessCode: "PREPA-A" } });

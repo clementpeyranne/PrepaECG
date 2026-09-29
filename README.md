@@ -140,8 +140,12 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 PASSWORD_RESET_MODE="direct-link"
 FILE_STORAGE_DRIVER="local"
 NEXT_PUBLIC_SUPPORT_EMAIL="support@a-renseigner.fr"
+NEXT_PUBLIC_PRIVACY_EMAIL="privacy@a-renseigner.fr"
 NEXT_PUBLIC_LEGAL_NAME="Editeur a renseigner"
+NEXT_PUBLIC_LEGAL_STATUS="Statut juridique a renseigner"
 NEXT_PUBLIC_LEGAL_ADDRESS="Adresse a renseigner"
+NEXT_PUBLIC_LEGAL_PHONE="Telephone a renseigner"
+NEXT_PUBLIC_LEGAL_REGISTRATION=""
 NEXT_PUBLIC_PUBLICATION_DIRECTOR="Responsable de publication a renseigner"
 NEXT_PUBLIC_HOSTING_NAME="Hebergeur a renseigner"
 NEXT_PUBLIC_HOSTING_ADDRESS="Adresse de l'hebergeur a renseigner"
@@ -162,6 +166,7 @@ Principes :
 - `FILE_STORAGE_DRIVER="local"` convient au prototype, mais pas au deploiement final des fichiers.
 - `FILE_STORAGE_DRIVER="supabase"` est la direction retenue pour stocker les PDF et les photos en production.
 - `NEXT_PUBLIC_SUPPORT_EMAIL` et les champs legaux doivent etre completes avant ouverture publique.
+- La politique de confidentialite, les CGU et la page cookies sont versionnees. Les nouvelles inscriptions enregistrent l'acceptation des CGU et la prise de connaissance de la politique applicable.
 
 Securite des comptes : `npm run test:security` couvre les sessions, les liens de recuperation et le cache hors connexion avec des services simules. Un test de bout en bout avec PostgreSQL et le navigateur reste necessaire. Les sessions sont liees au mot de passe : changer celui-ci invalide les anciennes connexions. Le passage aux cookies v2 exige une reconnexion des comptes existants, sans modifier leurs donnees.
 
@@ -181,6 +186,12 @@ L'espace d'administration necessite sa migration additive, a appliquer avant le 
 
 ```bash
 npm run db:admin:prod
+```
+
+La preuve d'acceptation des textes legaux utilise egalement une migration additive a appliquer avant le deploiement correspondant :
+
+```bash
+npm run db:legal:prod
 ```
 
 Creer ou promouvoir ensuite le compte du responsable de la plateforme :
