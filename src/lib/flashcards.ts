@@ -1,31 +1,15 @@
 import { FlashcardRating, FlashcardStatus } from "@prisma/client";
 import { randomBytes } from "node:crypto";
-import { execFile } from "node:child_process";
-import { existsSync } from "node:fs";
-import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import path from "node:path";
+import { unzipSync } from "fflate";
+import { decompress as decompressZstd } from "fzstd";
 import { cache } from "react";
-import { promisify } from "node:util";
+import initSqlJs, { type Database as SqlDatabase } from "sql.js/dist/sql-asm.js";
 
 import { isDemoModeEnabled } from "./app-config";
 import { prisma } from "./db";
 import { deleteStoredFile, resolveDirectUpload } from "./storage";
 import { ensureDemoStudent } from "./student-app";
-
-const execFileAsync = promisify(execFile);
-
-const COMMAND_CANDIDATES = {
-  unzip: ["/usr/bin/unzip", "/opt/homebrew/bin/unzip", "/usr/local/bin/unzip", "unzip"],
-  sqlite3: [
-    "/opt/anaconda3/bin/sqlite3",
-    "/opt/homebrew/bin/sqlite3",
-    "/usr/local/bin/sqlite3",
-    "/usr/bin/sqlite3",
-    "sqlite3"
-  ],
-  zstd: ["/opt/anaconda3/bin/zstd", "/opt/homebrew/bin/zstd", "/usr/local/bin/zstd", "zstd"]
-} as const;
 
 export type FlashcardsOverviewData = {
   subjectGroups: Array<{
@@ -505,29 +489,6 @@ function createShareCode() {
   return `PREPA-${randomBytes(3).toString("hex").toUpperCase()}`;
 }
 
-async function runCommand(
-  command: keyof typeof COMMAND_CANDIDATES,
-  args: string[]
-): Promise<{ stdout: string; stderr: string }> {
-  let lastError: unknown = null;
-
-  for (const candidate of COMMAND_CANDIDATES[command]) {
-    try {
-      return await execFileAsync(candidate, args);
-    } catch (error) {
-      const code = typeof error === "object" && error && "code" in error ? error.code : null;
-      if (code === "ENOENT") {
-        lastError = error;
-        continue;
-      }
-
-      throw error;
-    }
-  }
-
-  throw lastError ?? new Error(`Commande introuvable: ${command}`);
-}
-
 async function createUniqueShareCode() {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const shareCode = createShareCode();
@@ -621,16 +582,6 @@ function normalizeImportedFieldValue(value: string, mediaPublicPaths: Map<string
     .trim();
 }
 
-function sanitizeFileName(fileName: string) {
-  return fileName
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9._-]/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .toLowerCase();
-}
-
 function readVarint(buffer: Buffer, startOffset: number) {
   let offset = startOffset;
   let result = 0;
@@ -709,24 +660,23 @@ function parseProtobufMediaMap(buffer: Buffer, availableIndexes: Set<string>) {
   return map;
 }
 
-async function getApkgMediaNameToIndex(workdir: string) {
-  const mediaPath = path.join(workdir, "media");
-  if (!existsSync(mediaPath)) {
+function isZstdBuffer(buffer: Uint8Array) {
+  return buffer.length >= 4 && buffer[0] === 0x28 && buffer[1] === 0xb5 && buffer[2] === 0x2f && buffer[3] === 0xfd;
+}
+
+function decompressAnkiEntry(buffer: Uint8Array) {
+  return isZstdBuffer(buffer) ? decompressZstd(buffer) : buffer;
+}
+
+function getApkgMediaNameToIndex(entries: Record<string, Uint8Array>) {
+  const mediaEntry = entries.media;
+  if (!mediaEntry) {
     return new Map<string, string>();
   }
 
-  const rawMediaPath = path.join(workdir, "media.raw");
-
-  try {
-    await runCommand("zstd", ["-d", "-q", "-f", "-o", rawMediaPath, mediaPath]);
-  } catch {
-    const rawBuffer = await readFile(mediaPath);
-    await writeFile(rawMediaPath, rawBuffer);
-  }
-
-  const mediaBuffer = await readFile(rawMediaPath);
+  const mediaBuffer = Buffer.from(decompressAnkiEntry(mediaEntry));
   const availableIndexes = new Set(
-    (await readdir(workdir)).filter((entry) => /^\d+$/.test(entry))
+    Object.keys(entries).filter((entry) => /^\d+$/.test(entry))
   );
 
   const trimmed = mediaBuffer.toString("utf8").trim();
@@ -772,38 +722,16 @@ function inferMimeType(fileName: string) {
   return "application/octet-stream";
 }
 
-async function extractApkgMediaFiles(workdir: string) {
-  const nameToIndex = await getApkgMediaNameToIndex(workdir);
-  const publicFolder = path.join(process.cwd(), "public", "uploads", "anki-media", Date.now().toString());
+function extractApkgMediaFiles(entries: Record<string, Uint8Array>) {
+  const nameToIndex = getApkgMediaNameToIndex(entries);
   const mediaPublicPaths = new Map<string, string>();
 
-  if (nameToIndex.size === 0) {
-    return mediaPublicPaths;
-  }
-
-  await mkdir(publicFolder, { recursive: true });
-
   for (const [originalName, index] of nameToIndex.entries()) {
-    const sourcePath = path.join(workdir, index);
-    if (!existsSync(sourcePath)) {
-      continue;
-    }
-
-    const extension = path.extname(originalName) || ".bin";
-    const safeFileName = `${index}-${sanitizeFileName(path.basename(originalName, extension))}${extension.toLowerCase()}`;
-    const targetAbsolutePath = path.join(publicFolder, safeFileName);
-
-    try {
-      await runCommand("zstd", ["-d", "-q", "-f", "-o", targetAbsolutePath, sourcePath]);
-    } catch {
-      const sourceBuffer = await readFile(sourcePath);
-      await writeFile(targetAbsolutePath, sourceBuffer);
-    }
-
-    mediaPublicPaths.set(
-      originalName,
-      `/uploads/anki-media/${path.basename(publicFolder)}/${safeFileName}`.replaceAll(path.sep, "/")
-    );
+    const source = entries[index];
+    if (!source) continue;
+    const mediaBuffer = decompressAnkiEntry(source);
+    const dataUrl = `data:${inferMimeType(originalName)};base64,${Buffer.from(mediaBuffer).toString("base64")}`;
+    mediaPublicPaths.set(originalName, dataUrl);
   }
 
   return mediaPublicPaths;
@@ -1148,12 +1076,6 @@ async function importExportPayload(
   };
 }
 
-async function findCollectionDb(workdir: string) {
-  const entries = await readdir(workdir, { recursive: true });
-  const dbEntry = entries.find((entry) => /collection\.anki2(1b?|)\b/i.test(String(entry)));
-  return dbEntry ? path.join(workdir, String(dbEntry)) : null;
-}
-
 function splitAnkiDeckPath(deckName: string) {
   return deckName
     .split(/::|\u001f/)
@@ -1161,95 +1083,124 @@ function splitAnkiDeckPath(deckName: string) {
     .filter(Boolean);
 }
 
-function decodeHexSqliteText(value: string) {
-  if (!value) {
-    return "";
-  }
-
-  return Buffer.from(value, "hex").toString("utf8");
+function sqlValueToString(value: unknown) {
+  if (value === null || value === undefined) return "";
+  if (value instanceof Uint8Array) return Buffer.from(value).toString("utf8");
+  return String(value);
 }
 
-async function resolveReadableApkgDbPath(workdir: string) {
-  const compressedCandidates = ["collection.anki21b"]
-    .map((candidate) => path.join(workdir, candidate))
-    .filter((candidate) => existsSync(candidate));
+function queryRows(database: SqlDatabase, sql: string) {
+  return database.exec(sql)[0]?.values ?? [];
+}
 
-  if (compressedCandidates.length > 0) {
-    const readableDbPath = path.join(workdir, "collection.readable.sqlite");
-    await runCommand("zstd", ["-d", "-q", "-f", "-o", readableDbPath, compressedCandidates[0]]);
-    return readableDbPath;
+function hasSqliteTable(database: SqlDatabase, tableName: string) {
+  const safeName = tableName.replace(/'/g, "''");
+  return queryRows(
+    database,
+    `select 1 from sqlite_master where type = 'table' and name = '${safeName}' limit 1;`
+  ).length > 0;
+}
+
+function findApkgEntry(entries: Record<string, Uint8Array>, name: string) {
+  return Object.entries(entries).find(([entryName]) =>
+    entryName === name || entryName.endsWith(`/${name}`)
+  )?.[1] ?? null;
+}
+
+function getDeckRegistry(database: SqlDatabase) {
+  const deckRegistry = new Map<string, string>();
+
+  if (hasSqliteTable(database, "decks")) {
+    for (const [rawId, rawName] of queryRows(database, "select id, name from decks;")) {
+      const id = sqlValueToString(rawId);
+      const name = sqlValueToString(rawName);
+      if (id && name) deckRegistry.set(id, name);
+    }
+    return deckRegistry;
   }
 
-  const directCandidates = ["collection.anki21", "collection.anki2"]
-    .map((candidate) => path.join(workdir, candidate))
-    .filter((candidate) => existsSync(candidate));
+  const rawDecks = sqlValueToString(queryRows(database, "select decks from col limit 1;")[0]?.[0]);
+  if (!rawDecks) return deckRegistry;
+  const legacyDecks = JSON.parse(rawDecks) as Record<string, { name?: string }>;
+  for (const [id, deck] of Object.entries(legacyDecks)) {
+    if (deck?.name) deckRegistry.set(id, deck.name);
+  }
+  return deckRegistry;
+}
 
-  if (directCandidates.length > 0) {
-    return directCandidates[0];
+function getNoteTypeMetadata(database: SqlDatabase) {
+  const fieldNamesByNoteType = new Map<string, string[]>();
+  const noteTypeNames = new Map<string, string>();
+  const templateNames = new Map<string, string>();
+
+  if (hasSqliteTable(database, "fields")) {
+    for (const [rawNoteTypeId, rawOrd, rawName] of queryRows(
+      database,
+      "select ntid, ord, name from fields order by ntid, ord;"
+    )) {
+      const noteTypeId = sqlValueToString(rawNoteTypeId);
+      const ord = Number(rawOrd);
+      const fields = fieldNamesByNoteType.get(noteTypeId) ?? [];
+      fields[ord] = sqlValueToString(rawName);
+      fieldNamesByNoteType.set(noteTypeId, fields);
+    }
+
+    for (const [rawId, rawName] of queryRows(database, "select id, name from notetypes;")) {
+      noteTypeNames.set(sqlValueToString(rawId), sqlValueToString(rawName));
+    }
+    return { fieldNamesByNoteType, noteTypeNames, templateNames };
   }
 
-  return findCollectionDb(workdir);
+  const rawModels = sqlValueToString(queryRows(database, "select models from col limit 1;")[0]?.[0]);
+  if (!rawModels) return { fieldNamesByNoteType, noteTypeNames, templateNames };
+  const models = JSON.parse(rawModels) as Record<string, {
+    name?: string;
+    flds?: Array<{ name?: string; ord?: number }>;
+    tmpls?: Array<{ name?: string; ord?: number }>;
+  }>;
+
+  for (const [noteTypeId, model] of Object.entries(models)) {
+    noteTypeNames.set(noteTypeId, model.name ?? "Anki");
+    const fields: string[] = [];
+    for (const field of model.flds ?? []) fields[field.ord ?? fields.length] = field.name ?? "";
+    fieldNamesByNoteType.set(noteTypeId, fields);
+    for (const template of model.tmpls ?? []) {
+      templateNames.set(`${noteTypeId}:${template.ord ?? 0}`, template.name ?? "");
+    }
+  }
+
+  return { fieldNamesByNoteType, noteTypeNames, templateNames };
 }
 
 async function readApkgAsExportPayload(
   file: File
 ): Promise<{ payloads: DeckExportPayload[]; warning?: string }> {
-  const sqliteSeparator = "\u001d";
-  const workdir = await mkdtemp(path.join(tmpdir(), "prepa-apkg-"));
-  const archivePath = path.join(workdir, file.name || "deck.apkg");
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(archivePath, buffer);
+  let database: SqlDatabase | null = null;
 
   try {
-    await runCommand("unzip", ["-qq", archivePath, "-d", workdir]);
+    let uncompressedBytes = 0;
+    const entries = unzipSync(new Uint8Array(await file.arrayBuffer()), {
+      filter(entry) {
+        uncompressedBytes += entry.originalSize;
+        if (uncompressedBytes > 350_000_000) throw new Error("APKG_UNCOMPRESSED_TOO_LARGE");
+        const name = entry.name.split("/").pop() ?? entry.name;
+        return /^collection\.anki2(?:1b?)?$/.test(name) || name === "media" || /^\d+$/.test(name);
+      }
+    });
+    const compressedDb = findApkgEntry(entries, "collection.anki21b");
+    const directDb = findApkgEntry(entries, "collection.anki21") ?? findApkgEntry(entries, "collection.anki2");
+    const databaseBytes = compressedDb ? decompressAnkiEntry(compressedDb) : directDb;
 
-    const selectedDbPath = await resolveReadableApkgDbPath(workdir);
-
-    if (!selectedDbPath) {
+    if (!databaseBytes) {
       return {
         payloads: [],
         warning: "Aucune base Anki n'a ete trouvee dans ce fichier `.apkg`."
       };
     }
 
-    const deckRegistry = new Map<string, string>();
-
-    try {
-      const { stdout: modernDecksStdout } = await runCommand("sqlite3", [
-        "-separator",
-        "\t",
-        selectedDbPath,
-        "select id, hex(name) from decks;"
-      ]);
-
-      for (const line of modernDecksStdout.split(/\r?\n/)) {
-        if (!line.trim()) {
-          continue;
-        }
-
-        const separatorIndex = line.indexOf("\t");
-        const deckId = separatorIndex >= 0 ? line.slice(0, separatorIndex) : line;
-        const encodedDeckName = separatorIndex >= 0 ? line.slice(separatorIndex + 1) : "";
-        const deckName = decodeHexSqliteText(encodedDeckName);
-        if (deckId && deckName) {
-          deckRegistry.set(deckId, deckName);
-        }
-      }
-    } catch {
-      const { stdout: legacyDecksStdout } = await runCommand("sqlite3", [
-        selectedDbPath,
-        "select decks from col;"
-      ]);
-      const rawDecks = legacyDecksStdout.trim();
-      if (rawDecks) {
-        const legacyDeckRegistry = JSON.parse(rawDecks) as Record<string, { name?: string }>;
-        for (const [deckId, deckConfig] of Object.entries(legacyDeckRegistry)) {
-          if (deckConfig?.name) {
-            deckRegistry.set(deckId, deckConfig.name);
-          }
-        }
-      }
-    }
+    const SQL = await initSqlJs();
+    database = new SQL.Database(databaseBytes);
+    const deckRegistry = getDeckRegistry(database);
 
     if (deckRegistry.size === 0) {
       return {
@@ -1258,56 +1209,15 @@ async function readApkgAsExportPayload(
       };
     }
 
-    const mediaPublicPaths = await extractApkgMediaFiles(workdir);
-
-    const { stdout: fieldNamesStdout } = await runCommand("sqlite3", [
-      "-separator",
-      sqliteSeparator,
-      selectedDbPath,
-      "select ntid, ord, hex(name) from fields order by ntid, ord;"
-    ]);
-    const fieldNamesByNoteType = new Map<string, string[]>();
-
-    for (const line of fieldNamesStdout.split(/\r?\n/)) {
-      if (!line.trim()) {
-        continue;
-      }
-
-      const [noteTypeId, rawOrd = "0", encodedFieldName = ""] = line.split(sqliteSeparator);
-      const ord = Number(rawOrd);
-      const existing = fieldNamesByNoteType.get(noteTypeId) ?? [];
-      existing[ord] = decodeHexSqliteText(encodedFieldName);
-      fieldNamesByNoteType.set(noteTypeId, existing);
-    }
-
-    const { stdout: noteTypesStdout } = await runCommand("sqlite3", [
-      "-separator",
-      sqliteSeparator,
-      selectedDbPath,
-      "select id, hex(name) from notetypes;"
-    ]);
-    const noteTypeNames = new Map<string, string>();
-
-    for (const line of noteTypesStdout.split(/\r?\n/)) {
-      if (!line.trim()) {
-        continue;
-      }
-
-      const separatorIndex = line.indexOf(sqliteSeparator);
-      const noteTypeId = separatorIndex >= 0 ? line.slice(0, separatorIndex) : line;
-      const encodedNoteTypeName = separatorIndex >= 0 ? line.slice(separatorIndex + 1) : "";
-      const noteTypeName = decodeHexSqliteText(encodedNoteTypeName);
-      if (noteTypeId) {
-        noteTypeNames.set(noteTypeId, noteTypeName);
-      }
-    }
-
-    const { stdout: cardsStdout } = await runCommand("sqlite3", [
-      "-separator",
-      sqliteSeparator,
-      selectedDbPath,
-      "select cards.did, cards.ord, notes.mid, hex(notes.flds), hex(ifnull(templates.name, '')) from cards join notes on notes.id = cards.nid left join templates on templates.ntid = notes.mid and templates.ord = cards.ord order by cards.did, cards.id;"
-    ]);
+    const mediaPublicPaths = extractApkgMediaFiles(entries);
+    const { fieldNamesByNoteType, noteTypeNames, templateNames } = getNoteTypeMetadata(database);
+    const hasTemplates = hasSqliteTable(database, "templates");
+    const cardRows = queryRows(
+      database,
+      hasTemplates
+        ? "select cards.did, cards.ord, notes.mid, notes.flds, ifnull(templates.name, '') from cards join notes on notes.id = cards.nid left join templates on templates.ntid = notes.mid and templates.ord = cards.ord order by cards.did, cards.id;"
+        : "select cards.did, cards.ord, notes.mid, notes.flds from cards join notes on notes.id = cards.nid order by cards.did, cards.id;"
+    );
 
     const cardsByDeck = new Map<
       string,
@@ -1320,28 +1230,19 @@ async function readApkgAsExportPayload(
     >();
     let skippedNotes = 0;
 
-    for (const line of cardsStdout.split(/\r?\n/)) {
-      if (!line.trim()) {
-        continue;
-      }
-
-      const [
-        deckId = "",
-        rawOrd = "0",
-        noteTypeId = "",
-        encodedFields = "",
-        encodedTemplateName = ""
-      ] =
-        line.split(sqliteSeparator);
+    for (const [rawDeckId, rawOrd, rawNoteTypeId, rawFields, rawTemplateName] of cardRows) {
+      const deckId = sqlValueToString(rawDeckId);
+      const noteTypeId = sqlValueToString(rawNoteTypeId);
+      const cardOrd = Number(rawOrd);
 
       const fieldNames = fieldNamesByNoteType.get(noteTypeId) ?? [];
       const noteTypeName = noteTypeNames.get(noteTypeId) ?? "Anki";
       const card = buildAnkiCardFromRow({
         noteTypeName,
-        templateName: decodeHexSqliteText(encodedTemplateName),
-        cardOrd: Number(rawOrd),
+        templateName: sqlValueToString(rawTemplateName) || templateNames.get(`${noteTypeId}:${cardOrd}`) || "",
+        cardOrd,
         fieldNames,
-        rawFields: decodeHexSqliteText(encodedFields),
+        rawFields: sqlValueToString(rawFields),
         mediaPublicPaths
       });
 
@@ -1460,7 +1361,7 @@ async function readApkgAsExportPayload(
       warning: "Le fichier `.apkg` n'a pas pu etre lu correctement."
     };
   } finally {
-    await rm(workdir, { recursive: true, force: true });
+    database?.close();
   }
 }
 

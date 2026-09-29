@@ -6,6 +6,7 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
+import { zipSync } from "fflate";
 import { createAppLoader, root } from "./load-app.mjs";
 
 test("Parcours comptes, documents, corrections et flashcards sur une base isolee", async (t) => {
@@ -436,6 +437,36 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
       assert.equal(fileImport.decksImported, 2);
       assert.equal(fileImport.cardsImported, 1);
       assert.equal(await db.flashcardDeck.count({ where: { ownerUserId: studentB.id } }), 4);
+
+      const legacyDbPath = path.join(dir, "legacy-anki.sqlite");
+      const legacyDecks = JSON.stringify({ "42": { name: "ESH Legacy::Croissance" } });
+      const legacyModels = JSON.stringify({
+        "7": {
+          name: "Basic",
+          flds: [{ name: "Front", ord: 0 }, { name: "Back", ord: 1 }],
+          tmpls: [{ name: "Card 1", ord: 0 }]
+        }
+      });
+      execFileSync("sqlite3", [legacyDbPath, [
+        "create table col (decks text, models text)",
+        "create table notes (id integer primary key, mid integer, flds text)",
+        "create table cards (id integer primary key, nid integer, did integer, ord integer)",
+        `insert into col values ('${legacyDecks}', '${legacyModels}')`,
+        `insert into notes values (1, 7, 'Question Anki${String.fromCharCode(31)}Reponse Anki')`,
+        "insert into cards values (1, 1, 42, 0)"
+      ].join(";") + ";"]);
+      const apkg = new File(
+        [zipSync({ "collection.anki2": new Uint8Array(await readFile(legacyDbPath)) })],
+        "legacy.apkg",
+        { type: "application/octet-stream" }
+      );
+      const apkgImport = await cards.importFlashcardArchive(apkg);
+      assert.equal(apkgImport.ok, true);
+      assert.equal(apkgImport.decksImported, 2);
+      assert.equal(apkgImport.cardsImported, 1);
+      assert.ok(await db.flashcard.findFirst({
+        where: { deck: { ownerUserId: studentB.id }, frontText: "Question Anki", backText: "Reponse Anki" }
+      }));
     });
     await t.test("revision enregistree une seule fois, pas de reproposition avant echeance", async () => {
       use(student);
