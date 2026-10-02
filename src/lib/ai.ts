@@ -1,3 +1,16 @@
+import { createHash } from "node:crypto";
+
+import { Prisma } from "@prisma/client";
+
+import {
+  estimateAICostUsd,
+  getAICacheTtlSeconds,
+  getAIGuardrailConfig,
+  getAIModel,
+  parseAIUsage,
+  startOfUtcDay,
+  startOfUtcMonth
+} from "./ai-guardrails";
 import { prisma } from "./db";
 import { getAITaskDefinition, type AITaskId } from "./ai-task-catalog";
 
@@ -98,10 +111,6 @@ function getProviderMode() {
   return process.env.AI_PROVIDER ?? "auto";
 }
 
-function getOpenAIModel() {
-  return process.env.OPENAI_MODEL || "gpt-5-mini";
-}
-
 function shouldUseOpenAI() {
   return getProviderMode() !== "local" && Boolean(process.env.OPENAI_API_KEY);
 }
@@ -146,6 +155,16 @@ async function recordAIGeneration(input: {
   status: string;
   inputSummary: string;
   outputSummary?: string;
+  costEstimate?: number;
+  inputTokens?: number;
+  cachedInputTokens?: number;
+  outputTokens?: number;
+  durationMs?: number;
+  requestHash?: string;
+  requestKey?: string;
+  responseJson?: unknown;
+  cacheHit?: boolean;
+  blockedReason?: string;
 }) {
   try {
     await prisma.aIGeneration.create({
@@ -157,12 +176,76 @@ async function recordAIGeneration(input: {
         modelName: input.modelName,
         status: input.status,
         inputSummary: truncate(input.inputSummary),
-        outputSummary: input.outputSummary ? truncate(input.outputSummary) : null
+        outputSummary: input.outputSummary ? truncate(input.outputSummary) : null,
+        costEstimate: input.costEstimate,
+        inputTokens: input.inputTokens,
+        cachedInputTokens: input.cachedInputTokens,
+        outputTokens: input.outputTokens,
+        durationMs: input.durationMs,
+        requestHash: input.requestHash,
+        requestKey: input.requestKey,
+        responseJson: input.responseJson === undefined
+          ? undefined
+          : input.responseJson as Prisma.InputJsonValue,
+        cacheHit: input.cacheHit ?? false,
+        blockedReason: input.blockedReason
       }
     });
   } catch (error) {
     console.error("AI_GENERATION_LOG_FAILED", error);
   }
+}
+
+function isUniqueConstraintError(error: unknown) {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
+}
+
+async function getAIBlockReason(userId: string) {
+  const config = getAIGuardrailConfig();
+  const pendingSince = new Date(Date.now() - 10 * 60 * 1000);
+  const [globalSpend, userSpend, dailyRequests, globalPending, userPending] = await Promise.all([
+    prisma.aIGeneration.aggregate({
+      where: { status: "COMPLETED", createdAt: { gte: startOfUtcMonth() } },
+      _sum: { costEstimate: true }
+    }),
+    prisma.aIGeneration.aggregate({
+      where: { userId, status: "COMPLETED", createdAt: { gte: startOfUtcMonth() } },
+      _sum: { costEstimate: true }
+    }),
+    prisma.aIGeneration.count({
+      where: {
+        userId,
+        status: { in: ["PENDING", "COMPLETED"] },
+        cacheHit: false,
+        modelName: { not: "local-rules" },
+        createdAt: { gte: startOfUtcDay() }
+      }
+    }),
+    prisma.aIGeneration.count({ where: { status: "PENDING", createdAt: { gte: pendingSince } } }),
+    prisma.aIGeneration.count({ where: { userId, status: "PENDING", createdAt: { gte: pendingSince } } })
+  ]);
+
+  if (globalPending >= config.globalConcurrentLimit) return "GLOBAL_CONCURRENT_LIMIT";
+  if (userPending >= config.userConcurrentLimit) return "USER_CONCURRENT_LIMIT";
+  // Keep a 5% safety margin for requests already running on another server instance.
+  if ((globalSpend._sum.costEstimate ?? 0) >= config.globalMonthlyBudgetUsd * 0.95) return "GLOBAL_MONTHLY_BUDGET";
+  if ((userSpend._sum.costEstimate ?? 0) >= config.userMonthlyBudgetUsd * 0.95) return "USER_MONTHLY_BUDGET";
+  if (dailyRequests >= config.userDailyRequestLimit) return "USER_DAILY_REQUEST_LIMIT";
+  return null;
+}
+
+async function findCachedAIResponse<T>(userId: string, requestHash: string, taskId: AITaskId) {
+  const createdAfter = new Date(Date.now() - getAICacheTtlSeconds(taskId) * 1000);
+  const cached = await prisma.aIGeneration.findFirst({
+    where: {
+      userId,
+      requestHash,
+      status: "COMPLETED",
+      createdAt: { gte: createdAfter }
+    },
+    orderBy: { createdAt: "desc" }
+  });
+  return cached?.responseJson ? cached.responseJson as T : null;
 }
 
 async function callOpenAIJson<T>(input: {
@@ -172,6 +255,7 @@ async function callOpenAIJson<T>(input: {
   sourceEntityId: string;
   additionalInstructions?: string;
   prompt: string;
+  requestInput?: unknown;
   schemaName: string;
   schema: Record<string, unknown>;
   reasoningEffort?: ReasoningEffort;
@@ -183,6 +267,77 @@ async function callOpenAIJson<T>(input: {
   }
 
   const task = getAITaskDefinition(input.taskId);
+  const modelName = getAIModel(input.taskId);
+  const instructions = [task.systemInstructions, input.additionalInstructions].filter(Boolean).join("\n");
+  const requestPayload = input.requestInput ?? input.prompt;
+  const requestHash = createHash("sha256")
+    .update(JSON.stringify({ taskId: input.taskId, modelName, instructions, requestPayload, schema: input.schema }))
+    .digest("hex");
+
+  const cached = await findCachedAIResponse<T>(input.userId, requestHash, input.taskId);
+  if (cached) {
+    await recordAIGeneration({
+      userId: input.userId,
+      featureName: task.featureName,
+      sourceEntityType: input.sourceEntityType,
+      sourceEntityId: input.sourceEntityId,
+      modelName,
+      status: "COMPLETED",
+      inputSummary: `${task.label} - reponse reutilisee`,
+      outputSummary: "Cache IA utilise sans nouvel appel payant.",
+      costEstimate: 0,
+      inputTokens: 0,
+      cachedInputTokens: 0,
+      outputTokens: 0,
+      requestHash,
+      responseJson: cached,
+      cacheHit: true
+    });
+    return cached;
+  }
+
+  const blockedReason = await getAIBlockReason(input.userId);
+  if (blockedReason) {
+    await recordAIGeneration({
+      userId: input.userId,
+      featureName: task.featureName,
+      sourceEntityType: input.sourceEntityType,
+      sourceEntityId: input.sourceEntityId,
+      modelName,
+      status: "BLOCKED",
+      inputSummary: `${task.label} - appel bloque`,
+      outputSummary: "Limite de consommation atteinte.",
+      costEstimate: 0,
+      requestHash,
+      blockedReason
+    });
+    return null;
+  }
+
+  const guardrails = getAIGuardrailConfig();
+  const requestKey = `${input.userId}:${requestHash}:${Math.floor(Date.now() / (guardrails.duplicateWindowSeconds * 1000))}`;
+  let generationId: string;
+  try {
+    const generation = await prisma.aIGeneration.create({
+      data: {
+        userId: input.userId,
+        featureName: task.featureName,
+        sourceEntityType: input.sourceEntityType,
+        sourceEntityId: input.sourceEntityId,
+        modelName,
+        status: "PENDING",
+        inputSummary: truncate(`${task.label} - ${input.sourceEntityType}`),
+        requestHash,
+        requestKey
+      }
+    });
+    generationId = generation.id;
+  } catch (error) {
+    if (isUniqueConstraintError(error)) return null;
+    throw error;
+  }
+
+  const startedAt = Date.now();
 
   try {
     const response = await fetch("https://api.openai.com/v1/responses", {
@@ -192,12 +347,12 @@ async function callOpenAIJson<T>(input: {
         Authorization: `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: getOpenAIModel(),
+        model: modelName,
         reasoning: {
           effort: input.reasoningEffort ?? "medium"
         },
-        instructions: [task.systemInstructions, input.additionalInstructions].filter(Boolean).join("\n"),
-        input: input.prompt,
+        instructions,
+        input: requestPayload,
         max_output_tokens: input.maxOutputTokens ?? 1400,
         text: {
           format: {
@@ -221,30 +376,33 @@ async function callOpenAIJson<T>(input: {
     }
 
     const parsed = JSON.parse(outputText) as T;
+    const usage = parseAIUsage(payload);
+    const costEstimate = estimateAICostUsd(input.taskId, usage);
 
-    await recordAIGeneration({
-      userId: input.userId,
-      featureName: task.featureName,
-      sourceEntityType: input.sourceEntityType,
-      sourceEntityId: input.sourceEntityId,
-      modelName: getOpenAIModel(),
-      status: "COMPLETED",
-      inputSummary: `${task.label} - ${input.sourceEntityType}`,
-      outputSummary: "Sortie structuree validee."
+    await prisma.aIGeneration.update({
+      where: { id: generationId },
+      data: {
+        status: "COMPLETED",
+        outputSummary: "Sortie structuree validee.",
+        responseJson: parsed as Prisma.InputJsonValue,
+        costEstimate,
+        inputTokens: usage.inputTokens,
+        cachedInputTokens: usage.cachedInputTokens,
+        outputTokens: usage.outputTokens,
+        durationMs: Date.now() - startedAt
+      }
     });
 
     return parsed;
   } catch (error) {
-    await recordAIGeneration({
-      userId: input.userId,
-      featureName: task.featureName,
-      sourceEntityType: input.sourceEntityType,
-      sourceEntityId: input.sourceEntityId,
-      modelName: getOpenAIModel(),
-      status: "FAILED",
-      inputSummary: `${task.label} - ${input.sourceEntityType}`,
-      outputSummary: error instanceof Error ? error.message : "Erreur IA"
-    });
+    await prisma.aIGeneration.update({
+      where: { id: generationId },
+      data: {
+        status: "FAILED",
+        outputSummary: truncate(error instanceof Error ? error.message : "Erreur IA"),
+        durationMs: Date.now() - startedAt
+      }
+    }).catch(() => undefined);
 
     return null;
   }
@@ -899,79 +1057,31 @@ export async function generateEssayReview(input: {
     if (remote) {
       return remote;
     }
-  } else if (shouldUseOpenAI() && process.env.OPENAI_API_KEY) {
-    try {
-      const task = getAITaskDefinition("essay_review");
-      const content =
-        input.essayContent.mimeType === "application/pdf"
-          ? [
-              {
-                type: "input_text",
-                text: `Matiere : ${input.subject}\nType d'epreuve : ${input.examType}\nConcours cible : ${input.targetExam}${rubricContext}\n\nAnalyse ce PDF de copie et retourne une correction structuree.`,
-              },
-              {
-                type: "input_file",
-                filename: input.essayContent.fileName,
-                file_data: `data:${input.essayContent.mimeType};base64,${input.essayContent.base64Data}`
-              }
-            ]
-          : [
-              {
-                type: "input_text",
-                text: `Matiere : ${input.subject}\nType d'epreuve : ${input.examType}\nConcours cible : ${input.targetExam}${rubricContext}\n\nAnalyse cette photo de copie et retourne une correction structuree.`,
-              },
-              {
-                type: "input_image",
-                image_url: `data:${input.essayContent.mimeType};base64,${input.essayContent.base64Data}`
-              }
-            ];
-
-      const response = await fetch("https://api.openai.com/v1/responses", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: getOpenAIModel(),
-          reasoning: { effort: "medium" },
-          instructions: task.systemInstructions,
-          input: [{ role: "user", content }],
-          max_output_tokens: 1800,
-          text: {
-            format: {
-              type: "json_schema",
-              name: "essay_review_file",
-              schema: baseSchema,
-              strict: true
-            }
-          }
-        })
-      });
-
-      if (response.ok) {
-        const payload = (await response.json()) as Record<string, unknown>;
-        const outputText = getResponseOutputText(payload);
-        if (outputText) {
-          const parsed = JSON.parse(outputText) as EssayReviewResult;
-
-          await recordAIGeneration({
-            userId: input.userId,
-            featureName: task.featureName,
-            sourceEntityType: "Essay",
-            sourceEntityId: input.essayId,
-            modelName: getOpenAIModel(),
-            status: "COMPLETED",
-            inputSummary: input.essayContent.fileName,
-            outputSummary: "Correction structuree validee."
-          });
-
-          return parsed;
+  } else {
+    const instruction = `Matiere : ${input.subject}\nType d'epreuve : ${input.examType}\nConcours cible : ${input.targetExam}${rubricContext}\n\nAnalyse ${input.essayContent.mimeType === "application/pdf" ? "ce PDF" : "cette photo"} de copie et retourne une correction structuree.`;
+    const fileContent = input.essayContent.mimeType === "application/pdf"
+      ? {
+          type: "input_file",
+          filename: input.essayContent.fileName,
+          file_data: `data:${input.essayContent.mimeType};base64,${input.essayContent.base64Data}`
         }
-      }
-    } catch {
-      // fallback local below
-    }
+      : {
+          type: "input_image",
+          image_url: `data:${input.essayContent.mimeType};base64,${input.essayContent.base64Data}`
+        };
+    const remote = await callOpenAIJson<EssayReviewResult>({
+      userId: input.userId,
+      taskId: "essay_review",
+      sourceEntityType: "Essay",
+      sourceEntityId: input.essayId,
+      prompt: `${instruction}\nFichier : ${input.essayContent.fileName}`,
+      requestInput: [{ role: "user", content: [{ type: "input_text", text: instruction }, fileContent] }],
+      schemaName: "essay_review_file",
+      schema: baseSchema,
+      reasoningEffort: "medium",
+      maxOutputTokens: 1800
+    });
+    if (remote) return remote;
   }
 
   await recordAIGeneration({

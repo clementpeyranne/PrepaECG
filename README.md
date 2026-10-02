@@ -102,8 +102,15 @@ Le projet est deja branche pour utiliser l'API OpenAI via l'endpoint Responses.
 
 ```env
 AI_PROVIDER="auto"
-OPENAI_MODEL="gpt-5-mini"
+OPENAI_MODEL_FAST="gpt-6-luna"
+OPENAI_MODEL_QUALITY="gpt-6.1-sol"
 OPENAI_API_KEY="sk-..."
+AI_MONTHLY_BUDGET_USD="75"
+AI_USER_MONTHLY_BUDGET_USD="5"
+AI_USER_DAILY_REQUEST_LIMIT="120"
+AI_DUPLICATE_WINDOW_SECONDS="20"
+AI_GLOBAL_CONCURRENT_LIMIT="20"
+AI_USER_CONCURRENT_LIMIT="2"
 ```
 
 4. Dans le terminal du projet, lance :
@@ -192,6 +199,7 @@ La preuve d'acceptation des textes legaux utilise egalement une migration additi
 
 ```bash
 npm run db:legal:prod
+npm run db:ai-guardrails:prod
 ```
 
 Creer ou promouvoir ensuite le compte du responsable de la plateforme :

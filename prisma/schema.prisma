@@ -518,10 +518,21 @@ model AIGeneration {
   inputSummary     String?
   outputSummary    String?
   costEstimate     Float?
+  inputTokens      Int?
+  cachedInputTokens Int?
+  outputTokens     Int?
+  durationMs       Int?
+  requestHash      String?
+  requestKey       String?  @unique
+  responseJson     Json?
+  cacheHit         Boolean  @default(false)
+  blockedReason    String?
   createdAt        DateTime @default(now())
   user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@index([userId, requestHash, createdAt])
 }
 
 model StudentGrade {

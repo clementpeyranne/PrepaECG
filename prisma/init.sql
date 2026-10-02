@@ -318,9 +318,22 @@ CREATE TABLE "AIGeneration" (
     "inputSummary" TEXT,
     "outputSummary" TEXT,
     "costEstimate" REAL,
+    "inputTokens" INTEGER,
+    "cachedInputTokens" INTEGER,
+    "outputTokens" INTEGER,
+    "durationMs" INTEGER,
+    "requestHash" TEXT,
+    "requestKey" TEXT,
+    "responseJson" JSONB,
+    "cacheHit" BOOLEAN NOT NULL DEFAULT false,
+    "blockedReason" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "AIGeneration_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
+
+CREATE UNIQUE INDEX "AIGeneration_requestKey_key" ON "AIGeneration"("requestKey");
+CREATE INDEX "AIGeneration_status_createdAt_idx" ON "AIGeneration"("status", "createdAt");
+CREATE INDEX "AIGeneration_userId_requestHash_createdAt_idx" ON "AIGeneration"("userId", "requestHash", "createdAt");
 
 -- CreateTable
 CREATE TABLE "StudentGrade" (

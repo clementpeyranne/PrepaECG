@@ -18,6 +18,7 @@ const fileStorageDriver = (env.FILE_STORAGE_DRIVER || "local").trim().toLowerCas
 const supabaseUrl = (env.SUPABASE_URL || "").trim();
 const supabaseServiceRoleKey = (env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
 const supabaseStorageBucket = (env.SUPABASE_STORAGE_BUCKET || "").trim();
+const openAIKey = (env.OPENAI_API_KEY || "").trim();
 
 const errors = [];
 const warnings = [];
@@ -104,6 +105,25 @@ if (passwordResetMode !== "email" || !env.RESEND_API_KEY?.trim() || !env.EMAIL_F
   warnings.push("Recuperation par email inactive. Configurer PASSWORD_RESET_MODE=email, RESEND_API_KEY et EMAIL_FROM apres verification du domaine d'envoi.");
 }
 warnings.push("Avant ce deploiement, appliquer les ajouts non destructifs avec npm run db:auth:prod.");
+
+if (openAIKey) {
+  const requiredAISettings = [
+    "OPENAI_MODEL_FAST",
+    "OPENAI_MODEL_QUALITY",
+    "AI_MONTHLY_BUDGET_USD",
+    "AI_USER_MONTHLY_BUDGET_USD",
+    "AI_USER_DAILY_REQUEST_LIMIT"
+  ].filter((key) => !env[key]?.trim());
+  if (requiredAISettings.length > 0) {
+    warnings.push(`Protections IA incompletes : ${requiredAISettings.join(", ")}. Les valeurs de securite du code seront utilisees.`);
+  }
+  for (const key of ["AI_MONTHLY_BUDGET_USD", "AI_USER_MONTHLY_BUDGET_USD", "AI_USER_DAILY_REQUEST_LIMIT"]) {
+    if (env[key]?.trim() && (!Number.isFinite(Number(env[key])) || Number(env[key]) <= 0)) {
+      errors.push(`${key} doit etre un nombre strictement positif.`);
+    }
+  }
+  warnings.push("Avant d'activer OpenAI, appliquer la migration avec npm run db:ai-guardrails:prod.");
+}
 
 if (fileStorageDriver === "supabase") {
   if (!supabaseUrl) {

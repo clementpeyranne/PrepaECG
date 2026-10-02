@@ -33,7 +33,7 @@ function loadEnvFile(filePath) {
 loadEnvFile(path.join(process.cwd(), ".env"));
 
 const apiKey = process.env.OPENAI_API_KEY;
-const model = process.env.OPENAI_MODEL || "gpt-5-mini";
+const model = process.env.OPENAI_MODEL_FAST || "gpt-6-luna";
 const provider = process.env.AI_PROVIDER || "auto";
 
 if (!apiKey) {

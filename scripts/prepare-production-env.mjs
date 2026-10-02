@@ -40,3 +40,5 @@ console.log('- NEXT_PUBLIC_PUBLICATION_DIRECTOR');
 console.log('- SUPABASE_URL');
 console.log('- SUPABASE_SERVICE_ROLE_KEY');
 console.log('- OPENAI_API_KEY (si tu veux activer OpenAI en production)');
+console.log('- AI_MONTHLY_BUDGET_USD (plafond mensuel global)');
+console.log('- AI_USER_MONTHLY_BUDGET_USD (plafond mensuel par eleve)');

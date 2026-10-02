@@ -201,6 +201,27 @@ test("health reports missing email recovery and does not leak database errors", 
   assert.doesNotMatch(JSON.stringify(result), /private-host-and-credentials/);
 });
 
+test("AI guardrails route tasks, price usage and keep safe defaults", () => {
+  const controls = loadModule("src/lib/ai-guardrails.ts", {});
+  assert.equal(controls.getAIModel("assistant_reply"), "gpt-6-luna");
+  assert.equal(controls.getAIModel("essay_review"), "gpt-6.1-sol");
+  assert.equal(controls.getAIGuardrailConfig().globalMonthlyBudgetUsd, 75);
+  assert.equal(controls.getAIGuardrailConfig().userDailyRequestLimit, 120);
+  assert.equal(controls.getAICacheTtlSeconds("assistant_snapshot"), 86400);
+  assert.equal(
+    controls.estimateAICostUsd("assistant_reply", { inputTokens: 1_000_000, cachedInputTokens: 0, outputTokens: 1_000_000 }),
+    0.6
+  );
+  assert.equal(
+    controls.estimateAICostUsd("essay_review", { inputTokens: 1_000_000, cachedInputTokens: 0, outputTokens: 1_000_000 }),
+    12
+  );
+  assert.equal(
+    JSON.stringify(controls.parseAIUsage({ usage: { input_tokens: 100, input_tokens_details: { cached_tokens: 40 }, output_tokens: 20 } })),
+    JSON.stringify({ inputTokens: 100, cachedInputTokens: 40, outputTokens: 20 })
+  );
+});
+
 function createWorker({ offline = false, hasFallback = true } = {}) {
   const handlers = {};
   const calls = { added: [], deleted: [], matched: [], claimed: false, skipped: false };

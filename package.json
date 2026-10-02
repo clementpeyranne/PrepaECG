@@ -25,6 +25,7 @@
     "db:indexes:prod": "node scripts/apply-production-indexes.mjs",
     "db:admin:prod": "node scripts/apply-production-admin.mjs",
     "db:legal:prod": "node scripts/apply-production-legal.mjs",
+    "db:ai-guardrails:prod": "node scripts/apply-production-ai-guardrails.mjs",
     "admin:create:prod": "node scripts/create-admin.mjs --confirm-admin",
     "pilot:audit:prod": "node scripts/audit-production-pilot.mjs",
     "pilot:load:prod": "node scripts/check-pilot-load.mjs",

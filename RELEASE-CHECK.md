@@ -1,9 +1,17 @@
 # Verification avant publication - 29 septembre 2026
 
+## Protection des couts IA
+
+- Deux modeles distincts : rapide pour les usages frequents, qualite pour les corrections de copies.
+- Cout, jetons, latence, cache, echecs et blocages visibles dans l'administration.
+- Plafonds global et individuel, limite quotidienne, concurrence limitee et anti-doublon actifs cote serveur.
+- Reponses identiques reutilisees depuis le cache sans nouvel appel payant.
+- Appliquer `npm run db:ai-guardrails:prod` avant le deploiement du code correspondant.
+
 ## Controles effectues
 
-- 11 tests de securite reussis : sessions, recuperation, liens a usage unique, cache prive.
-- 29 scenarios de parcours reussis sur SQLite isole : invitations professeurs, deux prepas, connexion, PDF/photos, corrections, doublons, flashcards, pagination, progression et administration. Les scenarios planning verifient aussi la conservation de tous les blocs, l'annulation, l'absence de doublon et le temps reporte au tableau de bord.
+- 12 tests de securite reussis : sessions, recuperation, liens a usage unique, cache prive et valeurs de securite IA.
+- 30 scenarios de parcours reussis sur SQLite isole : invitations professeurs, deux prepas, connexion, PDF/photos, corrections, doublons, flashcards, pagination, progression, administration et protection des appels IA. Les scenarios planning verifient aussi la conservation de tous les blocs, l'annulation, l'absence de doublon et le temps reporte au tableau de bord.
 - Recette HTTP du vrai serveur Next reussie : connexion eleve/professeur, ressources isolees, pages professeur, recuperation indisponible explicite, refus d'origine etrangere.
 - Build optimise et verification TypeScript reussis. Lint non execute par le build.
 - Installation reproductible avec npm ci ; npm audit : aucune vulnerabilite signalee au moment du controle. Cela ne constitue pas un audit exhaustif du code.

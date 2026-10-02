@@ -179,6 +179,60 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
       assert.match(weeklyReview.summary, /3 blocs/);
       assert.ok(weeklyReview.focusAreas.includes("Precision des definitions"));
     });
+    await t.test("moteur IA: cout mesure, cache reutilise et quota journalier bloque", async () => {
+      const savedFetch = globalThis.fetch;
+      Object.assign(process.env, {
+        OPENAI_API_KEY: "test-openai-key",
+        AI_PROVIDER: "auto",
+        OPENAI_MODEL_FAST: "gpt-6-luna",
+        AI_MONTHLY_BUDGET_USD: "100",
+        AI_USER_MONTHLY_BUDGET_USD: "100",
+        AI_USER_DAILY_REQUEST_LIMIT: "10"
+      });
+      let fetchCalls = 0;
+      let requestedModel = "";
+      globalThis.fetch = async (_url, options) => {
+        fetchCalls += 1;
+        requestedModel = JSON.parse(options.body).model;
+        return new Response(JSON.stringify({
+          output_text: JSON.stringify({ items: ["Resume controle"] }),
+          usage: { input_tokens: 1_000, input_tokens_details: { cached_tokens: 100 }, output_tokens: 100 }
+        }), { status: 200, headers: { "Content-Type": "application/json" } });
+      };
+      try {
+        const input = {
+          userId: student.id,
+          resourceId: "resource-ai-test",
+          title: "Croissance",
+          subject: "ESH",
+          chapter: "Croissance economique",
+          text: "La croissance repose sur les facteurs de production et le progres technique."
+        };
+        assert.deepEqual(await ai.generateResourceSummary(input), { items: ["Resume controle"] });
+        assert.deepEqual(await ai.generateResourceSummary(input), { items: ["Resume controle"] });
+        assert.equal(fetchCalls, 1);
+        assert.equal(requestedModel, "gpt-6-luna");
+        const generations = await db.aIGeneration.findMany({
+          where: { userId: student.id, featureName: "resource_summary" },
+          orderBy: { createdAt: "asc" }
+        });
+        assert.equal(generations.length, 2);
+        assert.equal(generations[0].inputTokens, 1_000);
+        assert.ok(generations[0].costEstimate > 0);
+        assert.equal(generations[1].cacheHit, true);
+        assert.equal(generations[1].costEstimate, 0);
+
+        process.env.AI_USER_DAILY_REQUEST_LIMIT = "1";
+        const blocked = await ai.generateResourceSummary({ ...input, text: `${input.text} Nouveau contexte.` });
+        assert.notDeepEqual(blocked, { items: ["Resume controle"] });
+        assert.equal(fetchCalls, 1);
+        assert.equal(await db.aIGeneration.count({ where: { userId: student.id, status: "BLOCKED" } }), 1);
+      } finally {
+        globalThis.fetch = savedFetch;
+        process.env.OPENAI_API_KEY = "";
+        process.env.AI_USER_DAILY_REQUEST_LIMIT = "120";
+      }
+    });
 
     const planning = load("src/lib/student-app.ts");
     const planningActions = load("src/app/(student)/planning/actions.ts");
