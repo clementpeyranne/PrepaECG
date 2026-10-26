@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { addTeacherEssayFeedback, createEssaySubmission, createTeacherRubric, generateEssayAiFeedback } from "@/lib/essays";
+import { AIServiceError, getAIErrorMessage } from "@/lib/ai-errors";
 
 function getString(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
@@ -62,13 +63,20 @@ export async function regenerateEssayAIFeedbackAction(formData: FormData) {
     return;
   }
 
-  await generateEssayAiFeedback(essayId);
+  let message = "";
+  try {
+    await generateEssayAiFeedback(essayId);
+  } catch (error) {
+    if (!(error instanceof AIServiceError)) throw error;
+    message = getAIErrorMessage(error);
+  }
 
   revalidatePath("/essays");
   revalidatePath(`/essays/${essayId}`);
   revalidatePath("/teacher/essays");
   revalidatePath("/planning");
   revalidatePath("/assistant");
+  redirect(`/essays/${encodeURIComponent(essayId)}?${message ? `error=${encodeURIComponent(message)}` : "reviewed=yes"}`);
 }
 
 export async function addTeacherEssayFeedbackAction(formData: FormData) {

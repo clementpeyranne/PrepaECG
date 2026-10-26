@@ -347,37 +347,22 @@ export async function getAdminSystemData() {
   const now = new Date();
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
   const dayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  const [runtime, authEvents, rateLimits, users, classes, aiGenerations] = await Promise.all([
+  const monthWhere = { createdAt: { gte: monthStart }, modelName: { not: "local-rules" } };
+  const paidWhere = { ...monthWhere, cacheHit: false, status: { in: ["COMPLETED", "FAILED"] } };
+  const [runtime, authEvents, rateLimits, users, classes, aiTotals, aiFeatures, aiStatuses, cacheHits, todayPaidCalls] = await Promise.all([
     getRuntimeStatus(),
     prisma.authEvent.count(),
     prisma.authRateLimit.count(),
     prisma.user.count(),
     prisma.class.count(),
-    prisma.aIGeneration.findMany({
-      where: { createdAt: { gte: monthStart } },
-      select: {
-        featureName: true,
-        status: true,
-        costEstimate: true,
-        inputTokens: true,
-        outputTokens: true,
-        cacheHit: true,
-        createdAt: true
-      },
-      orderBy: { createdAt: "desc" },
-      take: 20_000
-    })
+    prisma.aIGeneration.aggregate({ where: monthWhere, _sum: { costEstimate: true, inputTokens: true, outputTokens: true } }),
+    prisma.aIGeneration.groupBy({ by: ["featureName"], where: paidWhere, _sum: { costEstimate: true }, _count: { _all: true } }),
+    prisma.aIGeneration.groupBy({ by: ["status"], where: monthWhere, _count: { _all: true } }),
+    prisma.aIGeneration.count({ where: { ...monthWhere, cacheHit: true } }),
+    prisma.aIGeneration.count({ where: { ...paidWhere, createdAt: { gte: dayStart } } })
   ]);
   const guardrails = getAIGuardrailConfig();
-  const completed = aiGenerations.filter((entry) => entry.status === "COMPLETED");
-  const spentUsd = completed.reduce((sum, entry) => sum + (entry.costEstimate ?? 0), 0);
-  const featureTotals = new Map<string, { calls: number; cost: number }>();
-  for (const entry of completed.filter((item) => !item.cacheHit)) {
-    const current = featureTotals.get(entry.featureName) ?? { calls: 0, cost: 0 };
-    current.calls += 1;
-    current.cost += entry.costEstimate ?? 0;
-    featureTotals.set(entry.featureName, current);
-  }
+  const spentUsd = aiTotals._sum.costEstimate ?? 0;
   const featureLabels: Record<string, string> = {
     assistant_reply: "Assistant",
     essay_review: "Corrections",
@@ -401,17 +386,17 @@ export async function getAdminSystemData() {
       budgetPercent: Math.min(100, (spentUsd / guardrails.globalMonthlyBudgetUsd) * 100),
       userBudgetUsd: guardrails.userMonthlyBudgetUsd,
       dailyLimit: guardrails.userDailyRequestLimit,
-      paidCalls: completed.filter((entry) => !entry.cacheHit).length,
-      todayPaidCalls: completed.filter((entry) => !entry.cacheHit && entry.createdAt >= dayStart).length,
-      cacheHits: completed.filter((entry) => entry.cacheHit).length,
-      blocked: aiGenerations.filter((entry) => entry.status === "BLOCKED").length,
-      failed: aiGenerations.filter((entry) => entry.status === "FAILED").length,
-      inputTokens: completed.reduce((sum, entry) => sum + (entry.inputTokens ?? 0), 0),
-      outputTokens: completed.reduce((sum, entry) => sum + (entry.outputTokens ?? 0), 0),
+      paidCalls: aiFeatures.reduce((total, feature) => total + feature._count._all, 0),
+      todayPaidCalls,
+      cacheHits,
+      blocked: aiStatuses.find((entry) => entry.status === "BLOCKED")?._count._all ?? 0,
+      failed: aiStatuses.find((entry) => entry.status === "FAILED")?._count._all ?? 0,
+      inputTokens: aiTotals._sum.inputTokens ?? 0,
+      outputTokens: aiTotals._sum.outputTokens ?? 0,
       fastModel: getAIModel("assistant_reply" as AITaskId),
       qualityModel: getAIModel("essay_review" as AITaskId),
-      features: Array.from(featureTotals.entries())
-        .map(([feature, totals]) => ({ label: featureLabels[feature] ?? feature, ...totals }))
+      features: aiFeatures
+        .map((feature) => ({ label: featureLabels[feature.featureName] ?? feature.featureName, calls: feature._count._all, cost: feature._sum.costEstimate ?? 0 }))
         .sort((left, right) => right.cost - left.cost)
     }
   };

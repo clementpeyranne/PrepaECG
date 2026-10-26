@@ -28,6 +28,7 @@
     "db:ai-guardrails:prod": "node scripts/apply-production-ai-guardrails.mjs",
     "admin:create:prod": "node scripts/create-admin.mjs --confirm-admin",
     "pilot:audit:prod": "node scripts/audit-production-pilot.mjs",
+    "pilot:ready:prod": "node scripts/check-pilot-readiness.mjs",
     "pilot:load:prod": "node scripts/check-pilot-load.mjs",
     "pilot:smoke:prod": "node scripts/smoke-production-pilot.mjs --confirm-production",
     "storage:cleanup:prod": "node scripts/cleanup-orphaned-storage.mjs",

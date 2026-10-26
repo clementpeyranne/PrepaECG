@@ -223,8 +223,7 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
         assert.equal(generations[1].costEstimate, 0);
 
         process.env.AI_USER_DAILY_REQUEST_LIMIT = "1";
-        const blocked = await ai.generateResourceSummary({ ...input, text: `${input.text} Nouveau contexte.` });
-        assert.notDeepEqual(blocked, { items: ["Resume controle"] });
+        await assert.rejects(ai.generateResourceSummary({ ...input, text: `${input.text} Nouveau contexte.` }), /limite d'utilisation/);
         assert.equal(fetchCalls, 1);
         assert.equal(await db.aIGeneration.count({ where: { userId: student.id, status: "BLOCKED" } }), 1);
       } finally {
@@ -378,6 +377,65 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
       assert.equal((await resources.getTeacherResourcesData()).resources.length, 0);
       use(teacherB); assert.equal(await resources.getTeacherResourceDetailData(resourceId), null);
     });
+    await t.test("PDF: analyse transmise, cache, isolation entre prepas et panne sans faux resultat", async () => {
+      const savedFetch = globalThis.fetch;
+      const previousLimit = process.env.AI_USER_DAILY_REQUEST_LIMIT;
+      process.env.OPENAI_API_KEY = "test-openai-key";
+      process.env.AI_USER_DAILY_REQUEST_LIMIT = "120";
+      const requests = [];
+      globalThis.fetch = async (_url, options) => {
+        const payload = JSON.parse(options.body);
+        requests.push(payload);
+        const result = payload.text.format.name === "assistant_reply"
+          ? { answer: "Le document presente la croissance (p. 1).", actions: [], citations: ["Cours ESH p. 1"] }
+          : payload.text.format.name === "resource_flashcards"
+            ? { cards: [{ frontText: "Croissance ?", backText: "Variation de la production." }] }
+          : { items: ["La croissance (p. 1)."] };
+        return new Response(JSON.stringify({ status: "completed", output_text: JSON.stringify(result), usage: { input_tokens: 1500, output_tokens: 200 } }));
+      };
+      try {
+        await db.resource.update({ where: { id: resourceId }, data: { isAiActionsEnabled: true } });
+        use(student);
+        await assistant.getAssistantWorkspaceData();
+        assert.equal(requests.length, 0, "Ouvrir le chat ne facture aucun appel");
+        assert.equal((await resources.getResourceDetailData(resourceId)).aiEnabled, true);
+        await resources.generateResourceOutput(resourceId, "SUMMARY");
+        assert.equal(requests.length, 1);
+        assert.equal(requests[0].input[0].content[1].type, "input_file");
+        assert.match(requests[0].input[0].content[1].file_data, /^data:application\/pdf;base64,/);
+        assert.equal(requests[0].store, false);
+        await resources.generateResourceOutput(resourceId, "SUMMARY");
+        assert.equal(requests.length, 1);
+        assert.equal(await db.resourceAIOutput.count({ where: { resourceId, userId: student.id } }), 1);
+        await resources.generateResourceOutput(resourceId, "SHEET");
+        const reply = await assistant.askStudentAssistant({ prompt: "Explique le document", resourceId });
+        assert.match(reply.answer, /croissance/);
+        assert.equal(requests.at(-1).input[0].content[1].type, "input_file");
+        const before = requests.length;
+        use(studentB);
+        await resources.generateResourceOutput(resourceId, "SUMMARY");
+        assert.match((await assistant.askStudentAssistant({ prompt: "Lis ceci", resourceId })).answer, /pas accessible/);
+        assert.equal(requests.length, before);
+        use(student);
+        const photoCards = await ai.generateResourceFlashcards({
+          userId: student.id, resourceId: "photo-test", title: "Photo", subject: "ESH", chapter: "Croissance", text: "",
+          document: { mimeType: "image/png", fileName: "page.png", base64Data: pngBytes.toString("base64") }
+        });
+        assert.equal(photoCards.cards.length, 1);
+        assert.equal(requests.at(-1).input[0].content[1].type, "input_image");
+        globalThis.fetch = async () => new Response(JSON.stringify({ status: "incomplete", usage: { input_tokens: 1000, output_tokens: 500 }, output_text: '{"cards":' }));
+        await assert.rejects(resources.generateResourceOutput(resourceId, "FLASHCARDS"), /n'a pas abouti/);
+        assert.equal(await db.flashcardDeck.count({ where: { sourceResourceId: resourceId } }), 0);
+        const failed = await db.aIGeneration.findFirst({ where: { userId: student.id, featureName: "resource_flashcards", status: "FAILED" } });
+        assert.ok(failed.costEstimate > 0);
+        process.env.OPENAI_API_KEY = "";
+        await assert.rejects(ai.generateEssayReview({ userId: student.id, essayId: "not-an-essay", subject: "ESH", examType: "Dissertation", targetExam: "BCE", essayContent: { kind: "text", text: "Copie" } }), /pas encore active/);
+      } finally {
+        globalThis.fetch = savedFetch;
+        process.env.OPENAI_API_KEY = "";
+        process.env.AI_USER_DAILY_REQUEST_LIMIT = previousLimit;
+      }
+    });
     await t.test("envoi vers une autre prepa et incoherence de matiere refuses", async () => {
       use(student);
       assert.equal((await essays.createEssaySubmission({ ...essayInput(), teacherId: teacherB.id })).status, "invalid");
@@ -487,9 +545,21 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
       assert.ok((await planning.getStudentPlanningData()).week
         .flatMap((day) => day.entries)
         .some((entry) => entry.title === "Reprendre Concours blanc geopolitique"));
-      const reply = await assistant.askStudentAssistant({ prompt: "Quelles sont mes notes et mes lacunes ?" });
-      assert.match(reply.answer, /12\.5\/20/);
-      assert.match(reply.answer, /Argumentation|Precision des notions/);
+      const savedFetch = globalThis.fetch;
+      process.env.OPENAI_API_KEY = "test-openai-key";
+      let context;
+      globalThis.fetch = async (_url, options) => {
+        context = JSON.parse(options.body).input;
+        return new Response(JSON.stringify({ status: "completed", usage: { input_tokens: 1000, output_tokens: 100 }, output_text: JSON.stringify({ answer: "Resultats analyses.", actions: [], citations: [] }) }));
+      };
+      try {
+        await assistant.askStudentAssistant({ prompt: "Quelles sont mes notes et mes lacunes ?" });
+        assert.match(context, /12\.5\/20/);
+        assert.match(context, /Argumentation|Precision des notions/);
+      } finally {
+        globalThis.fetch = savedFetch;
+        process.env.OPENAI_API_KEY = "";
+      }
     });
     await t.test("grilles: l'espace professeur lit de vraies grilles en base", async () => {
       use(teacher);

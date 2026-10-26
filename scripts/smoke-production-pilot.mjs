@@ -13,6 +13,11 @@ const env = {
 };
 const baseUrl = (process.env.PILOT_URL || env.NEXT_PUBLIC_APP_URL || "").replace(/\/+$/, "");
 const connectionString = (env.DIRECT_URL || env.DATABASE_URL || "").trim();
+const authConcurrency = Number(process.env.PILOT_AUTH_CONCURRENCY || 1);
+if (!Number.isInteger(authConcurrency) || authConcurrency < 1 || authConcurrency > 80) {
+  console.error("PILOT_AUTH_CONCURRENCY doit etre un entier entre 1 et 80.");
+  process.exit(1);
+}
 
 if (env.APP_MODE !== "production" || !baseUrl.startsWith("https://") || !/^postgres(?:ql)?:\/\//.test(connectionString)) {
   console.error("La recette exige la configuration HTTPS et PostgreSQL de production.");
@@ -118,6 +123,30 @@ try {
     if (!response.ok) throw new Error(`${route} renvoie HTTP ${response.status}.`);
     const html = await response.text();
     if (html.includes("Se connecter avec ton compte")) throw new Error(`${route} a perdu la session utilisateur.`);
+  }
+
+  if (authConcurrency > 1) {
+    const paths = ["/dashboard", "/planning", "/flashcards", "/resources", "/progress"];
+    const durations = [];
+    let nextJob = 0;
+    const failures = [];
+    async function readWorker() {
+      while (nextJob < authConcurrency * 2) {
+        const path = paths[nextJob++ % paths.length];
+        const started = performance.now();
+        try {
+          const response = await getPage(path, cookie);
+          const html = await response.text();
+          if (!response.ok || html.includes("Se connecter avec ton compte")) failures.push(path);
+        } catch { failures.push(path); }
+        durations.push(performance.now() - started);
+      }
+    }
+    await Promise.all(Array.from({ length: authConcurrency }, readWorker));
+    durations.sort((left, right) => left - right);
+    const p95 = durations[Math.ceil(durations.length * 0.95) - 1];
+    console.log(`Lecture authentifiee : ${durations.length} pages, concurrence ${authConcurrency}, ${failures.length} erreur(s), p95 ${Math.round(p95)} ms. Un seul compte temporaire est utilise.`);
+    if (failures.length || p95 > 3000) throw new Error("La charge authentifiee ne respecte pas encore le seuil de la recette pilote.");
   }
 
   const dashboardPage = await getPage("/dashboard", cookie);

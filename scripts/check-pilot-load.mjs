@@ -6,7 +6,7 @@ const env = {
 };
 const baseUrl = (process.env.PILOT_URL || env.NEXT_PUBLIC_APP_URL || "").replace(/\/+$/, "");
 const requestCount = Math.max(10, Math.min(200, Number(process.env.PILOT_REQUESTS || 30)));
-const concurrency = Math.max(1, Math.min(20, Number(process.env.PILOT_CONCURRENCY || 6)));
+const concurrency = Math.max(1, Math.min(80, Number(process.env.PILOT_CONCURRENCY || 6)));
 
 if (!baseUrl.startsWith("https://")) {
   console.error("PILOT_URL ou NEXT_PUBLIC_APP_URL doit etre une adresse HTTPS.");

@@ -16,7 +16,7 @@ function loadModule(path, env, mocks = {}) {
   }).outputText;
   const module = { exports: {} };
   vm.runInNewContext(compiled, {
-    module, exports: module.exports, Buffer, process: { env },
+    module, exports: module.exports, Buffer, URL, process: { env },
     require(name) {
       if (Object.hasOwn(mocks, name)) return mocks[name];
       if (name.startsWith("node:")) return require(name);
@@ -220,6 +220,19 @@ test("AI guardrails route tasks, price usage and keep safe defaults", () => {
     JSON.stringify(controls.parseAIUsage({ usage: { input_tokens: 100, input_tokens_details: { cached_tokens: 40 }, output_tokens: 20 } })),
     JSON.stringify({ inputTokens: 100, cachedInputTokens: 40, outputTokens: 20 })
   );
+});
+
+test("Supabase runtime uses transaction pooling on Vercel without changing migration or local URLs", () => {
+  const { getRuntimeDatabaseUrl } = loadModule("src/lib/database-url.ts", {});
+  const source = "postgresql://user:example@aws-1-eu-north-1.pooler.supabase.com:5432/postgres?schema=public";
+  const runtime = new URL(getRuntimeDatabaseUrl(source, true));
+  assert.equal(runtime.port, "6543");
+  assert.equal(runtime.searchParams.get("pgbouncer"), "true");
+  assert.equal(runtime.searchParams.get("connection_limit"), "1");
+  assert.equal(runtime.searchParams.get("schema"), "public");
+  assert.equal(new URL(getRuntimeDatabaseUrl(source, false)).port, "5432");
+  assert.equal(getRuntimeDatabaseUrl("file:./dev.db", true), "file:./dev.db");
+  assert.equal(getRuntimeDatabaseUrl(undefined, true), undefined);
 });
 
 function createWorker({ offline = false, hasFallback = true } = {}) {

@@ -1,8 +1,8 @@
-import { generateAssistantReply } from "./ai";
+import { generateAssistantReply, getAIStatusMeta } from "./ai";
 import { getCurrentUserClass } from "./auth";
 import { prisma } from "./db";
-import { getResourceReadableText } from "./resources";
-import { ensureDemoStudent, getStudentAssistantData } from "./student-app";
+import { getResourceReadableText, getResourceAIDocument } from "./resources";
+import { ensureDemoStudent } from "./student-app";
 
 export type AssistantWorkspaceData = {
   prompts: string[];
@@ -61,15 +61,13 @@ function getFeedbackSummary(value: unknown) {
 export async function getAssistantWorkspaceData(): Promise<AssistantWorkspaceData> {
   const { user } = await ensureDemoStudent();
   const membership = await getCurrentUserClass(user.id);
-  const snapshot = await getStudentAssistantData();
+  const snapshot = {
+    prompts: [], responseTitle: "Assistant IA", responseSummary: "Pose ta question ou associe un document.", actions: [], aiStatus: getAIStatusMeta()
+  };
 
   const [resources, essays] = await Promise.all([
     prisma.resource.findMany({
-      where: membership?.classId
-        ? {
-            OR: [{ classId: membership.classId }, { classId: null }]
-          }
-        : undefined,
+      where: { classId: membership?.classId ?? "__no_class__" },
       orderBy: { createdAt: "desc" },
       take: 20,
       select: {
@@ -147,11 +145,8 @@ export async function askStudentAssistant(input: {
       ? prisma.resource.findFirst({
           where: {
             id: input.resourceId,
-            ...(membership?.classId
-              ? {
-                  OR: [{ classId: membership.classId }, { classId: null }]
-                }
-              : {})
+            classId: membership?.classId ?? "__no_class__",
+            isAiActionsEnabled: true
           },
           include: {
             subject: true,
@@ -172,7 +167,7 @@ export async function askStudentAssistant(input: {
       : null,
     input.essayId
       ? prisma.essayFeedback.findFirst({
-          where: { essayId: input.essayId },
+          where: { essayId: input.essayId, essay: { studentId: user.id } },
           orderBy: { createdAt: "desc" }
         })
       : null,
@@ -234,6 +229,13 @@ export async function askStudentAssistant(input: {
   const selectedResourceContent = resource
     ? await getResourceReadableText(resource).catch(() => null)
     : null;
+  if ((input.resourceId && !resource) || (input.essayId && !essay)) {
+    return { answer: "Ce document n'est pas accessible a ton compte ou son auteur n'autorise pas l'analyse IA.", actions: [], citations: [] };
+  }
+  const documents = (await Promise.all([
+    resource && !selectedResourceContent ? getResourceAIDocument(resource) : undefined,
+    essay?.submissionType === "FILE_UPLOAD" ? getResourceAIDocument(essay) : undefined
+  ])).filter((document) => document !== undefined);
   const recentFeedback = recentFeedbacks
     .map((feedback) => {
       const summary = getFeedbackSummary(feedback.feedbackJson);
@@ -248,6 +250,7 @@ export async function askStudentAssistant(input: {
     weakPointLabels: weakPoints.map((point) => point.label),
     dueFlashcards,
     selectedResourceTitle: resource?.title,
+    documents,
     selectedResourceContent: selectedResourceContent?.slice(0, 30_000) ?? undefined,
     selectedEssayTitle: essay?.title,
     selectedEssaySummary:

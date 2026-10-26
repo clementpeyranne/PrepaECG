@@ -8,11 +8,14 @@ import { PageHeader } from "@/components/ui/page-header";
 import { SectionCard } from "@/components/ui/section-card";
 import { generateResourceOutputAction } from "@/app/actions/resources";
 import { getResourceActionLabels, getResourceDetailData } from "@/lib/resources";
+import { PendingSubmitButton } from "@/components/forms/pending-submit-button";
 
 export default async function ResourceDetailPage({
-  params
+  params,
+  searchParams
 }: {
   params: Promise<{ resourceId: string }>;
+  searchParams: Promise<{ error?: string; generated?: string }>;
 }) {
   const { resourceId } = await params;
   const resource = await getResourceDetailData(resourceId);
@@ -22,10 +25,13 @@ export default async function ResourceDetailPage({
   }
 
   const actions = getResourceActionLabels(resource.aiEnabled);
+  const feedback = await searchParams;
 
   return (
     <div>
       <PageHeader title={resource.title} />
+      {feedback.error ? <p role="alert" className="mb-5 rounded-2xl bg-clay/10 p-4 text-sm text-clay">{feedback.error.slice(0, 400)}</p> : null}
+      {feedback.generated === "yes" ? <p role="status" className="mb-5 rounded-2xl bg-moss/15 p-4 text-sm text-pine">Le resultat est disponible dans la section Sortie.</p> : null}
 
       <div className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
         <SectionCard eyebrow="Document" title={resource.chapter}>
@@ -92,17 +98,13 @@ export default async function ResourceDetailPage({
                 <form key={action.value} action={generateResourceOutputAction}>
                   <input type="hidden" name="resourceId" value={resource.id} />
                   <input type="hidden" name="outputType" value={action.value} />
-                  <button className="flex w-full items-center justify-between rounded-2xl bg-white/10 px-4 py-3 text-left text-sm transition hover:bg-white/15">
-                    <span>{action.label}</span>
-                    <span className="text-sand/45">IA</span>
-                  </button>
+                  <PendingSubmitButton label={action.label} pendingLabel="Analyse du document..." className="w-full rounded-2xl bg-white/10 px-4 py-3 text-left text-sm transition hover:bg-white/15 disabled:cursor-wait disabled:opacity-60" />
                 </form>
               ))}
             </div>
           ) : (
             <div className="rounded-[24px] bg-white/10 p-4 text-sm leading-7 text-sand/84">
-              Les actions IA restent disponibles sur les ressources textuelles lisibles directement
-              par l'application.
+              L'analyse IA n'est pas disponible pour ce document.
             </div>
           )}
         </SectionCard>

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { createTeacherResource, generateResourceOutput } from "@/lib/resources";
+import { AIServiceError, getAIErrorMessage } from "@/lib/ai-errors";
 
 function getString(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
@@ -44,7 +45,13 @@ export async function generateResourceOutputAction(formData: FormData) {
     return;
   }
 
-  await generateResourceOutput(resourceId, outputType);
+  let message = "";
+  try {
+    await generateResourceOutput(resourceId, outputType);
+  } catch (error) {
+    if (!(error instanceof AIServiceError)) throw error;
+    message = getAIErrorMessage(error);
+  }
 
   revalidatePath("/resources");
   revalidatePath(`/resources/${resourceId}`);
@@ -53,4 +60,5 @@ export async function generateResourceOutputAction(formData: FormData) {
   revalidatePath("/dashboard");
   revalidatePath("/progress");
   revalidatePath("/assistant");
+  redirect(`/resources/${encodeURIComponent(resourceId)}?${message ? `error=${encodeURIComponent(message)}` : "generated=yes"}`);
 }

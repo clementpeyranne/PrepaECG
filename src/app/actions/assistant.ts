@@ -1,6 +1,7 @@
 "use server";
 
 import { askStudentAssistant } from "@/lib/assistant";
+import { AIServiceError, getAIErrorMessage } from "@/lib/ai-errors";
 
 function getString(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
@@ -47,10 +48,15 @@ export async function assistantChatAction(formData: FormData) {
     };
   }
 
-  return askStudentAssistant({
-    prompt,
-    history: getHistory(formData),
-    resourceId: getString(formData, "resourceId") || undefined,
-    essayId: getString(formData, "essayId") || undefined
-  });
+  try {
+    return await askStudentAssistant({
+      prompt,
+      history: getHistory(formData),
+      resourceId: getString(formData, "resourceId") || undefined,
+      essayId: getString(formData, "essayId") || undefined
+    });
+  } catch (error) {
+    if (!(error instanceof AIServiceError)) throw error;
+    return { answer: getAIErrorMessage(error), actions: [], citations: [] };
+  }
 }

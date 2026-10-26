@@ -4,6 +4,8 @@ import { cache } from "react";
 import { isDemoModeEnabled } from "./app-config";
 import { getCurrentUserClass, requireRole } from "./auth";
 import { generateResourceFlashcards, generateResourceSheet, generateResourceSummary } from "./ai";
+import { supportsAIDocument, buildAIDocumentContent, type AIDocument } from "./ai-document";
+import { AIServiceError } from "./ai-errors";
 import { prisma } from "./db";
 import { ensureReferenceData } from "./reference-data";
 import { deleteStoredFile, discardDirectUpload, getStoredFileName, getStoredFileUrl, readStoredFileBuffer, saveUploadedFile, resolveDirectUpload } from "./storage";
@@ -300,6 +302,17 @@ export async function getResourceReadableText(resource: { storageKey: string; mi
   } catch {
     return null;
   }
+}
+
+export async function getResourceAIDocument(resource: { storageKey: string; mimeType: string; sourceKind?: string }): Promise<AIDocument | undefined> {
+  if (resource.sourceKind === "TEXT_PASTE" || !supportsAIDocument(resource.mimeType)) return undefined;
+  const document = {
+    fileName: getStoredFileName(resource.storageKey),
+    mimeType: resource.mimeType,
+    base64Data: (await readStoredFileBuffer(resource.storageKey)).toString("base64")
+  };
+  buildAIDocumentContent(document);
+  return document;
 }
 
 function getOutputTitle(type: OutputType) {
@@ -651,7 +664,7 @@ export async function getResourceDetailData(resourceId: string): Promise<Resourc
     teacher: getTeacherName(resource.uploader.firstName, resource.uploader.lastName),
     summary: resource.description || (content ? getSummaryExcerpt(content) : "Document depose par le professeur."),
     content,
-    aiEnabled: resource.isAiActionsEnabled && Boolean(content),
+    aiEnabled: resource.isAiActionsEnabled && (Boolean(content) || supportsAIDocument(resource.mimeType)),
     fileUrl,
     fileName: resource.sourceKind === "FILE_UPLOAD" ? getStoredFileName(resource.storageKey) : null,
     mimeType: resource.mimeType,
@@ -802,6 +815,7 @@ export async function createTeacherResource(input: {
 }
 
 export async function generateResourceOutput(resourceId: string, type: OutputType) {
+  if (!["SUMMARY", "SHEET", "FLASHCARDS"].includes(type)) throw new AIServiceError("INVALID_ACTION", "Action indisponible.");
   const { user } = await ensureDemoStudent();
   await ensureDemoResources();
   const membership = await getCurrentUserClass(user.id);
@@ -822,10 +836,9 @@ export async function generateResourceOutput(resourceId: string, type: OutputTyp
     return;
   }
 
-  const text = await getResourceReadableText(resource);
-  if (!text) {
-    return;
-  }
+  const text = await getResourceReadableText(resource) ?? "";
+  const document = text ? undefined : await getResourceAIDocument(resource);
+  if (!text && !document) throw new AIServiceError("DOCUMENT_UNREADABLE", "Ce format ne peut pas etre analyse. Utilise un PDF, une photo ou un fichier texte.");
   const chapterName = resource.chapter?.name ?? "Sans chapitre";
 
   if (type === "FLASHCARDS") {
@@ -870,7 +883,8 @@ export async function generateResourceOutput(resourceId: string, type: OutputTyp
       title: resource.title,
       subject: resource.subject.name,
       chapter: chapterName,
-      text
+      text,
+      document
     });
     const cards = flashcards.cards;
     const deck = await prisma.flashcardDeck.create({
@@ -931,7 +945,8 @@ export async function generateResourceOutput(resourceId: string, type: OutputTyp
             title: resource.title,
             subject: resource.subject.name,
             chapter: chapterName,
-            text
+            text,
+            document
           })
         ).items
       : (
@@ -941,7 +956,8 @@ export async function generateResourceOutput(resourceId: string, type: OutputTyp
             title: resource.title,
             subject: resource.subject.name,
             chapter: chapterName,
-            text
+            text,
+            document
           })
         ).items;
 

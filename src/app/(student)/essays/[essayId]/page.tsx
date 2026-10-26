@@ -6,14 +6,18 @@ import { PageHeader } from "@/components/ui/page-header";
 import { SectionCard } from "@/components/ui/section-card";
 import { regenerateEssayAIFeedbackAction } from "@/app/actions/essays";
 import { getEssayDetailData } from "@/lib/essays";
+import { PendingSubmitButton } from "@/components/forms/pending-submit-button";
 
 export default async function EssayDetailPage({
-  params
+  params,
+  searchParams
 }: {
   params: Promise<{ essayId: string }>;
+  searchParams: Promise<{ error?: string; reviewed?: string }>;
 }) {
   const { essayId } = await params;
   const data = await getEssayDetailData(essayId);
+  const feedback = await searchParams;
 
   if (!data) {
     notFound();
@@ -22,6 +26,8 @@ export default async function EssayDetailPage({
   return (
     <div>
       <PageHeader title={data.essay.title} />
+      {feedback.error ? <p role="alert" className="mb-5 rounded-2xl bg-clay/10 p-4 text-sm text-clay">{feedback.error.slice(0, 400)}</p> : null}
+      {feedback.reviewed === "yes" ? <p role="status" className="mb-5 rounded-2xl bg-moss/15 p-4 text-sm text-pine">La correction est disponible.</p> : null}
       {data.essay.instructions ? <p className="mb-5 whitespace-pre-wrap rounded-2xl bg-sand p-4 text-sm text-pine">Tes consignes : {data.essay.instructions}</p> : null}
 
       <div className="grid gap-5 xl:grid-cols-[0.8fr_1.2fr]">
@@ -36,12 +42,7 @@ export default async function EssayDetailPage({
           </p>
           <form action={regenerateEssayAIFeedbackAction} className="mt-4">
             <input type="hidden" name="essayId" value={data.essay.id} />
-            <button
-              type="submit"
-              className="rounded-full bg-ink px-4 py-3 text-sm font-semibold text-sand transition hover:bg-pine"
-            >
-              Refaire la correction IA
-            </button>
+            <PendingSubmitButton label={data.aiFeedback[0] ? "Relancer la correction IA" : "Demander une correction IA"} pendingLabel="Lecture de la copie..." className="rounded-full bg-ink px-4 py-3 text-sm font-semibold text-sand transition hover:bg-pine disabled:cursor-wait disabled:opacity-60" />
           </form>
         </SectionCard>
 
