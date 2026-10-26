@@ -11,5 +11,7 @@ export function getRuntimeDatabaseUrl(rawUrl: string | undefined, serverless = B
   if (!url.searchParams.has("connection_limit")) url.searchParams.set("connection_limit", "1");
   if (!url.searchParams.has("pool_timeout")) url.searchParams.set("pool_timeout", "10");
   if (!url.searchParams.has("connect_timeout")) url.searchParams.set("connect_timeout", "10");
+  if (serverless && !url.searchParams.has("max_idle_connection_lifetime")) url.searchParams.set("max_idle_connection_lifetime", "10");
+  if (serverless && !url.searchParams.has("max_connection_lifetime")) url.searchParams.set("max_connection_lifetime", "120");
   return url.toString();
 }

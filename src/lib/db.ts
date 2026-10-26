@@ -12,6 +12,5 @@ export const prisma =
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"]
   });
 
-if (process.env.NODE_ENV !== "production") {
-  global.prisma = prisma;
-}
+// Share the client between route bundles and concurrent requests in the same Vercel instance.
+global.prisma = prisma;

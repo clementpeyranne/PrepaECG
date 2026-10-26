@@ -10,8 +10,8 @@ Verifier que les eleves reviennent spontanement pour organiser leur journee, rev
 
 | Sujet | Situation | Preuve attendue |
 | --- | --- | --- |
-| Base et site | Base redevenue accessible apres un incident ; cause non confirmee | Controle de sante et parcours complet reussis apres le nouveau deploiement |
-| Connexions simultanees | Pool transactionnel deploye ; 20 lectures connectees simultanees sans erreur, p95 1,54 s. Premier essai a 80 sans erreur mais p95 4,41 s | Nouvelle mesure apres reduction des lectures redondantes et ajustement de la reserve de connexions |
+| Base et site | Saturation du pool transactionnel reproduite pendant les tests : limite de 200 clients atteinte (EMAXCONN) | Liberer les connexions existantes, verifier la sante, puis refaire les parcours |
+| Connexions simultanees | 20 lectures connectees simultanees sans erreur, p95 1,54 s. A 80 : premier essai sans erreur mais p95 4,41 s ; essais suivants avec saturation. Client Prisma partage et expiration des connexions ajoutes | Recette apres deploiement du correctif et redemarrage Supabase. La capacite de 80 eleves n'est pas validee |
 | PDF et photos vers l'IA | Branchement deploye, tests simules reussis et erreurs visibles sans faux resultats | Lecture reelle avec un compte fournisseur credite puis relecture professeur |
 | Qualite pedagogique | Non validee par un professeur | Un professeur relit au moins 10 copies et 20 sorties de cours representatives |
 | Import Anki | Tests locaux existants | Import reel depuis un compte pilote sur Vercel, medias et formules inclus |

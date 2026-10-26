@@ -1,5 +1,20 @@
 # Verification avant publication - 29 septembre 2026
 
+## Recette pilote du 26 octobre 2026
+
+- Lecture PDF/photo branchee sur ressources et assistant via la meme couche IA protegee. Tests avec fournisseur simule : fichier transmis, cache, isolation entre prepas, sortie incomplete refusee et consommation conservee. Pas de test OpenAI payant effectue.
+- Les erreurs IA en production sont explicites : absence de cle, quota atteint ou analyse incomplete ne produit plus de fausse correction.
+- Ouvrir le chat ne declenche plus de generation payante.
+- Admission des appels IA serialisee dans une transaction, avec verrou PostgreSQL commun aux instances Vercel. Le budget reste une estimation basee sur les usages retournes ; le cout d'une requete dont le fournisseur ne retourne pas l'usage doit etre rapproche de la facturation fournisseur.
+- Suivi administrateur calcule par agregations, sans troncature a 20 000 evenements, en incluant la consommation des sorties incompletes.
+- Pool transactionnel teste en lecture ; cache de profil et cartes dues limite a une requete React.
+- Navigation publique : 160 requetes, concurrence 20, aucune erreur, p95 1 034 ms.
+- Navigation connectee : 40 pages, concurrence 20, aucune erreur, p95 1 543 ms. Il s'agit d'un compte temporaire, pas de 20 comptes distincts.
+- Premier test a 80 lectures simultanees : aucune erreur mais p95 4 410 ms. L'essai avec trois connexions par instance a ensuite provoque une saturation a 200 clients et des erreurs 500/503. La valeur est revenue a un, avec client partage en production et expiration des connexions inutilisees.
+- En attente : redemarrage Supabase et nouvelle mesure sur la version corrigee. Ne pas presenter la charge de 80 eleves comme validee.
+- Tous les comptes temporaires des essais termines ont ete supprimes. Aucun compte reel ni document reel supprime.
+- Le dossier `docs/pilote-80-eleves.md` distingue les validations restantes, les decisions du fondateur et le protocole d'ouverture progressive.
+
 ## Protection des couts IA
 
 - Deux modeles distincts : rapide pour les usages frequents, qualite pour les corrections de copies.

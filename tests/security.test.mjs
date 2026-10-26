@@ -9,14 +9,14 @@ import ts from "typescript";
 const require = createRequire(import.meta.url);
 
 // Load the actual TypeScript modules with explicit mocks, never a real database.
-function loadModule(path, env, mocks = {}) {
+function loadModule(path, env, mocks = {}, globals = {}) {
   const source = readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
   const compiled = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }
   }).outputText;
   const module = { exports: {} };
   vm.runInNewContext(compiled, {
-    module, exports: module.exports, Buffer, URL, process: { env },
+    module, exports: module.exports, Buffer, URL, process: { env }, ...globals,
     require(name) {
       if (Object.hasOwn(mocks, name)) return mocks[name];
       if (name.startsWith("node:")) return require(name);
@@ -229,10 +229,25 @@ test("Supabase runtime uses transaction pooling on Vercel without changing migra
   assert.equal(runtime.port, "6543");
   assert.equal(runtime.searchParams.get("pgbouncer"), "true");
   assert.equal(runtime.searchParams.get("connection_limit"), "1");
+  assert.equal(runtime.searchParams.get("max_idle_connection_lifetime"), "10");
+  assert.equal(runtime.searchParams.get("max_connection_lifetime"), "120");
   assert.equal(runtime.searchParams.get("schema"), "public");
   assert.equal(new URL(getRuntimeDatabaseUrl(source, false)).port, "5432");
   assert.equal(getRuntimeDatabaseUrl("file:./dev.db", true), "file:./dev.db");
   assert.equal(getRuntimeDatabaseUrl(undefined, true), undefined);
+});
+
+test("Prisma client is shared between production route bundles", () => {
+  const shared = {};
+  let instances = 0;
+  const mocks = {
+    "@prisma/client": { PrismaClient: class { constructor() { instances += 1; } } },
+    "./database-url": { getRuntimeDatabaseUrl: () => undefined }
+  };
+  const first = loadModule("src/lib/db.ts", { NODE_ENV: "production" }, mocks, { global: shared });
+  const second = loadModule("src/lib/db.ts", { NODE_ENV: "production" }, mocks, { global: shared });
+  assert.equal(first.prisma, second.prisma);
+  assert.equal(instances, 1);
 });
 
 function createWorker({ offline = false, hasFallback = true } = {}) {
