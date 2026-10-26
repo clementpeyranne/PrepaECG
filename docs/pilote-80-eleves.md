@@ -11,8 +11,8 @@ Verifier que les eleves reviennent spontanement pour organiser leur journee, rev
 | Sujet | Situation | Preuve attendue |
 | --- | --- | --- |
 | Base et site | Base redevenue accessible apres un incident ; cause non confirmee | Controle de sante et parcours complet reussis apres le nouveau deploiement |
-| Connexions simultanees | Passage au pool transactionnel prepare pour Vercel | Mesures en production sur pages publiques ET pages eleve connecte |
-| PDF et photos vers l'IA | Branchement et gestion des echecs prepares | Tests simules + lecture reelle avec un compte fournisseur credite |
+| Connexions simultanees | Pool transactionnel deploye ; 20 lectures connectees simultanees sans erreur, p95 1,54 s. Premier essai a 80 sans erreur mais p95 4,41 s | Nouvelle mesure apres reduction des lectures redondantes et ajustement de la reserve de connexions |
+| PDF et photos vers l'IA | Branchement deploye, tests simules reussis et erreurs visibles sans faux resultats | Lecture reelle avec un compte fournisseur credite puis relecture professeur |
 | Qualite pedagogique | Non validee par un professeur | Un professeur relit au moins 10 copies et 20 sorties de cours representatives |
 | Import Anki | Tests locaux existants | Import reel depuis un compte pilote sur Vercel, medias et formules inclus |
 | Recuperation du compte | Envoi d'email inactif | Reception et utilisation unique d'un vrai email de recuperation |

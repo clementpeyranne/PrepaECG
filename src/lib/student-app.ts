@@ -1087,7 +1087,8 @@ export async function saveStudentOnboarding(input: OnboardingInput) {
   });
 }
 
-async function countDueFlashcards(userId: string, now = new Date()) {
+const countDueFlashcards = cache(async (userId: string) => {
+  const now = new Date();
   return prisma.flashcard.count({
     where: {
       deck: { ownerUserId: userId },
@@ -1104,12 +1105,17 @@ async function countDueFlashcards(userId: string, now = new Date()) {
       ]
     }
   });
-}
+});
+
+const getStudentProfileForRequest = cache((userId: string) => prisma.studentProfile.findUnique({
+  where: { userId },
+  include: { class: true, availabilitySlots: true }
+}));
 
 export async function getStudentShellData() {
   const { user } = await ensureDemoStudent();
   const [profile, dueFlashcards] = await Promise.all([
-    prisma.studentProfile.findUnique({ where: { userId: user.id } }),
+    getStudentProfileForRequest(user.id),
     countDueFlashcards(user.id)
   ]);
 
@@ -1125,13 +1131,7 @@ export async function getStudentShellData() {
 export async function getStudentDashboardData() {
   const { user } = await ensureDemoStudent();
 
-  const profile = await prisma.studentProfile.findUnique({
-    where: { userId: user.id },
-    include: {
-      class: true,
-      availabilitySlots: true
-    }
-  });
+  const profile = await getStudentProfileForRequest(user.id);
 
   if (!profile) {
     return {
@@ -1244,13 +1244,7 @@ export async function getStudentDashboardData() {
 export async function getStudentPlanningData() {
   const { user } = await ensureDemoStudent();
 
-  const profile = await prisma.studentProfile.findUnique({
-    where: { userId: user.id },
-    include: {
-      class: true,
-      availabilitySlots: true
-    }
-  });
+  const profile = await getStudentProfileForRequest(user.id);
 
   if (!profile) {
     return {
@@ -1507,9 +1501,7 @@ export async function getStudentPlanningData() {
 export async function getStudentProgressData() {
   const { user } = await ensureDemoStudent();
 
-  const profile = await prisma.studentProfile.findUnique({
-    where: { userId: user.id }
-  });
+  const profile = await getStudentProfileForRequest(user.id);
 
   if (!profile) {
     return {

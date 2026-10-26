@@ -39,7 +39,7 @@ if (!databaseUrl) {
   errors.push("DATABASE_URL contient encore des valeurs d'exemple.");
 } else if (databaseUrl.includes("pooler.supabase.com:5432")) {
   warnings.push(
-    "DATABASE_URL semble utiliser le pooler Supabase en mode session. Pour Vercel + Prisma, prevois plutot une URL runtime moins fragile et garde DIRECT_URL pour les operations Prisma."
+    "DATABASE_URL utilise le pooler Supabase en mode session. Sur Vercel, le code adapte automatiquement cette connexion au mode transactionnel (6543). Garde DIRECT_URL en mode session pour les operations Prisma."
   );
 }
 
