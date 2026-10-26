@@ -228,7 +228,7 @@ test("Supabase runtime uses transaction pooling on Vercel without changing migra
   const runtime = new URL(getRuntimeDatabaseUrl(source, true));
   assert.equal(runtime.port, "6543");
   assert.equal(runtime.searchParams.get("pgbouncer"), "true");
-  assert.equal(runtime.searchParams.get("connection_limit"), "3");
+  assert.equal(runtime.searchParams.get("connection_limit"), "1");
   assert.equal(runtime.searchParams.get("schema"), "public");
   assert.equal(new URL(getRuntimeDatabaseUrl(source, false)).port, "5432");
   assert.equal(getRuntimeDatabaseUrl("file:./dev.db", true), "file:./dev.db");

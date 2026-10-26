@@ -137,8 +137,8 @@ try {
         try {
           const response = await getPage(path, cookie);
           const html = await response.text();
-          if (!response.ok || html.includes("Se connecter avec ton compte")) failures.push(path);
-        } catch { failures.push(path); }
+          if (!response.ok || html.includes("Se connecter avec ton compte")) failures.push({ path, status: response.status });
+        } catch { failures.push({ path, status: "timeout/network" }); }
         durations.push(performance.now() - started);
       }
     }
@@ -146,6 +146,14 @@ try {
     durations.sort((left, right) => left - right);
     const p95 = durations[Math.ceil(durations.length * 0.95) - 1];
     console.log(`Lecture authentifiee : ${durations.length} pages, concurrence ${authConcurrency}, ${failures.length} erreur(s), p95 ${Math.round(p95)} ms. Un seul compte temporaire est utilise.`);
+    if (failures.length) {
+      const grouped = new Map();
+      for (const failure of failures) {
+        const key = `${failure.path} HTTP ${failure.status}`;
+        grouped.set(key, (grouped.get(key) ?? 0) + 1);
+      }
+      for (const [key, count] of grouped) console.log(`- ${key} : ${count} erreur(s)`);
+    }
     if (failures.length || p95 > 3000) throw new Error("La charge authentifiee ne respecte pas encore le seuil de la recette pilote.");
   }
 
