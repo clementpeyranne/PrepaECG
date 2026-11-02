@@ -672,19 +672,21 @@ async function getAnonymousWorkRanking(
   const tomorrow = addDays(today, 1);
   const threeDaysStart = addDays(today, -2);
   const weekStart = getCurrentWeekStart();
+  const rankingStart = threeDaysStart < weekStart ? threeDaysStart : weekStart;
 
   const profiles = await prisma.studentProfile.findMany({
-    include: {
-      user: true
+    where: {
+      prepYear,
+      user: { role: UserRole.STUDENT, isActive: true }
+    },
+    select: {
+      userId: true,
+      targetExams: true
     }
   });
 
   const comparableProfiles = profiles.filter((profile) => {
     if (profile.userId === currentUserId) {
-      return false;
-    }
-
-    if (profile.prepYear !== prepYear) {
       return false;
     }
 
@@ -704,7 +706,7 @@ async function getAnonymousWorkRanking(
       },
       status: "COMPLETED",
       plannedStartAt: {
-        gte: weekStart,
+        gte: rankingStart,
         lt: tomorrow
       }
     },

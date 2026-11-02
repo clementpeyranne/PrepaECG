@@ -1,6 +1,14 @@
-# Pilote Prepa ECG - 80 eleves
+# Pilote Prepatempo - 80 eleves
 
-Document de travail du 26 octobre 2026. Le nom commercial reste a choisir.
+Document de travail mis a jour le 2 novembre 2026. Nom de travail choisi : Prepatempo, signature "Ton rythme. Tes ambitions.". La recherche approfondie de similarites et l'achat du domaine restent a effectuer.
+
+## Decisions confirmees par le fondateur
+
+- Projet personnel, sans entreprise creee a ce jour. Ne pas inventer de societe, de SIREN ou de domiciliation dans les pages publiques.
+- Un professeur de l'ancienne prepa est partant. Le nom de l'etablissement, l'interlocuteur de direction et son accord restent a confirmer.
+- Aucun domaine achete, aucun depot de marque et aucun email d'invitation envoye par l'agent.
+- Dossier de verification du nom : `docs/prepatempo-nom.md`.
+- Support de discussion avec le professeur : `docs/presentation-pilote-prepatempo.md` ; ce n'est pas un contrat ni un accord de l'etablissement.
 
 ## Objectif
 
@@ -10,13 +18,13 @@ Verifier que les eleves reviennent spontanement pour organiser leur journee, rev
 
 | Sujet | Situation | Preuve attendue |
 | --- | --- | --- |
-| Base et site | Saturation du pool transactionnel reproduite pendant les tests : limite de 200 clients atteinte (EMAXCONN) | Liberer les connexions existantes, verifier la sante, puis refaire les parcours |
-| Connexions simultanees | 20 lectures connectees simultanees sans erreur, p95 1,54 s. A 80 : premier essai sans erreur mais p95 4,41 s ; essais suivants avec saturation. Client Prisma partage et expiration des connexions ajoutes | Recette apres deploiement du correctif et redemarrage Supabase. La capacite de 80 eleves n'est pas validee |
+| Base et site | Le 2 novembre : base, authentification, stockage configure et URL publique repondent aux controles. Inscription, configuration, reconnexion et cinq pages administrateur testees | Completer les essais reels sur fichiers, emails et mobile avant ouverture |
+| Connexions simultanees | Le 2 novembre : 40 pages, concurrence 20, aucune erreur, p95 1,823 s ; 80 pages, concurrence 40, aucune erreur mais p95 5,551 s. Mesures sur un seul compte temporaire | Identifier les pages lentes et repasser sous 3 s. Ne pas lancer la vague 80 : sa capacite n'est pas validee |
 | PDF et photos vers l'IA | Branchement deploye, tests simules reussis et erreurs visibles sans faux resultats | Lecture reelle avec un compte fournisseur credite puis relecture professeur |
 | Qualite pedagogique | Non validee par un professeur | Un professeur relit au moins 10 copies et 20 sorties de cours representatives |
 | Import Anki | Tests locaux existants | Import reel depuis un compte pilote sur Vercel, medias et formules inclus |
 | Recuperation du compte | Envoi d'email inactif | Reception et utilisation unique d'un vrai email de recuperation |
-| Domaine et nom | A choisir par le fondateur | Domaine enregistre puis adresse d'envoi verifiee |
+| Domaine et nom | Prepatempo choisi ; aucun resultat aux variantes exactes testees sur DATA INPI ; domaines .fr/.com non enregistres au controle du 2 novembre | Recherche approfondie de similarites, domaine enregistre puis adresse d'envoi verifiee |
 | Identite legale | Informations manquantes | Identite/coordonnees publiees et cadre du pilote valide avec la prepa |
 | Sauvegardes | Restauration non testee | Sauvegarde base + fichiers, restauration sur un environnement distinct |
 | Surveillance | Point de sante disponible | Alerte externe effectivement recue lors d'un test d'incident |
@@ -73,7 +81,7 @@ Les connexions seules ne prouvent pas le travail effectue. Les blocs valides son
 
 ## Actions attendues du fondateur
 
-- Choisir le nom et autoriser l'achat du domaine souhaite.
+- Faire approfondir la recherche du nom Prepatempo, puis reserver le domaine souhaite ; aucun achat automatique.
 - Fournir les informations legales publiables.
 - Crediter le compte API et autoriser son activation quand le budget est choisi ; ne pas envoyer de cle dans le chat.
 - Identifier la prepa, son interlocuteur, les professeurs volontaires et une fenetre de test.

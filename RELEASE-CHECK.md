@@ -1,5 +1,17 @@
 # Verification avant publication - 29 septembre 2026
 
+## Reprise du 2 novembre 2026
+
+- Nom de travail confirme : Prepatempo, "Ton rythme. Tes ambitions.". Premiere recherche DATA INPI sans resultat sur les variantes exactes testees, domaines .fr/.com non enregistres. Aucune recherche approfondie de similarites ni reservation ; pas de renommage public definitif.
+- Fondateur : projet personnel sans entreprise ; un professeur partant, mais accord de l'etablissement non confirme.
+- Controle production : base, authentification, stockage configure et URL publique passent. Emails de recuperation, informations legales et OpenAI restent non configures.
+- Parcours inscription, configuration, neuf pages eleve, deconnexion/reconnexion et cinq pages administrateur reussis sur un compte temporaire.
+- Lecture connectee : 40 pages, concurrence 20, aucune erreur, p95 1 823 ms. Puis 80 pages, concurrence 40, aucune erreur mais p95 5 551 ms : seuil de 3 s non atteint. Pas de nouvel essai a 80 ; capacite non validee.
+- Correctif : le classement "3 derniers jours" inclut les jours de la semaine precedente le lundi/mardi ; seuls les profils necessaires des eleves actifs de meme annee sont charges.
+- Verification locale : 32 tests de parcours (dont le parent et le nouveau cas lundi/mardi), 14 tests de securite et build avec verification TypeScript reussis. Le lint n'est pas execute par ce build.
+- Outil de recette : temps par page et echec explicite en cas de nettoyage incomplet du compte temporaire.
+- Dossiers de travail : `docs/prepatempo-nom.md`, `docs/presentation-pilote-prepatempo.md` et `docs/pilote-80-eleves.md`.
+
 ## Recette pilote du 26 octobre 2026
 
 - Lecture PDF/photo branchee sur ressources et assistant via la meme couche IA protegee. Tests avec fournisseur simule : fichier transmis, cache, isolation entre prepas, sortie incomplete refusee et consommation conservee. Pas de test OpenAI payant effectue.
@@ -11,7 +23,7 @@
 - Navigation publique : 160 requetes, concurrence 20, aucune erreur, p95 1 034 ms.
 - Navigation connectee : 40 pages, concurrence 20, aucune erreur, p95 1 543 ms. Il s'agit d'un compte temporaire, pas de 20 comptes distincts.
 - Premier test a 80 lectures simultanees : aucune erreur mais p95 4 410 ms. L'essai avec trois connexions par instance a ensuite provoque une saturation a 200 clients et des erreurs 500/503. La valeur est revenue a un, avec client partage en production et expiration des connexions inutilisees.
-- En attente : redemarrage Supabase et nouvelle mesure sur la version corrigee. Ne pas presenter la charge de 80 eleves comme validee.
+- Le redemarrage a ensuite ete confirme et de nouvelles mesures figurent dans la section du 2 novembre. Ne pas presenter la charge de 80 eleves comme validee.
 - Tous les comptes temporaires des essais termines ont ete supprimes. Aucun compte reel ni document reel supprime.
 - Le dossier `docs/pilote-80-eleves.md` distingue les validations restantes, les decisions du fondateur et le protocole d'ouverture progressive.
 
@@ -61,7 +73,7 @@ Chaque publication doit etre suivie de la verification du build Vercel puis de `
 - Le planning dispose des vues semaine/jour et de la validation sur chaque ligne de la vue jour. Le script tests/planning-browser.mjs prepare la recette navigation, validation, annulation et largeur mobile sur la base jetable ; son execution navigateur reste bloquee dans cet environnement.
 - Refaire l'import Anki volumineux depuis un compte pilote sur Vercel. Le traitement est compatible avec l'environnement serveur, mais la duree et la memoire doivent encore etre mesurees en conditions reelles.
 - Prevoir le nettoyage des fichiers cloud abandonnes avant enregistrement et un test de charge. La charge simultanee de toute une classe et toutes les tailles de fichier ne sont pas encore validees.
-- La connexion d'execution utilise encore le pool Supabase en mode session sur le port 5432. Passer au pool transactionnel recommande pour Vercel avant une ouverture a grande echelle.
+- La connexion d'execution Vercel convertit le pool Supabase session 5432 en transactionnel 6543 ; DIRECT_URL reste distinct pour l'administration. Le changement est deploye, mais ne valide pas a lui seul la capacite cible.
 - L'IA n'est pas activee sans configuration et credits du fournisseur.
 
 Cette liste distingue les fonctions implementees, les tests reussis et ce qui reste a valider ; elle ne garantit pas l'absence de tout bug.

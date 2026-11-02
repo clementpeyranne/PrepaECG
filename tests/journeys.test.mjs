@@ -347,6 +347,63 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
       }), /INVALID_CLASS/);
     });
 
+    await t.test("classement: les trois derniers jours incluent le week-end et excluent les comptes non eleves actifs", async (rankingTest) => {
+      const rankingUsers = [];
+      try {
+        for (const [label, role, isActive] of [
+          ["current", "STUDENT", true], ["peer", "STUDENT", true],
+          ["inactive", "STUDENT", false], ["teacher", "TEACHER", true]
+        ]) {
+          const user = await db.user.create({ data: {
+            email: `ranking-${label}@example.test`, firstName: "Classement", lastName: label, role, isActive,
+            studentProfile: { create: {
+              classId: prepA.id, prepYear: 2, targetExams: { bceSchools: ["HEC"], ecricomeSchools: [] }
+            } }
+          } });
+          rankingUsers.push(user);
+        }
+        const rankingLoad = createAppLoader({
+          ...mocks,
+          "./auth": {
+            ...auth, requireRole: async () => rankingUsers[0],
+            getCurrentUserClass: async () => ({ class: prepA })
+          }
+        });
+        const rankingPlanning = rankingLoad("src/lib/student-app.ts");
+        for (const day of [2, 3]) {
+          const now = new Date(2026, 10, day, 12);
+          rankingTest.mock.timers.enable({ apis: ["Date"], now });
+          try {
+            const rows = [
+              [0, -3, 800, "COMPLETED"], [0, -2, 30, "COMPLETED"], [0, -1, 20, "COMPLETED"],
+              [0, 0, 10, "COMPLETED"], [0, 0, 1000, "PLANNED"], [0, 1, 200, "COMPLETED"],
+              [1, -1, 90, "COMPLETED"], [2, -1, 999, "COMPLETED"], [3, -1, 999, "COMPLETED"]
+            ];
+            await db.studySession.createMany({ data: rows.map(([index, offset, minutes, status]) => {
+              const plannedStartAt = new Date(now); plannedStartAt.setDate(plannedStartAt.getDate() + offset);
+              return {
+                studentId: rankingUsers[index].id, plannedStartAt, plannedDurationMin: minutes,
+                actualDurationMin: minutes, sessionType: "CHAPTER_REVISION", goalText: "Test classement",
+                status, createdByType: "test"
+              };
+            }) });
+            const windows = (await rankingPlanning.getStudentDashboardData()).anonymousRanking.windows;
+            const threeDays = windows.find((window) => window.id === "threeDays");
+            assert.equal(threeDays.userMinutes, 60, `Les trois jours doivent rester complets le ${day} novembre`);
+            assert.equal(threeDays.aheadCount, 1);
+            assert.equal(threeDays.cohortSize, 1);
+            assert.equal(windows.find((window) => window.id === "today").userMinutes, 10);
+            assert.equal(windows.find((window) => window.id === "week").userMinutes, day === 2 ? 10 : 30);
+          } finally {
+            rankingTest.mock.timers.reset();
+            await db.studySession.deleteMany({ where: { studentId: { in: rankingUsers.map((user) => user.id) } } });
+          }
+        }
+      } finally {
+        await db.user.deleteMany({ where: { id: { in: rankingUsers.map((user) => user.id) } } });
+      }
+    });
+
     const resourceInput = () => ({ title: "Cours ESH", subjectCode: "ESH", chapterId: chapter.id, resourceType: "COURSE", description: "", content: "", file: pdf, aiEnabled: false, submissionKey: "resource-1" });
     const essayInput = () => ({ subjectCode: "ESH", chapterId: chapter.id, teacherId: teacher.id, submissionKey: "essay-1", title: "Dissertation", examType: "Dissertation", targetExam: "BCE", correctionMode: "teacher_only", instructions: "Verifier la structure du plan", planningEntryId: initialDay.entries[2].id, file: pdf });
     await t.test("publication PDF dans la bonne matiere, confirmation et refus d'un doublon", async () => {

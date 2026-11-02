@@ -30,7 +30,7 @@ const database = new pg.Client({
   connectionTimeoutMillis: 15_000,
   statement_timeout: 60_000
 });
-const email = `pilot-smoke-${Date.now()}@prepaos.invalid`;
+const email = `pilot-smoke-${crypto.randomUUID()}@prepaos.invalid`;
 const password = `Pilot-${crypto.randomUUID()}-9a`;
 let databaseConnected = false;
 
@@ -128,6 +128,7 @@ try {
   if (authConcurrency > 1) {
     const paths = ["/dashboard", "/planning", "/flashcards", "/resources", "/progress"];
     const durations = [];
+    const durationsByPath = new Map(paths.map((path) => [path, []]));
     let nextJob = 0;
     const failures = [];
     async function readWorker() {
@@ -139,13 +140,22 @@ try {
           const html = await response.text();
           if (!response.ok || html.includes("Se connecter avec ton compte")) failures.push({ path, status: response.status });
         } catch { failures.push({ path, status: "timeout/network" }); }
-        durations.push(performance.now() - started);
+        const duration = performance.now() - started;
+        durations.push(duration);
+        durationsByPath.get(path).push(duration);
       }
     }
     await Promise.all(Array.from({ length: authConcurrency }, readWorker));
     durations.sort((left, right) => left - right);
     const p95 = durations[Math.ceil(durations.length * 0.95) - 1];
     console.log(`Lecture authentifiee : ${durations.length} pages, concurrence ${authConcurrency}, ${failures.length} erreur(s), p95 ${Math.round(p95)} ms. Un seul compte temporaire est utilise.`);
+    for (const [path, samples] of durationsByPath) {
+      if (!samples.length) continue;
+      samples.sort((left, right) => left - right);
+      const median = samples[Math.ceil(samples.length * 0.5) - 1];
+      const pageP95 = samples[Math.ceil(samples.length * 0.95) - 1];
+      console.log(`- ${path} : ${samples.length} pages, mediane ${Math.round(median)} ms, p95 ${Math.round(pageP95)} ms`);
+    }
     if (failures.length) {
       const grouped = new Map();
       for (const failure of failures) {
@@ -194,8 +204,17 @@ try {
   process.exitCode = 1;
 } finally {
   if (databaseConnected) {
-    await database.query(`DELETE FROM "AuthEvent" WHERE "userId" IN (SELECT "id" FROM "User" WHERE "email" = $1)`, [email]).catch(() => undefined);
-    await database.query(`DELETE FROM "User" WHERE "email" = $1`, [email]).catch(() => undefined);
+    try {
+      await database.query("BEGIN");
+      await database.query(`DELETE FROM "AuthEvent" WHERE "userId" IN (SELECT "id" FROM "User" WHERE "email" = $1)`, [email]);
+      await database.query(`DELETE FROM "User" WHERE "email" = $1`, [email]);
+      await database.query("COMMIT");
+      console.log("Compte temporaire et evenements de recette supprimes.");
+    } catch {
+      await database.query("ROLLBACK").catch(() => undefined);
+      console.error(`Nettoyage incomplet : verifier uniquement le compte temporaire ${email} avant un nouvel essai.`);
+      process.exitCode = 1;
+    }
   }
   await database.end().catch(() => undefined);
 }
