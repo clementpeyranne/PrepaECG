@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "test:security": "node --test tests/security.test.mjs",
+    "test:annals": "node --test tests/math-annals.test.mjs",
+    "annals:refresh": "node scripts/import-math-annals.mjs --refresh && node scripts/check-math-annals.mjs",
     "test:journeys": "npm run prisma:generate && node --test tests/journeys.test.mjs",
     "db:auth:prod": "npm run prisma:prepare:prod && node scripts/run-production-prisma.mjs db execute --file prisma/production-auth.sql",
     "teacher:invite": "node scripts/invite-teacher.mjs",

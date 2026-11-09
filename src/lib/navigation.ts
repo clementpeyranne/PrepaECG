@@ -11,6 +11,7 @@ export const studentNavigation: NavItem[] = [
   { href: "/planning", label: "Planning" },
   { href: "/flashcards", label: "Flashcards" },
   { href: "/resources", label: "Ressources" },
+  { href: "/annales", label: "Annales de maths" },
   { href: "/essays", label: "Copies" },
   { href: "/assistant", label: "Assistant IA" },
   { href: "/actualites", label: "Actualites" },

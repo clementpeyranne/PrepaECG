@@ -118,11 +118,12 @@ try {
     throw new Error(`Configuration refusee: HTTP ${onboardingResponse.status}.`);
   }
 
-  for (const route of ["/dashboard", "/planning", "/flashcards", "/resources", "/essays", "/assistant", "/actualites", "/progress", "/onboarding"]) {
+  for (const route of ["/dashboard", "/planning", "/flashcards", "/resources", "/annales", "/essays", "/assistant", "/actualites", "/progress", "/onboarding"]) {
     const response = await getPage(route, cookie);
     if (!response.ok) throw new Error(`${route} renvoie HTTP ${response.status}.`);
     const html = await response.text();
     if (html.includes("Se connecter avec ton compte")) throw new Error(`${route} a perdu la session utilisateur.`);
+    if (route === "/annales" && !html.includes("Sujets et corrigés")) throw new Error("Le catalogue des annales ne s'affiche pas.");
   }
 
   if (authConcurrency > 1) {
