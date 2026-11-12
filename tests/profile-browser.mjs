@@ -13,7 +13,7 @@ try {
   await page.getByRole("button", { name: "Se connecter", exact: true }).click();
   await expect(page).not.toHaveURL(/\/login/);
   await page.goto(`${base}/onboarding`);
-  await expect(page.getByRole("heading", { name: "Mon profil", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Profil", exact: true })).toBeVisible();
   await expect(page.locator('[name="humanities"]')).toHaveValue("HGG");
   await expect(page.locator('[name="mathsOption"]')).toHaveValue("APPROFONDIES");
   await expect(page.locator('[name="lv2Language"]')).toHaveValue("ALLEMAND");
@@ -27,7 +27,7 @@ try {
   await expect(page.locator('[name="assessmentAll"]')).toHaveCount(0);
   await page.locator('[name="assessmentIta"]').fill("11.5");
   await page.locator('[name="weekdayStart"]').fill("17:45");
-  await page.getByRole("button", { name: "Enregistrer mon profil", exact: true }).click();
+  await page.getByRole("button", { name: "Enregistrer le profil", exact: true }).click();
   await expect(page).toHaveURL(/\/dashboard/);
   await page.goto(`${base}/onboarding`);
   await expect(page.locator('[name="humanities"]')).toHaveValue("ESH");
@@ -44,8 +44,8 @@ try {
   }
   await page.screenshot({ path: "/tmp/prepatempo-profil-mobile.png" });
   await page.goto(`${base}/planning`);
-  await expect(page.getByRole("heading", { name: "Mon planning", exact: true })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Modifier mon profil", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Planning", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Modifier le profil", exact: true })).toBeVisible();
   expect(errors).toEqual([]);
   console.log("PASS: cinq matieres, changements de parcours/langue, persistance des horaires/notes/objectifs, historique, planning et mobile");
 } finally {

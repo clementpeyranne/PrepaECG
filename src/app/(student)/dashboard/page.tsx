@@ -12,7 +12,7 @@ export default async function DashboardPage() {
   if (!data.hasProfile) {
     return (
       <div>
-        <PageHeader title="Tableau de bord" actionLabel="Configurer mon profil" actionHref="/onboarding" />
+        <PageHeader title="Tableau de bord" actionLabel="Configurer le profil" actionHref="/onboarding" />
 
         <SectionCard eyebrow="Configuration" title="Activer le profil" accent="soft">
           <div className="rounded-[24px] bg-white/75 p-6">
@@ -27,7 +27,7 @@ export default async function DashboardPage() {
     <div>
       <PageHeader
         title="Tableau de bord"
-        actionLabel="Modifier mon profil"
+        actionLabel="Modifier le profil"
         actionHref="/onboarding"
       />
 
@@ -42,15 +42,15 @@ export default async function DashboardPage() {
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm font-semibold text-sand">{window.label}</p>
                   <span className="rounded-full border border-white/20 px-3 py-1 text-xs text-sand/85">
-                    {formatMinutes(window.userMinutes)} travaillees
+                    {formatMinutes(window.userMinutes)} de travail validé
                   </span>
                 </div>
                 <p className="mt-3 text-sm leading-7 text-sand/88">
                   {window.cohortSize > 0
-                    ? `${window.aheadCount} etudiants ayant des objectifs proches des tiens ont plus travaille que toi sur cette periode.`
-                    : "Pas encore assez d'etudiants comparables pour afficher un classement fiable."}
+                    ? window.aheadCount === 0 ? "Aucun étudiant comparable n’a validé plus de temps de travail sur cette période."
+                      : `${window.aheadCount} étudiant${window.aheadCount > 1 ? "s" : ""} avec des objectifs proches ${window.aheadCount > 1 ? "ont" : "a"} validé plus de temps de travail sur cette période.`
+                    : "Pas encore assez d’étudiants comparables pour afficher un classement."}
                 </p>
-                <p className="mt-2 text-xs text-sand/65">{window.helper}</p>
               </div>
             ))}
           </div>
@@ -60,8 +60,7 @@ export default async function DashboardPage() {
         </SectionCard>
 
         <SectionCard
-          eyebrow="Metriques utiles"
-          title="Progression de la semaine"
+          title="Repères"
         >
           <div className="grid gap-3 sm:grid-cols-2">
             {data.stats.map((stat) => (
@@ -73,7 +72,7 @@ export default async function DashboardPage() {
             ))}
           </div>
           <Link href="/progress" className="mt-4 inline-flex text-sm font-semibold text-pine underline decoration-pine/30 underline-offset-4">
-            Voir ma progression
+            Voir la progression
           </Link>
         </SectionCard>
       </div>
@@ -81,7 +80,7 @@ export default async function DashboardPage() {
       <div className="mt-5 grid gap-5 lg:grid-cols-3">
         <SectionCard
           eyebrow="Planning"
-          title="Le jour en cours"
+          title="Programme du jour"
         >
           <div className="space-y-3">
             {data.sessions.map((session) => (
@@ -99,16 +98,16 @@ export default async function DashboardPage() {
             ))}
           </div>
           <Link href="/planning" className="mt-4 inline-flex text-sm font-semibold text-pine underline decoration-pine/30 underline-offset-4">
-            Voir et valider mes blocs
+            Voir et valider les séances
           </Link>
         </SectionCard>
 
         <SectionCard
-          eyebrow="Lacunes"
-          title="Ce qui doit remonter"
+          title="Points à renforcer"
           accent="soft"
         >
           <div className="space-y-3">
+            {data.weakPoints.length === 0 ? <p className="text-sm text-pine/75">Aucun point à renforcer identifié à partir des résultats disponibles.</p> : null}
             {data.weakPoints.map((point) => (
               <div key={point.label} className="rounded-2xl bg-white/70 p-4">
                 <div className="flex items-center justify-between">
@@ -122,15 +121,15 @@ export default async function DashboardPage() {
             ))}
           </div>
           <Link href="/progress" className="mt-4 inline-flex text-sm font-semibold text-pine underline decoration-pine/30 underline-offset-4">
-            Comprendre mes points faibles
+            Consulter le bilan
           </Link>
         </SectionCard>
 
         <SectionCard
-          eyebrow="Echeances"
-          title="Ce qui approche"
+          title="Prochaines échéances"
         >
           <div className="space-y-3">
+            {data.deadlines.length === 0 ? <p className="text-sm text-pine/75">Aucune échéance renseignée.</p> : null}
             {data.deadlines.map((deadline) => (
               <div key={deadline.label} className="rounded-2xl bg-sand p-4">
                 <p className="font-semibold">{deadline.label}</p>
@@ -139,7 +138,7 @@ export default async function DashboardPage() {
             ))}
           </div>
           <Link href="/planning" className="mt-4 inline-flex text-sm font-semibold text-pine underline decoration-pine/30 underline-offset-4">
-            Organiser ces echeances
+            Organiser les échéances
           </Link>
         </SectionCard>
       </div>

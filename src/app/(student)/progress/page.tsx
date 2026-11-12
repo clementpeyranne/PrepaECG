@@ -11,7 +11,7 @@ export default async function ProgressPage() {
   if (!data.hasProfile) {
     return (
       <div>
-        <PageHeader title="Progression" actionLabel="Configurer mon profil" actionHref="/onboarding" />
+        <PageHeader title="Progression" actionLabel="Configurer le profil" actionHref="/onboarding" />
 
         <SectionCard eyebrow="Configuration" title="Activer le profil" accent="soft">
           <div className="rounded-[24px] bg-white/75 p-6 text-sm leading-7 text-pine/80">Complete ton profil pour activer cette page.</div>
@@ -26,10 +26,9 @@ export default async function ProgressPage() {
 
       <div className="mt-5">
         <ProgressDashboard
-          subjectCharts={data.subjectCharts}
+          subjects={data.subjects}
           grades={data.grades}
           categories={data.categories}
-          visualReading={data.visualReading}
         />
       </div>
     </div>

@@ -101,7 +101,7 @@ try {
 
   const onboardingPage = await getPage("/onboarding", cookie);
   if (!onboardingPage.ok) throw new Error(`La configuration renvoie HTTP ${onboardingPage.status}.`);
-  const onboardingAction = findActionId(await onboardingPage.text(), "Enregistrer mon profil");
+  const onboardingAction = findActionId(await onboardingPage.text(), "Enregistrer le profil");
   if (!onboardingAction) throw new Error("Le formulaire de configuration est introuvable.");
   const onboarding = new FormData();
   onboarding.set(onboardingAction, "");

@@ -860,6 +860,11 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
       const plan = await planning.getStudentPlanningData();
       assert.ok(plan.week.flatMap((day) => day.entries).filter((entry) => entry.status !== "COMPLETED").every((entry) => !["ESH", "Espagnol", "Italien"].includes(entry.subject)));
       assert.ok(plan.upcomingTasks.some((task) => task.title === "Reprendre Concours blanc geopolitique"));
+      const selectedProgress = await planning.getStudentProgressData();
+      assert.deepEqual(selectedProgress.subjects, ["Maths approfondies", "HGG", "Anglais", "Allemand", "Culture générale"]);
+      assert.ok(selectedProgress.grades.every((grade) => !["ESH", "Espagnol", "Italien"].includes(grade.subject)));
+      assert.ok(selectedProgress.grades.some((grade) => grade.title === "Concours blanc geopolitique"));
+      assert.ok(!(await planning.getStudentDashboardData()).weakPoints.some((point) => point.label === "Argumentation"));
     });
   } finally {
     globalThis.fetch = previousFetch;

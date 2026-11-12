@@ -12,8 +12,8 @@ export default async function PlanningPage() {
     return (
       <div>
         <PageHeader
-          title="Mon planning"
-          actionLabel="Configurer mon profil"
+          title="Planning"
+          actionLabel="Configurer le profil"
           actionHref="/onboarding"
         />
 
@@ -27,17 +27,17 @@ export default async function PlanningPage() {
   return (
     <div>
       <PageHeader
-        title="Mon planning"
-        actionLabel="Modifier mon profil"
+        title="Planning"
+        actionLabel="Modifier le profil"
         actionHref="/onboarding"
       />
 
-      <SectionCard title="Mon emploi du temps">
+      <SectionCard title="Emploi du temps">
         <PlanningCalendar week={data.week} />
       </SectionCard>
 
       <div className="mt-5 grid gap-5 lg:grid-cols-2">
-        <SectionCard eyebrow="Organisation" title="Mon rythme de travail">
+        <SectionCard eyebrow="Organisation" title="Rythme de travail">
           <div className="space-y-4">
             {data.adjustments.map((adjustment) => (
               <div key={adjustment.label} className="rounded-2xl bg-sand p-4">
@@ -48,7 +48,7 @@ export default async function PlanningPage() {
           </div>
         </SectionCard>
 
-        <SectionCard eyebrow="À préparer" title="Mes prochains travaux">
+        <SectionCard eyebrow="À préparer" title="Prochains travaux">
           <div className="space-y-3">
             {data.upcomingTasks.map((task) => (
               <div key={`${task.title}-${task.dueLabel}`} className="rounded-2xl bg-sand p-4">

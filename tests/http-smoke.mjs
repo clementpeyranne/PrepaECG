@@ -35,7 +35,7 @@ for (const [email, password, expectedCourse] of [
     const planning = await fetch(`${base}/planning`, { headers: { Cookie: cookie } });
     assert.equal(planning.status, 200);
     const html = await planning.text();
-    assert.ok(html.includes("Mon emploi du temps"));
+    assert.ok(html.includes("Emploi du temps"));
     assert.ok(html.includes("Affichage du planning"));
     assert.equal((html.match(/<button[^>]+aria-label="Afficher /g) || []).length, 7);
     assert.ok(!html.includes("Blocs de la journee"));

@@ -12,9 +12,9 @@ export default async function OnboardingPage() {
   const options = await getOnboardingOptions();
   const preferences = options.preferences;
   return <div>
-    <PageHeader title="Mon profil" />
+    <PageHeader title="Profil" />
     <form action={submitOnboarding} className="space-y-5">
-      <SectionCard eyebrow="Compte" title="Mes informations">
+      <SectionCard eyebrow="Compte" title="Informations personnelles">
         <div className="grid gap-4 lg:grid-cols-2">
           <InputField label="Prénom" name="firstName" defaultValue={options.user.firstName} required />
           <InputField label="Nom" name="lastName" defaultValue={options.user.lastName} required />
@@ -27,11 +27,11 @@ export default async function OnboardingPage() {
         </div>
       </SectionCard>
       <AcademicProfileFields academicPath={preferences.academicPath} lv2Language={preferences.lv2Language} assessments={preferences.assessments}>
-        <SectionCard eyebrow="Objectifs" title="Mes écoles cibles" accent="soft">
+        <SectionCard eyebrow="Objectifs" title="Écoles cibles" accent="soft">
           <AdaptiveOnboardingFields bceSchools={options.bceSchools} ecricomeSchools={options.ecricomeSchools} initialTargets={preferences.targets}
             initialWeekdayHours={preferences.weekdayDailyHours} initialWeekendHours={preferences.weekendDailyHours} />
         </SectionCard>
-        <SectionCard eyebrow="Créneaux" title="Mes horaires de travail">
+        <SectionCard eyebrow="Créneaux" title="Horaires de travail">
           <div className="grid gap-4 lg:grid-cols-2">
             <InputField label="Début en semaine" name="weekdayStart" type="time" defaultValue={preferences.weekdayStart ?? "18:00"} />
             <InputField label="Fin en semaine" name="weekdayEnd" type="time" defaultValue={preferences.weekdayEnd ?? "21:30"} />
@@ -39,7 +39,7 @@ export default async function OnboardingPage() {
             <InputField label="Fin le week-end" name="weekendEnd" type="time" defaultValue={preferences.weekendEnd ?? "14:30"} />
           </div>
         </SectionCard>
-        <SectionCard eyebrow="Rythme" title="Mes séances et mes pauses">
+        <SectionCard eyebrow="Rythme" title="Séances et pauses">
           <div className="grid gap-4 lg:grid-cols-2">
             <InputField label="Durée d’une séance (min)" name="sessionBlockMinutes" type="number" defaultValue={String(preferences.sessionBlockMinutes ?? 50)} />
             <InputField label="Pause entre deux séances (min)" name="shortBreakMinutes" type="number" defaultValue={String(preferences.shortBreakMinutes ?? 10)} />
@@ -51,7 +51,7 @@ export default async function OnboardingPage() {
           </div>
         </SectionCard>
       </AcademicProfileFields>
-      <div className="flex justify-end"><button type="submit" className="rounded-full bg-clay px-6 py-3 text-sm font-semibold text-white transition hover:bg-clay/90">Enregistrer mon profil</button></div>
+      <div className="flex justify-end"><button type="submit" className="rounded-full bg-clay px-6 py-3 text-sm font-semibold text-white transition hover:bg-clay/90">Enregistrer le profil</button></div>
     </form>
   </div>;
 }

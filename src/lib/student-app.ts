@@ -1083,11 +1083,11 @@ export async function saveStudentOnboarding(input: OnboardingInput) {
   });
 }
 
-const countDueFlashcards = cache(async (userId: string) => {
+const countDueFlashcards = cache(async (userId: string, subjectCodes?: string[]) => {
   const now = new Date();
   return prisma.flashcard.count({
     where: {
-      deck: { ownerUserId: userId },
+      deck: { ownerUserId: userId, ...(subjectCodes ? { subject: { code: { in: subjectCodes } } } : {}) },
       OR: [
         { states: { none: { userId } } },
         {
@@ -1142,11 +1142,15 @@ export async function getStudentDashboardData() {
   };
   const energyProfile = (profile.energyProfile as EnergyProfilePayload | null) ?? null;
   const languagePreferences = getLanguagePreferences(energyProfile);
+  const activeCodes = getActiveSubjectCodes(energyProfile);
   const [anonymousRanking, planning, tasks, weakPoints, dueFlashcards] = await Promise.all([
     getAnonymousWorkRanking(user.id, targetExams, profile.prepYear),
     getStudentPlanningData(),
     prisma.task.findMany({
-      where: { studentId: user.id, status: { not: "done" } },
+      where: {
+        studentId: user.id, status: { not: "done" }, dueAt: { not: null }, sourceType: { not: "onboarding" },
+        OR: [{ subjectId: null }, { subject: { code: { in: activeCodes } } }]
+      },
       orderBy: [{ dueAt: "asc" }, { priorityScore: "desc" }],
       take: 3,
       include: {
@@ -1154,14 +1158,13 @@ export async function getStudentDashboardData() {
       }
     }),
     prisma.weakPoint.findMany({
-      where: { studentId: user.id },
+      where: { studentId: user.id, status: { in: ["ACTIVE", "IMPROVING"] }, subject: { code: { in: activeCodes } } },
       orderBy: [{ lastDetectedAt: "desc" }, { severityScore: "desc" }],
-      take: 3,
       include: {
         subject: true
       }
     }),
-    countDueFlashcards(user.id)
+    countDueFlashcards(user.id, activeCodes)
   ]);
 
   const weekdayDailyHours = energyProfile?.weekdayDailyHours ?? 3;
@@ -1181,24 +1184,24 @@ export async function getStudentDashboardData() {
     anonymousRanking,
     stats: [
       {
-        label: "Cible semaine",
+        label: "Objectif hebdomadaire",
         value: `${profile.weeklyGoalHours ?? weekdayDailyHours * 5 + weekendDailyHours * 2}h`,
         helper: `${weekdayDailyHours}h/j semaine - ${weekendDailyHours}h/j week-end`
       },
       {
-        label: "Concours vises",
-        value: `${targetExams.bceSchools.length + targetExams.ecricomeSchools.length}`,
+        label: "Écoles visées",
+        value: `${new Set([...targetExams.bceSchools, ...targetExams.ecricomeSchools]).size}`,
         helper: targetExamSummary
       },
       {
-        label: "Flashcards dues",
+        label: "Cartes à réviser",
         value: `${dueFlashcards}`,
-        helper: dueFlashcards > 0 ? "A reviser pour entretenir la memorisation" : "Revisions a jour"
+        helper: dueFlashcards > 0 ? "Cartes arrivées à échéance" : "Aucune carte à réviser pour le moment"
       },
       {
-        label: "Matiere(s) a remonter",
-        value: `${weakPoints.length}`,
-        helper: "Sans laisser les autres sur le cote"
+        label: "Matières à renforcer",
+        value: `${new Set(weakPoints.map((point) => point.subjectId)).size}`,
+        helper: "D’après les résultats et les corrections"
       }
     ],
     sessions: planning.hasProfile
@@ -1211,20 +1214,20 @@ export async function getStudentDashboardData() {
           status: session.status,
           reason:
             session.status === "COMPLETED"
-              ? "Bloc valide et comptabilise dans ton classement."
+              ? "Séance validée."
               : session.requiresFlashcards
-                ? "Une revision reelle de cartes est necessaire pour le valider."
+                ? `Réviser les cartes pendant ${session.duration} minutes pour valider cette séance.`
                 : session.requiresSubmission
-                  ? "Tu peux joindre ta production directement depuis le planning."
-                  : "Bloc propose a partir de ton profil et de tes resultats."
+                  ? "Dépôt de copie disponible dans le planning."
+                  : "Séance à réaliser dans le planning."
         }))
       : [],
-    weakPoints: weakPoints.map((point) => ({
+    weakPoints: weakPoints.slice(0, 3).map((point) => ({
       label: point.label,
-      severity: point.severityScore >= 0.75 ? "Forte" : point.severityScore >= 0.55 ? "Moyenne" : "Legere",
+      severity: point.severityScore >= 0.75 ? "Prioritaire" : point.severityScore >= 0.55 ? "À renforcer" : "À revoir",
       reason:
         point.description ??
-        `La matiere ${point.subject?.name ?? "concernee"} doit remonter sans desequilibrer le reste du planning.`
+        "Reprendre les erreurs relevées dans les dernières corrections."
     })),
     deadlines: tasks
       .filter((task) => task.dueAt)
@@ -1513,136 +1516,34 @@ export async function getStudentProgressData() {
 
   await ensureDemoGrades(user.id);
 
-  const [subjects, grades, weakPoints, dueFlashcards, essays] = await Promise.all([
+  const activeCodes = getActiveSubjectCodes(profile.energyProfile);
+  const [subjects, grades] = await Promise.all([
     prisma.subject.findMany({
+      where: { code: { in: activeCodes } },
       orderBy: { name: "asc" }
     }),
     prisma.studentGrade.findMany({
-      where: { studentId: user.id },
+      where: { studentId: user.id, subject: { code: { in: activeCodes } } },
       include: {
         subject: true
       },
       orderBy: { capturedAt: "asc" }
-    }),
-    prisma.weakPoint.findMany({
-      where: { studentId: user.id },
-      include: {
-        subject: true
-      },
-      orderBy: { severityScore: "desc" }
-    }),
-    countDueFlashcards(user.id),
-    prisma.essay.findMany({
-      where: { studentId: user.id },
-      include: {
-        subject: true,
-        feedbacks: {
-          orderBy: { createdAt: "desc" }
-        }
-      },
-      orderBy: { createdAt: "desc" }
     })
   ]);
 
-  const groupedGrades = subjects
-    .map((subject) => {
-      const subjectGrades = grades.filter((grade) => grade.subjectId === subject.id);
-      const scoreAverage =
-        subjectGrades.length > 0
-          ? subjectGrades.reduce((sum, grade) => sum + (grade.score / grade.maxScore) * 20, 0) / subjectGrades.length
-          : null;
-      const latestGrade = subjectGrades.at(-1) ?? null;
-      const firstGrade = subjectGrades[0] ?? null;
-      const trend =
-        latestGrade && firstGrade ? (latestGrade.score / latestGrade.maxScore) * 20 - (firstGrade.score / firstGrade.maxScore) * 20 : 0;
-      const weakPoint = weakPoints.find((point) => point.subjectId === subject.id) ?? null;
-      const relatedEssayScore = getAverageScore(
-        essays
-          .filter((essay) => essay.subjectId === subject.id)
-          .flatMap((essay) => essay.feedbacks)
-          .map((feedback) => ({
-            scoreMin: feedback.scoreMin,
-            scoreMax: feedback.scoreMax
-          }))
-      );
-
-      let status = "A consolider";
-      if (scoreAverage !== null && scoreAverage >= 13.5 && trend >= 0) {
-        status = "Solide";
-      } else if (scoreAverage !== null && scoreAverage >= 11.5 && !weakPoint) {
-        status = "A surveiller";
-      }
-
-      return {
-        subject: subject.name,
-        grades: subjectGrades,
-        average: scoreAverage,
-        trend,
-        status,
-        weakLabel: weakPoint?.label ?? null,
-        essayAverage: relatedEssayScore
-      };
-    })
-    .filter((entry) => entry.grades.length > 0);
-
-  const subjectCharts = groupedGrades.map((entry) => {
-    const points = entry.grades.slice(-5).map((grade) => ({
-      label: grade.capturedAt.toLocaleDateString("fr-FR", { day: "numeric", month: "short" }),
-      value: Number((((grade.score / grade.maxScore) * 20)).toFixed(1)),
-      title: grade.title
-    }));
-
-    const helper = entry.weakLabel
-      ? `Vigilance : ${entry.weakLabel}`
-      : entry.essayAverage !== null
-        ? `Retours de copies autour de ${entry.essayAverage.toFixed(1)}/20`
-        : "Pas d'alerte forte sur cette matiere pour l'instant";
-
-    return {
-      subject: entry.subject,
-      status: entry.status,
-      latestScore: points.at(-1)?.value ?? null,
-      trendLabel:
-        entry.trend >= 1
-          ? "En progression"
-          : entry.trend <= -1
-            ? "En baisse"
-            : "Assez stable",
-      helper,
-      points
-    };
-  });
-
-  const strongAreas = subjectCharts
-    .filter((entry) => entry.status === "Solide")
-    .slice(0, 3)
-    .map((entry) => `${entry.subject} : ${entry.latestScore?.toFixed(1) ?? "--"}/20 sur la derniere note.`);
-  const watchAreas = subjectCharts
-    .filter((entry) => entry.status === "A surveiller")
-    .slice(0, 3)
-    .map((entry) => `${entry.subject} : ${entry.trendLabel.toLowerCase()}.`);
-  const consolidateAreas = [
-    ...subjectCharts
-      .filter((entry) => entry.status === "A consolider")
-      .slice(0, 3)
-      .map((entry) => `${entry.subject} : ${entry.helper}`),
-    ...(dueFlashcards > 0
-      ? [`Flashcards : ${dueFlashcards} cartes dues, ce qui fragilise la memorisation.`]
-      : []),
-    ...(weakPoints[0] ? [`Point faible detecte : ${weakPoints[0].label}.`] : [])
-  ].slice(0, 3);
-
   return {
     hasProfile: true as const,
-    subjectCharts,
+    subjects: activeCodes.map((code) => subjects.find((subject) => subject.code === code))
+      .filter((subject): subject is NonNullable<typeof subject> => Boolean(subject))
+      .map((subject) => getAcademicSubjectLabel(subject.code, profile.energyProfile)),
     grades: grades
       .slice()
       .sort((left, right) => right.capturedAt.getTime() - left.capturedAt.getTime())
       .map((grade) => ({
         id: grade.id,
         title: grade.title,
-        subject: grade.subject.name,
-        score: Number((((grade.score / grade.maxScore) * 20)).toFixed(1)),
+        subject: getAcademicSubjectLabel(grade.subject.code, profile.energyProfile),
+        score: (grade.score / grade.maxScore) * 20,
         dateLabel: grade.capturedAt.toLocaleDateString("fr-FR", { day: "numeric", month: "short" }),
         capturedAtIso: grade.capturedAt.toISOString(),
         teacherName: grade.teacherName ?? "Professeur",
@@ -1655,11 +1556,6 @@ export async function getStudentProgressData() {
               : "Controle / devoir",
         semesterLabel: getSemesterLabel(grade.capturedAt)
       })),
-    visualReading: {
-      strongAreas,
-      watchAreas,
-      consolidateAreas
-    },
     categories: ["Semestre 1", "Semestre 2", "Concours blancs"],
     latestGradeEntries: grades.slice(-8).reverse().map((grade) => ({
       id: grade.id,
