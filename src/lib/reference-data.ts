@@ -13,7 +13,10 @@ export const SUBJECT_REFERENCES = [
   { code: "ESH", name: "ESH" },
   { code: "HGG", name: "HGG" },
   { code: "CG", name: "Culture generale" },
-  { code: "ANG", name: "Anglais" }
+  { code: "ANG", name: "Anglais" },
+  { code: "ESP", name: "Espagnol" },
+  { code: "ALL", name: "Allemand" },
+  { code: "ITA", name: "Italien" }
 ] as const;
 
 const ensureDemoClass = cache(async (): Promise<Class | null> => {

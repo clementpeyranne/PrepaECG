@@ -12,7 +12,7 @@ export default async function PlanningPage() {
     return (
       <div>
         <PageHeader
-          title="Planning intelligent"
+          title="Mon planning"
           actionLabel="Configurer mon profil"
           actionHref="/onboarding"
         />
@@ -27,8 +27,8 @@ export default async function PlanningPage() {
   return (
     <div>
       <PageHeader
-        title="Planning intelligent"
-        actionLabel="Modifier ma configuration"
+        title="Mon planning"
+        actionLabel="Modifier mon profil"
         actionHref="/onboarding"
       />
 
@@ -37,7 +37,7 @@ export default async function PlanningPage() {
       </SectionCard>
 
       <div className="mt-5 grid gap-5 lg:grid-cols-2">
-        <SectionCard eyebrow="Ajustements" title="Curseurs du planning">
+        <SectionCard eyebrow="Organisation" title="Mon rythme de travail">
           <div className="space-y-4">
             {data.adjustments.map((adjustment) => (
               <div key={adjustment.label} className="rounded-2xl bg-sand p-4">
@@ -48,7 +48,7 @@ export default async function PlanningPage() {
           </div>
         </SectionCard>
 
-        <SectionCard eyebrow="Echeances" title="A garder en vue">
+        <SectionCard eyebrow="À préparer" title="Mes prochains travaux">
           <div className="space-y-3">
             {data.upcomingTasks.map((task) => (
               <div key={`${task.title}-${task.dueLabel}`} className="rounded-2xl bg-sand p-4">

@@ -8,6 +8,7 @@ import { prisma } from "./db";
 import { parseFlashcardFocusState } from "./planning-focus";
 import { isDemoModeEnabled } from "./app-config";
 import { ensureReferenceData, SUBJECT_REFERENCES } from "./reference-data";
+import { getAcademicPath, getActiveSubjectCodes, getAcademicSubjectLabel, getPrepTask, isLegacyPlanningTitle, type AcademicPath } from "./academic-path";
 
 const BCE_SCHOOLS = ["HEC", "ESSEC", "ESCP", "EDHEC", "emlyon", "SKEMA", "Audencia", "NEOMA"];
 const ECRICOME_SCHOOLS = ["KEDGE", "NEOMA", "Montpellier BS", "Rennes SB", "Excelia"];
@@ -40,6 +41,8 @@ export type OnboardingInput = {
   prepYear: number;
   classId: string;
   lv2Language: Lv2Language;
+  humanities?: AcademicPath["humanities"];
+  mathsOption?: AcademicPath["maths"];
   weekdayDailyHours: number;
   weekendDailyHours: number;
   weekdayStart: string;
@@ -53,8 +56,8 @@ export type OnboardingInput = {
   energyLevel: string;
   bacAverage?: number | null;
   bacMention?: string;
-  subjectAssessments: Record<SubjectCode, number | null>;
-  bacSubjectAssessments: Record<SubjectCode, number | null>;
+  subjectAssessments: Partial<Record<SubjectCode, number | null>>;
+  bacSubjectAssessments: Partial<Record<SubjectCode, number | null>>;
   bceSchools: string[];
   ecricomeSchools: string[];
 };
@@ -74,6 +77,7 @@ type WorkRankingWindow = {
 };
 
 type EnergyProfilePayload = {
+  academicPath?: AcademicPath;
   languagePreferences: LanguagePreferencesPayload;
   energyLevel: string;
   weekdayDailyHours: number;
@@ -92,8 +96,8 @@ type EnergyProfilePayload = {
   assessments: {
     bacAverage: number | null;
     bacMention: string | null;
-    subjectAssessments: Record<SubjectCode, number | null>;
-    bacSubjectAssessments: Record<SubjectCode, number | null>;
+    subjectAssessments: Partial<Record<SubjectCode, number | null>>;
+    bacSubjectAssessments: Partial<Record<SubjectCode, number | null>>;
   };
 };
 
@@ -149,31 +153,32 @@ function minutesFromTime(time: string) {
   return hours * 60 + minutes;
 }
 
-function getAssessmentEntries(subjectAssessments: Record<SubjectCode, number | null>) {
+function getAssessmentEntries(subjectAssessments: Partial<Record<SubjectCode, number | null>>) {
   return SUBJECT_REFERENCES.map((subject) => ({
     ...subject,
-    score: subjectAssessments[subject.code]
+    score: subjectAssessments[subject.code] ?? null
   }));
 }
 
 function getEffectiveAssessments(input: OnboardingInput) {
-  const concoursAssessments = getAssessmentEntries(input.subjectAssessments);
+  const active = getActiveSubjectCodes({ academicPath: { humanities: input.humanities, maths: input.mathsOption }, languagePreferences: { lv2: input.lv2Language } });
+  const concoursAssessments = getAssessmentEntries(input.subjectAssessments).filter((entry) => active.includes(entry.code));
   const hasConcoursData = concoursAssessments.some((assessment) => assessment.score !== null);
 
   if (hasConcoursData) {
     return concoursAssessments;
   }
 
-  return getAssessmentEntries(input.bacSubjectAssessments);
+  return getAssessmentEntries(input.bacSubjectAssessments).filter((entry) => active.includes(entry.code));
 }
 
 function getWeakPointCandidates(input: OnboardingInput) {
   const assessments = getEffectiveAssessments(input);
   const withScores = assessments
-    .filter((assessment) => assessment.score !== null)
+    .filter((assessment) => assessment.score !== null && assessment.score < 12)
     .sort((left, right) => (left.score ?? 20) - (right.score ?? 20));
 
-  if (withScores.length >= 3) {
+  if (withScores.length > 0) {
     return withScores.slice(0, 3).map((assessment, index) => ({
       code: assessment.code,
       subjectName: assessment.name,
@@ -185,26 +190,7 @@ function getWeakPointCandidates(input: OnboardingInput) {
     }));
   }
 
-  return [
-    {
-      code: "MATHS" as SubjectCode,
-      subjectName: "Maths",
-      label: "Maths - regularite a construire",
-      description: "Installer tres vite un rythme stable et des automatismes."
-    },
-    {
-      code: "ESH" as SubjectCode,
-      subjectName: "ESH",
-      label: "ESH - methode et references",
-      description: "Structurer les connaissances et la capacite a les mobiliser."
-    },
-    {
-      code: "HGG" as SubjectCode,
-      subjectName: "HGG",
-      label: "HGG - memorisation longue",
-      description: "Construire les repères dates, notions et exemples des le debut."
-    }
-  ];
+  return [];
 }
 
 function getBalancedSubjects(input: OnboardingInput) {
@@ -827,8 +813,11 @@ export async function getOnboardingOptions() {
       lastName: user.lastName
     },
     preferences: {
+      ...energyProfile,
       prepYear: profile?.prepYear ?? 2,
-      lv2Language: languagePreferences.lv2
+      lv2Language: languagePreferences.lv2,
+      academicPath: getAcademicPath(energyProfile),
+      targets: (profile?.targetExams as TargetExamsPayload | null) ?? { bceSchools: [], ecricomeSchools: [] }
     },
     bceSchools: BCE_SCHOOLS,
     ecricomeSchools: ECRICOME_SCHOOLS
@@ -841,10 +830,15 @@ export async function saveStudentOnboarding(input: OnboardingInput) {
     throw new Error("INVALID_CLASS");
   }
   const existingProfile = await prisma.studentProfile.findUnique({ where: { userId: user.id } });
+  const previousEnergy = (existingProfile?.energyProfile as EnergyProfilePayload | null) ?? null;
+  const previousPath = getAcademicPath(previousEnergy);
+  if (input.humanities && !["ESH", "HGG"].includes(input.humanities)) throw new Error("INVALID_PATH");
+  if (input.mathsOption && !["APPLIQUEES", "APPROFONDIES"].includes(input.mathsOption)) throw new Error("INVALID_PATH");
+  if (!["ESPAGNOL", "ALLEMAND", "ITALIEN"].includes(input.lv2Language)) throw new Error("INVALID_PATH");
+  if ([...Object.values(input.subjectAssessments), ...Object.values(input.bacSubjectAssessments), input.bacAverage].some((score) => score != null && (!Number.isFinite(score) || score < 0 || score > 20))) throw new Error("INVALID_GRADE");
+  input = { ...input, humanities: input.humanities ?? previousPath.humanities, mathsOption: input.mathsOption ?? previousPath.maths };
   const isFirstSetup = !existingProfile;
   const today = startOfToday();
-  const tomorrow = addDays(today, 1);
-  const inThreeDays = addDays(today, 3);
   const weakPointCandidates = getWeakPointCandidates(input);
   const balancedSubjects = getBalancedSubjects(input);
   const weeklyGoalHours = input.weekdayDailyHours * 5 + input.weekendDailyHours * 2;
@@ -855,6 +849,8 @@ export async function saveStudentOnboarding(input: OnboardingInput) {
   };
 
   const energyProfilePayload: EnergyProfilePayload = {
+    ...previousEnergy,
+    academicPath: { humanities: input.humanities!, maths: input.mathsOption! },
     languagePreferences: {
       lv1: "ANGLAIS",
       lv2: input.lv2Language
@@ -876,8 +872,8 @@ export async function saveStudentOnboarding(input: OnboardingInput) {
       assessments: {
         bacAverage: input.bacAverage ?? null,
         bacMention: input.bacMention || null,
-        subjectAssessments: input.subjectAssessments,
-        bacSubjectAssessments: input.bacSubjectAssessments
+        subjectAssessments: { ...previousEnergy?.assessments?.subjectAssessments, ...input.subjectAssessments },
+        bacSubjectAssessments: { ...previousEnergy?.assessments?.bacSubjectAssessments, ...input.bacSubjectAssessments }
       }
     };
 
@@ -965,7 +961,7 @@ export async function saveStudentOnboarding(input: OnboardingInput) {
         data: {
           studentId: user.id,
           subjectId: subject.id,
-          sourceType: input.prepYear === 1 && !input.subjectAssessments[candidate.code] ? "bac" : "assessment",
+          sourceType: input.prepYear === 1 && input.subjectAssessments[candidate.code] == null ? "bac" : "assessment",
           severityScore: Math.max(0.45, 0.9 - index * 0.18),
           label: candidate.label,
           description: candidate.description,
@@ -979,17 +975,15 @@ export async function saveStudentOnboarding(input: OnboardingInput) {
       .map((subject) => subjectMap.get(subject.code))
       .filter((subject): subject is NonNullable<typeof subject> => Boolean(subject));
 
-    const firstTarget = input.bceSchools[0] ?? input.ecricomeSchools[0] ?? "concours";
-
     const tasks = await Promise.all([
       tx.task.create({
         data: {
           studentId: user.id,
           subjectId: taskSubjects[0]?.id,
-          title: `Bloc de consolidation ${taskSubjects[0]?.name ?? "Maths"}`,
-          description: "Une session ciblee issue des notes et de la repartition de travail.",
+          title: getPrepTask(taskSubjects[0]?.code ?? "MATHS", "CHAPTER_REVISION"),
+          description: "Travaille à partir du chapitre étudié en classe et de tes cours.",
           taskType: "REVISION",
-          dueAt: tomorrow,
+          dueAt: null,
           priorityScore: 0.92,
           status: "todo",
           sourceType: "onboarding"
@@ -999,10 +993,10 @@ export async function saveStudentOnboarding(input: OnboardingInput) {
         data: {
           studentId: user.id,
           subjectId: taskSubjects[1]?.id,
-          title: `File de flashcards ${taskSubjects[1]?.name ?? "ESH"}`,
-          description: "Installer une boucle de memorisation reguliere sur une autre matiere.",
+          title: getPrepTask(taskSubjects[1]?.code ?? "ESH", "FLASHCARDS_REVIEW"),
+          description: "Révise les cartes proposées dans tes paquets de cette matière.",
           taskType: "FLASHCARDS",
-          dueAt: today,
+          dueAt: null,
           priorityScore: 0.84,
           status: "todo",
           sourceType: "onboarding"
@@ -1012,10 +1006,10 @@ export async function saveStudentOnboarding(input: OnboardingInput) {
         data: {
           studentId: user.id,
           subjectId: taskSubjects[2]?.id,
-          title: `Travail type concours ${firstTarget}`,
-          description: "Garder une matiere supplementaire active au lieu d'en laisser une de cote.",
+          title: getPrepTask(taskSubjects[2]?.code ?? "CG", "ESSAY_PRACTICE"),
+          description: "Choisis un exercice ou un sujet déjà étudié, puis vérifie ton travail.",
           taskType: "ESSAY",
-          dueAt: inThreeDays,
+          dueAt: null,
           priorityScore: 0.76,
           status: "todo",
           sourceType: "onboarding"
@@ -1057,7 +1051,7 @@ export async function saveStudentOnboarding(input: OnboardingInput) {
           plannedStartAt: firstSessionStart,
           plannedDurationMin: input.sessionBlockMinutes,
           sessionType: "CHAPTER_REVISION",
-          goalText: `Consolider ${taskSubjects[0]?.name ?? "Maths"} sans desequilibrer le reste`,
+          goalText: tasks[0].title,
           status: "PLANNED",
           createdByType: "onboarding"
         },
@@ -1068,7 +1062,7 @@ export async function saveStudentOnboarding(input: OnboardingInput) {
           plannedStartAt: secondSessionStart,
           plannedDurationMin: Math.max(20, Math.min(input.sessionBlockMinutes, 35)),
           sessionType: "FLASHCARDS_REVIEW",
-          goalText: `Faire tourner la repetition espacee en ${taskSubjects[1]?.name ?? "ESH"}`,
+          goalText: tasks[1].title,
           status: "PLANNED",
           createdByType: "onboarding"
         },
@@ -1079,7 +1073,7 @@ export async function saveStudentOnboarding(input: OnboardingInput) {
           plannedStartAt: thirdSessionStart,
           plannedDurationMin: input.sessionBlockMinutes,
           sessionType: "ESSAY_PRACTICE",
-          goalText: `Garder ${taskSubjects[2]?.name ?? "HGG"} actif avec une production ou une relecture`,
+          goalText: tasks[2].title,
           status: "PLANNED",
           createdByType: "onboarding"
         }
@@ -1262,7 +1256,8 @@ export async function getStudentPlanningData() {
   const weekStart = getCurrentWeekStart();
   const weekEnd = addDays(weekStart, 7);
 
-  const [sessions, weakPoints, tasks, subjects, planningEssays] = await Promise.all([
+  const activeCodes = getActiveSubjectCodes(energyProfile);
+  const [allSessions, weakPoints, allTasks, subjects, planningEssays] = await Promise.all([
     prisma.studySession.findMany({
       where: {
         studentId: user.id,
@@ -1288,6 +1283,7 @@ export async function getStudentPlanningData() {
       orderBy: [{ dueAt: "asc" }, { priorityScore: "desc" }]
     }),
     prisma.subject.findMany({
+      where: { code: { in: activeCodes } },
       orderBy: { name: "asc" }
     }),
     prisma.essay.findMany({
@@ -1295,6 +1291,9 @@ export async function getStudentPlanningData() {
       select: { planningEntryId: true }
     })
   ]);
+
+  const sessions = allSessions.filter((session) => session.status === "COMPLETED" || !session.subject || activeCodes.includes(session.subject.code));
+  const tasks = allTasks.filter((task) => !task.subject || activeCodes.includes(task.subject.code));
 
   const submittedPlanningEntries = new Set(planningEssays.map((essay) => essay.planningEntryId).filter(Boolean));
   const getCompletionRequirements = (
@@ -1328,7 +1327,7 @@ export async function getStudentPlanningData() {
   const prioritizedSubjects = [
     ...weakPoints
       .map((point) => point.subject)
-      .filter((subject): subject is NonNullable<typeof subject> => Boolean(subject)),
+      .filter((subject): subject is NonNullable<typeof subject> => Boolean(subject) && activeCodes.includes(subject!.code)),
     ...subjects
   ].filter(
     (subject, index, array) => array.findIndex((candidate) => candidate.id === subject.id) === index
@@ -1355,7 +1354,9 @@ export async function getStudentPlanningData() {
   }).flat();
   const taskAssignments = new Map<string, (typeof tasks)[number]>();
 
-  for (const task of tasks.filter((candidate) => !linkedTaskIds.has(candidate.id))) {
+  // Actual assignments and correction follow-ups take precedence over starter routines.
+  const orderedTasks = [...tasks].sort((a, b) => Number(a.sourceType === "onboarding") - Number(b.sourceType === "onboarding"));
+  for (const task of orderedTasks.filter((candidate) => !linkedTaskIds.has(candidate.id))) {
     if (availableTaskSlots.length === 0) break;
     const preferredDayIndex = task.dueAt
       ? clamp(Math.floor((startOfTodayFrom(task.dueAt).getTime() - weekStart.getTime()) / 86_400_000), 0, 6)
@@ -1396,8 +1397,10 @@ export async function getStudentPlanningData() {
           plannedStartAt: session.plannedStartAt ? session.plannedStartAt.toISOString() : null,
           subjectId: session.subjectId,
           taskId: session.taskId,
-          subject: session.subject?.name ?? "Matiere",
-          title: session.goalText,
+          subject: session.subject ? session.status === "COMPLETED" ? session.subject.name : getAcademicSubjectLabel(session.subject.code, energyProfile) : "Matière",
+          title: session.status !== "COMPLETED" && isLegacyPlanningTitle(session.goalText)
+            ? getPrepTask(session.subject?.code ?? "MATHS", session.sessionType)
+            : session.goalText,
           duration: session.plannedDurationMin,
           status: session.status,
           persisted: true,
@@ -1423,7 +1426,8 @@ export async function getStudentPlanningData() {
       const offsetMinutes = sessionIndex * blockMinutes + appliedBreak * sessionIndex;
       const slotTime = new Date(firstStart.getTime() + offsetMinutes * 60_000);
 
-      const entryId = `planning-${createHash("sha256").update(`${user.id}:${date.toISOString()}:${sessionIndex}`).digest("hex")}`;
+      const pathKey = `${activeCodes.join(",")}:${getAcademicPath(energyProfile).maths}`;
+      const entryId = `planning-${createHash("sha256").update(`${user.id}:${date.toISOString()}:${sessionIndex}:${pathKey}`).digest("hex")}`;
       const sessionType = assignedTask
         ? assignedTask.taskType === "FLASHCARDS"
           ? SessionType.FLASHCARDS_REVIEW
@@ -1442,13 +1446,9 @@ export async function getStudentPlanningData() {
         plannedStartAt: slotTime.toISOString(),
         subjectId: subject?.id ?? null,
         taskId: assignedTask?.id ?? null,
-        subject: subject?.name ?? "Matiere",
-        title: assignedTask?.title ??
-          (sessionIndex === 0
-            ? `Bloc de progression ${subject?.name ?? "matiere"}`
-            : sessionIndex === 1
-              ? `Repetition active ${subject?.name ?? "matiere"}`
-              : `Travail d'entretien ${subject?.name ?? "matiere"}`),
+        subject: subject ? getAcademicSubjectLabel(subject.code, energyProfile) : "Matière",
+        title: assignedTask && !isLegacyPlanningTitle(assignedTask.title)
+          ? assignedTask.title : getPrepTask(subject?.code ?? "MATHS", sessionType, index),
         duration: sessionIndex === 1 ? Math.max(20, Math.min(blockMinutes, 35)) : blockMinutes,
         status: "PLANNED",
         persisted: false,
@@ -1490,9 +1490,9 @@ export async function getStudentPlanningData() {
       className: profile.class.name,
       targetExamSummary: getTargetExamSummary(targetExams)
     },
-    upcomingTasks: tasks.slice(0, 4).map((task) => ({
-      title: task.title,
-      subject: task.subject?.name ?? "Matiere",
+    upcomingTasks: orderedTasks.slice(0, 4).map((task) => ({
+      title: isLegacyPlanningTitle(task.title) ? getPrepTask(task.subject?.code ?? "MATHS", task.taskType) : task.title,
+      subject: task.subject ? getAcademicSubjectLabel(task.subject.code, energyProfile) : "Matière",
       dueLabel: task.dueAt
         ? task.dueAt.toLocaleDateString("fr-FR", { day: "numeric", month: "short" })
         : "sans date"
@@ -1778,7 +1778,7 @@ export async function createTeacherStudentGrade(input: {
           title: `Reprendre ${normalizedTitle}`.slice(0, 180),
           description: `Tache creee a partir de la note de ${input.score}/20 en ${subject.name}.`,
           taskType: "REVISION",
-          dueAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+          dueAt: null,
           priorityScore: input.score < 8 ? 0.96 : input.score < 10 ? 0.88 : 0.76,
           status: "todo",
           sourceType: `grade:${gradeId}`

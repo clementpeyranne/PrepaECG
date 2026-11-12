@@ -29,8 +29,10 @@ export async function submitOnboarding(formData: FormData) {
   const ecricomeSchools = formData.getAll("ecricomeSchools").map(String).filter(Boolean);
 
   await saveStudentOnboarding({
-    firstName: getString(formData, "firstName") || "Clement",
-    lastName: getString(formData, "lastName") || "Demo",
+    firstName: getString(formData, "firstName"),
+    lastName: getString(formData, "lastName"),
+    humanities: getString(formData, "humanities") === "HGG" ? "HGG" : "ESH",
+    mathsOption: getString(formData, "mathsOption") === "APPROFONDIES" ? "APPROFONDIES" : "APPLIQUEES",
     prepYear: getNumber(formData, "prepYear", 2),
     classId: getString(formData, "classId"),
     lv2Language:
@@ -52,20 +54,8 @@ export async function submitOnboarding(formData: FormData) {
     energyLevel: getString(formData, "energyLevel") || "modere",
     bacAverage: getOptionalNumber(formData, "bacAverage"),
     bacMention: getString(formData, "bacMention"),
-    subjectAssessments: {
-      MATHS: getOptionalNumber(formData, "assessmentMaths"),
-      ESH: getOptionalNumber(formData, "assessmentEsh"),
-      HGG: getOptionalNumber(formData, "assessmentHgg"),
-      CG: getOptionalNumber(formData, "assessmentCg"),
-      ANG: getOptionalNumber(formData, "assessmentAng")
-    },
-    bacSubjectAssessments: {
-      MATHS: getOptionalNumber(formData, "bacMaths"),
-      ESH: getOptionalNumber(formData, "bacEsh"),
-      HGG: getOptionalNumber(formData, "bacHgg"),
-      CG: getOptionalNumber(formData, "bacCg"),
-      ANG: getOptionalNumber(formData, "bacAng")
-    },
+    subjectAssessments: readAssessments(formData, "assessment"),
+    bacSubjectAssessments: readAssessments(formData, "bac"),
     bceSchools,
     ecricomeSchools
   });
@@ -74,4 +64,9 @@ export async function submitOnboarding(formData: FormData) {
     revalidatePath(path);
   }
   redirect("/dashboard");
+}
+
+function readAssessments(formData: FormData, prefix: string) {
+  const fields = { MATHS: "Maths", ESH: "Esh", HGG: "Hgg", CG: "Cg", ANG: "Ang", ESP: "Esp", ALL: "All", ITA: "Ita" };
+  return Object.fromEntries(Object.entries(fields).filter(([, suffix]) => formData.has(prefix + suffix)).map(([code, suffix]) => [code, getOptionalNumber(formData, prefix + suffix)]));
 }

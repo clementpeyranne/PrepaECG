@@ -599,9 +599,10 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
       use(student);
       const progress = await planning.getStudentProgressData();
       assert.ok(progress.grades.some((grade) => grade.title === "DS matrices" && grade.teacherName === "Test Parcours"));
-      assert.ok((await planning.getStudentPlanningData()).week
+      assert.ok(!(await planning.getStudentPlanningData()).week
         .flatMap((day) => day.entries)
-        .some((entry) => entry.title === "Reprendre Concours blanc geopolitique"));
+        .some((entry) => entry.title === "Reprendre Concours blanc geopolitique"), "Un parcours ESH ne programme pas de HGG");
+      assert.ok(await db.task.findFirst({ where: { studentId: student.id, title: "Reprendre Concours blanc geopolitique" } }), "Le travail ancien reste conserve pour un changement de parcours");
       const savedFetch = globalThis.fetch;
       process.env.OPENAI_API_KEY = "test-openai-key";
       let context;
@@ -833,6 +834,32 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
       const activity = await admin.getAdminActivityData();
       assert.ok(activity.events.some((event) => event.type === "ACCOUNT_SUSPENDED"));
       assert.ok(activity.events.some((event) => event.type === "ESTABLISHMENT_CREATED"));
+    });
+    await t.test("parcours: changements conserves, cinq matieres actives et historique intact", async () => {
+      use(student);
+      const completed = await db.studySession.count({ where: { studentId: student.id, status: "COMPLETED" } });
+      const gradeCount = await db.studentGrade.count({ where: { studentId: student.id } });
+      const cardCount = await db.flashcard.count({ where: { deck: { ownerUserId: student.id } } });
+      await planning.saveStudentOnboarding({
+        firstName: "Test", lastName: "Parcours", prepYear: 2, classId: prepA.id, lv2Language: "ALLEMAND",
+        humanities: "HGG", mathsOption: "APPROFONDIES", weekdayDailyHours: 2, weekendDailyHours: 4,
+        weekdayStart: "17:30", weekdayEnd: "20:30", weekendStart: "10:00", weekendEnd: "15:00",
+        sessionBlockMinutes: 45, shortBreakMinutes: 5, longBreakMinutes: 20, breakEveryBlocks: 3,
+        energyLevel: "modere", subjectAssessments: { HGG: 9, ALL: 12 }, bacSubjectAssessments: {}, bceSchools: ["EDHEC"], ecricomeSchools: []
+      });
+      const options = await planning.getOnboardingOptions();
+      assert.deepEqual(options.preferences.academicPath, { humanities: "HGG", maths: "APPROFONDIES" });
+      assert.equal(options.preferences.lv2Language, "ALLEMAND");
+      assert.equal(options.preferences.weekdayStart, "17:30");
+      assert.equal(options.preferences.assessments.subjectAssessments.ESH, 12, "Une ancienne note ESH n'est pas effacee");
+      assert.equal(options.preferences.assessments.subjectAssessments.ALL, 12);
+      assert.deepEqual(options.preferences.targets.bceSchools, ["EDHEC"]);
+      assert.equal(await db.studentGrade.count({ where: { studentId: student.id } }), gradeCount);
+      assert.equal(await db.flashcard.count({ where: { deck: { ownerUserId: student.id } } }), cardCount);
+      assert.equal(await db.studySession.count({ where: { studentId: student.id, status: "COMPLETED" } }), completed);
+      const plan = await planning.getStudentPlanningData();
+      assert.ok(plan.week.flatMap((day) => day.entries).filter((entry) => entry.status !== "COMPLETED").every((entry) => !["ESH", "Espagnol", "Italien"].includes(entry.subject)));
+      assert.ok(plan.upcomingTasks.some((task) => task.title === "Reprendre Concours blanc geopolitique"));
     });
   } finally {
     globalThis.fetch = previousFetch;

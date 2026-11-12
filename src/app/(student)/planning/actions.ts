@@ -21,6 +21,7 @@ type FreezablePlanningEntry = {
   id: string;
   persisted: boolean;
   subjectId: string | null;
+  taskId?: string | null;
   plannedStartAt: string | null;
   duration: number;
   sessionType: string;
@@ -39,6 +40,7 @@ async function freezePlanningDay(userId: string, entries: FreezablePlanningEntry
           id: block.id,
           studentId: userId,
           subjectId: block.subjectId,
+          taskId: block.taskId ?? null,
           plannedStartAt: block.plannedStartAt ? new Date(block.plannedStartAt) : null,
           plannedDurationMin: block.duration,
           sessionType: block.sessionType as SessionType,
@@ -79,6 +81,7 @@ async function persistPlanningEntry(formData: FormData, status: SessionStatus): 
               id: block.id,
               studentId: user.id,
               subjectId: block.subjectId,
+              taskId: block.taskId ?? null,
               plannedStartAt: block.plannedStartAt ? new Date(block.plannedStartAt) : null,
               plannedDurationMin: block.duration,
               sessionType: block.sessionType as SessionType,

@@ -5,6 +5,9 @@ import { useMemo, useState } from "react";
 type AdaptiveOnboardingFieldsProps = {
   bceSchools: string[];
   ecricomeSchools: string[];
+  initialTargets?: { bceSchools: string[]; ecricomeSchools: string[] };
+  initialWeekdayHours?: number;
+  initialWeekendHours?: number;
 };
 
 const SCHOOL_WEIGHTS: Record<string, number> = {
@@ -24,12 +27,15 @@ const SCHOOL_WEIGHTS: Record<string, number> = {
 
 export function AdaptiveOnboardingFields({
   bceSchools,
-  ecricomeSchools
+  ecricomeSchools,
+  initialTargets,
+  initialWeekdayHours = 3,
+  initialWeekendHours = 5
 }: AdaptiveOnboardingFieldsProps) {
-  const [selectedBce, setSelectedBce] = useState<string[]>(["HEC", "ESSEC", "ESCP"]);
-  const [selectedEcricome, setSelectedEcricome] = useState<string[]>(["NEOMA", "KEDGE"]);
-  const [weekdayDailyHours, setWeekdayDailyHours] = useState(3);
-  const [weekendDailyHours, setWeekendDailyHours] = useState(5);
+  const [selectedBce, setSelectedBce] = useState<string[]>(initialTargets?.bceSchools ?? []);
+  const [selectedEcricome, setSelectedEcricome] = useState<string[]>(initialTargets?.ecricomeSchools ?? []);
+  const [weekdayDailyHours, setWeekdayDailyHours] = useState(initialWeekdayHours);
+  const [weekendDailyHours, setWeekendDailyHours] = useState(initialWeekendHours);
 
   const guidance = useMemo(() => {
     const selectedSchools = [...selectedBce, ...selectedEcricome];

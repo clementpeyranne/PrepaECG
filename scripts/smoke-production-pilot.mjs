@@ -101,12 +101,12 @@ try {
 
   const onboardingPage = await getPage("/onboarding", cookie);
   if (!onboardingPage.ok) throw new Error(`La configuration renvoie HTTP ${onboardingPage.status}.`);
-  const onboardingAction = findActionId(await onboardingPage.text(), "Enregistrer la configuration");
+  const onboardingAction = findActionId(await onboardingPage.text(), "Enregistrer mon profil");
   if (!onboardingAction) throw new Error("Le formulaire de configuration est introuvable.");
   const onboarding = new FormData();
   onboarding.set(onboardingAction, "");
   for (const [key, value] of Object.entries({
-    firstName: "Recette", lastName: "Pilote", classId: prep.id, prepYear: "1", lv2Language: "ESPAGNOL",
+    firstName: "Recette", lastName: "Pilote", classId: prep.id, prepYear: "1", lv2Language: "ESPAGNOL", humanities: "ESH", mathsOption: "APPLIQUEES",
     weekdayDailyHours: "3", weekendDailyHours: "5", weekdayStart: "18:00", weekdayEnd: "21:30",
     weekendStart: "09:30", weekendEnd: "14:30", sessionBlockMinutes: "50", shortBreakMinutes: "10",
     longBreakMinutes: "25", breakEveryBlocks: "2", energyLevel: "modere", assessmentMaths: "10",
