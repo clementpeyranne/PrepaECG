@@ -31,7 +31,7 @@ export default async function ResourceDetailPage({
     <div>
       <PageHeader title={resource.title} />
       {feedback.error ? <p role="alert" className="mb-5 rounded-2xl bg-clay/10 p-4 text-sm text-clay">{feedback.error.slice(0, 400)}</p> : null}
-      {feedback.generated === "yes" ? <p role="status" className="mb-5 rounded-2xl bg-moss/15 p-4 text-sm text-pine">Le resultat est disponible dans la section Sortie.</p> : null}
+      {feedback.generated === "yes" ? <p role="status" className="mb-5 rounded-2xl bg-moss/15 p-4 text-sm text-pine">Le résultat est disponible dans la section Sortie.</p> : null}
 
       <div className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
         <SectionCard eyebrow="Document" title={resource.chapter}>
@@ -80,7 +80,7 @@ export default async function ResourceDetailPage({
                 </div>
               ) : (
                 <div className="mt-4 rounded-[20px] bg-sand p-5 text-sm text-pine/78">
-                  {resource.fileName ?? "Document depose"} est disponible au telechargement.
+                  {resource.fileName ?? "Document déposé"} est disponible au téléchargement.
                 </div>
               )}
             </div>
@@ -116,7 +116,7 @@ export default async function ResourceDetailPage({
         >
           {resource.outputs.length === 0 ? (
             <div className="rounded-[24px] bg-sand p-6 text-sm leading-7 text-pine/75">
-              Aucune sortie n'a encore ete generee pour cette ressource. Tu peux lancer un resume,
+              Aucune sortie n'a encore été générée pour cette ressource. Tu peux lancer un résumé,
               une fiche ou un deck de flashcards.
             </div>
           ) : (
@@ -126,7 +126,7 @@ export default async function ResourceDetailPage({
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <p className="font-semibold text-ink">{output.title}</p>
-                      <p className="mt-1 text-sm text-pine/75">Genere le {output.createdAtLabel}</p>
+                      <p className="mt-1 text-sm text-pine/75">Généré le {output.createdAtLabel}</p>
                     </div>
                     {output.deckId && output.deckTitle ? (
                       <Link

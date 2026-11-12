@@ -11,7 +11,7 @@ type AuthEventRow = {
 
 export function AuthEventTable({ events }: { events: AuthEventRow[] }) {
   if (events.length === 0) {
-    return <p className="rounded-2xl bg-sand p-5 text-sm text-pine/75">Aucune activite enregistree pour le moment.</p>;
+    return <p className="rounded-2xl bg-sand p-5 text-sm text-pine/75">Aucune activité enregistrée pour le moment.</p>;
   }
 
   return (
@@ -19,7 +19,7 @@ export function AuthEventTable({ events }: { events: AuthEventRow[] }) {
       <table className="min-w-[820px] w-full text-left text-sm">
         <thead className="border-b border-ink/8 bg-sand/70 text-xs uppercase tracking-[0.16em] text-pine/60">
           <tr>
-            <th className="px-4 py-3 font-semibold">Evenement</th>
+            <th className="px-4 py-3 font-semibold">Événement</th>
             <th className="px-4 py-3 font-semibold">Compte</th>
             <th className="px-4 py-3 font-semibold">Appareil</th>
             <th className="px-4 py-3 font-semibold">Source anonymisee</th>

@@ -24,7 +24,6 @@ export default async function TeacherLayout({ children }: { children: ReactNode 
       audience="teacher"
       navigation={teacherNavigation}
       title={`${teacher.firstName} ${teacher.lastName}`}
-      subtitle="Un espace volontairement sobre pour deposer des ressources, des grilles et des retours utiles."
       userLabel={`${teacher.email}`}
     >
       {children}

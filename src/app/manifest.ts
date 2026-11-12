@@ -3,9 +3,9 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
-    name: "Prepa ECG OS",
-    short_name: "Prepa ECG",
-    description: "L'application de travail quotidien pour les preparationnaires ECG.",
+    name: "Prépatempo",
+    short_name: "Prépatempo",
+    description: "L'application de travail quotidien pour les préparationnaires ECG.",
     start_url: "/",
     scope: "/",
     display: "standalone",

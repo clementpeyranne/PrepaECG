@@ -211,7 +211,7 @@ export async function registerUser(input: {
   }
   if (!await allowAuthRequest("signup", email)) {
     await recordSecurityEvent({ eventType: "SIGNUP_RATE_LIMITED", email });
-    return { ok: false as const, message: "Trop de tentatives. Reessaie dans 15 minutes." };
+    return { ok: false as const, message: "Trop de tentatives. Réessaie dans 15 minutes." };
   }
 
   if (!firstName || !lastName || !email || !input.password.trim()) {
@@ -224,14 +224,14 @@ export async function registerUser(input: {
   if (!input.legalAccepted) {
     return {
       ok: false as const,
-      message: "Tu dois accepter les CGU et confirmer avoir lu la politique de confidentialite."
+      message: "Tu dois accepter les CGU et confirmer avoir lu la politique de confidentialité."
     };
   }
 
   if (input.password.trim().length < 8) {
     return {
       ok: false as const,
-      message: "Le mot de passe doit contenir au moins 8 caracteres."
+      message: "Le mot de passe doit contenir au moins 8 caractères."
     };
   }
 
@@ -242,7 +242,7 @@ export async function registerUser(input: {
   if (existingUser) {
     return {
       ok: false as const,
-      message: "Un compte existe deja avec cette adresse email."
+      message: "Un compte existe déjà avec cette adresse email."
     };
   }
 
@@ -256,14 +256,14 @@ export async function registerUser(input: {
   if (!prepClass) {
     return {
       ok: false as const,
-      message: "Le code d'etablissement n'a pas ete reconnu."
+      message: "Le code d'établissement n'a pas été reconnu."
     };
   }
 
   const passwordHash = hashPassword(input.password.trim());
   const invitationToken = input.invitationToken?.trim() || "";
   if (input.role === UserRole.TEACHER && !/^[a-f0-9]{64}$/.test(invitationToken)) {
-    return { ok: false as const, message: "Une invitation personnelle est necessaire pour creer un compte professeur." };
+    return { ok: false as const, message: "Une invitation personnelle est nécessaire pour créer un compte professeur." };
   }
   let user;
   try {
@@ -296,9 +296,9 @@ export async function registerUser(input: {
     });
   } catch (error) {
     if (!(error && typeof error === "object" && "code" in error && error.code === "P2002")) throw error;
-    return { ok: false as const, message: "Un compte existe deja avec cette adresse email." };
+    return { ok: false as const, message: "Un compte existe déjà avec cette adresse email." };
   }
-  if (!user) return { ok: false as const, message: "Invitation invalide, expiree ou deja utilisee. Verifie aussi ton email et ton etablissement." };
+  if (!user) return { ok: false as const, message: "Invitation invalide, expirée ou déjà utilisée. Vérifie aussi ton email et ton établissement." };
 
   await writeSessionCookie(user);
   await recordSecurityEvent({ eventType: "ACCOUNT_CREATED", userId: user.id, email: user.email });
@@ -322,7 +322,7 @@ export async function loginUser(input: { email: string; password: string }) {
 
   if (!await allowAuthRequest("login", email)) {
     await recordSecurityEvent({ eventType: "LOGIN_RATE_LIMITED", email });
-    return { ok: false as const, message: "Trop de tentatives. Reessaie dans 15 minutes." };
+    return { ok: false as const, message: "Trop de tentatives. Réessaie dans 15 minutes." };
   }
 
   const user = await prisma.user.findUnique({
@@ -367,7 +367,7 @@ export async function requestPasswordReset(emailInput: string) {
   if (mode === "support" || (mode === "email" && !isRecoveryEmailConfigured())) {
     return {
       ok: false as const,
-      message: "La reinitialisation par email n'est pas encore disponible. Aucune demande n'a ete envoyee."
+      message: "La réinitialisation par email n'est pas encore disponible. Aucune demande n'a été envoyée."
     };
   }
 
@@ -382,7 +382,7 @@ export async function requestPasswordReset(emailInput: string) {
 
   const genericResult = {
     ok: true as const,
-    message: "Demande prise en compte. Si un compte correspond, consulte ta messagerie et tes courriers indesirables. Sans email, reessaie plus tard ou contacte le support.",
+    message: "Demande prise en compte. Si un compte correspond, consulte ta messagerie et tes courriers indésirables. Sans email, réessaie plus tard ou contacte le support.",
     resetToken: null as string | null
   };
   if (!await allowAuthRequest("reset", email)) return genericResult;
@@ -423,7 +423,7 @@ export async function requestPasswordReset(emailInput: string) {
 
   return {
     ok: true as const,
-    message: "Si un compte existe, le lien de reinitialisation est pret ci-dessous.",
+    message: "Si un compte existe, le lien de réinitialisation est prêt ci-dessous.",
     resetToken
   };
 }
@@ -474,7 +474,7 @@ export async function resetPasswordFromToken(input: { token: string; password: s
   if (password.length < 8) {
     return {
       ok: false as const,
-      message: "Le mot de passe doit contenir au moins 8 caracteres."
+      message: "Le mot de passe doit contenir au moins 8 caractères."
     };
   }
 
@@ -482,7 +482,7 @@ export async function resetPasswordFromToken(input: { token: string; password: s
   if (!record || record.user.isActive === false || record.usedAt || record.expiresAt.getTime() <= Date.now()) {
     return {
       ok: false as const,
-      message: "Le lien de reinitialisation n'est plus valide."
+      message: "Le lien de réinitialisation n'est plus valide."
     };
   }
 
@@ -513,7 +513,7 @@ export async function resetPasswordFromToken(input: { token: string; password: s
   });
 
   if (!user) {
-    return { ok: false as const, message: "Le lien de reinitialisation n'est plus valide." };
+    return { ok: false as const, message: "Le lien de réinitialisation n'est plus valide." };
   }
 
   await writeSessionCookie(user);

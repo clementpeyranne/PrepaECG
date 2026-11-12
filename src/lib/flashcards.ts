@@ -10,6 +10,7 @@ import { isDemoModeEnabled } from "./app-config";
 import { prisma } from "./db";
 import { deleteStoredFile, resolveDirectUpload } from "./storage";
 import { ensureDemoStudent } from "./student-app";
+import { getStudentSubjects } from "./student-subjects";
 
 export type FlashcardBrowserCard = {
   id: string;
@@ -190,10 +191,10 @@ function getStatusLabel(status: FlashcardStatus | null) {
   }
 
   if (status === FlashcardStatus.LAPSED) {
-    return "A revoir vite";
+    return "À revoir";
   }
 
-  return "Revision";
+  return "Révision";
 }
 
 function getNextReviewLabel(nextReviewAt: Date | null, status: FlashcardStatus | null) {
@@ -460,10 +461,10 @@ function getReviewOptions(input: {
     input.currentIntervalDays < 1;
 
   return [
-    { value: FlashcardRating.AGAIN, label: "A revoir" },
+    { value: FlashcardRating.AGAIN, label: "À revoir" },
     { value: FlashcardRating.HARD, label: "Difficile" },
     { value: FlashcardRating.MEDIUM, label: isEarlyLearning ? "Bien" : "Correct" },
-    { value: FlashcardRating.EASY, label: isEarlyLearning ? "Tres facile" : "Facile" }
+    { value: FlashcardRating.EASY, label: isEarlyLearning ? "Très facile" : "Facile" }
   ].map((option) => {
     const decision = getReviewDecision(
       option.value,
@@ -1756,6 +1757,8 @@ export async function importFlashcardArchive(
 
 export async function getFlashcardsOverviewData(): Promise<FlashcardsOverviewData> {
   const { user } = await ensureDemoFlashcards();
+  const curriculum = await getStudentSubjects(user.id);
+  const activeDecks = { ownerUserId: user.id, subject: { code: { in: curriculum.codes } } };
   const now = new Date();
 
   const [
@@ -1768,14 +1771,14 @@ export async function getFlashcardsOverviewData(): Promise<FlashcardsOverviewDat
     recentShares
   ] = await Promise.all([
     prisma.flashcardDeck.findMany({
-      where: { ownerUserId: user.id },
+      where: activeDecks,
       select: {
         id: true,
         title: true,
         parentDeckId: true,
         subject: {
           select: {
-            name: true
+            name: true, code: true
           }
         },
         chapter: {
@@ -1788,9 +1791,7 @@ export async function getFlashcardsOverviewData(): Promise<FlashcardsOverviewDat
     }),
     prisma.flashcard.findMany({
       where: {
-        deck: {
-          ownerUserId: user.id
-        }
+        deck: activeDecks
       },
       select: {
         id: true,
@@ -1810,9 +1811,7 @@ export async function getFlashcardsOverviewData(): Promise<FlashcardsOverviewDat
       where: {
         userId: user.id,
         flashcard: {
-          deck: {
-            ownerUserId: user.id
-          }
+          deck: activeDecks
         }
       },
       _count: { _all: true }
@@ -1822,12 +1821,12 @@ export async function getFlashcardsOverviewData(): Promise<FlashcardsOverviewDat
       where: {
         userId: user.id,
         rating: { not: FlashcardRating.AGAIN },
-        flashcard: { deck: { ownerUserId: user.id } }
+        flashcard: { deck: activeDecks }
       },
       _count: { _all: true }
     }),
     prisma.flashcard.findMany({
-      where: { deck: { ownerUserId: user.id } },
+      where: { deck: activeDecks },
       select: {
         id: true,
         deckId: true,
@@ -1836,7 +1835,7 @@ export async function getFlashcardsOverviewData(): Promise<FlashcardsOverviewDat
         deck: {
           select: {
             title: true,
-            subject: { select: { name: true } }
+            subject: { select: { name: true, code: true } }
           }
         },
         states: {
@@ -1848,11 +1847,13 @@ export async function getFlashcardsOverviewData(): Promise<FlashcardsOverviewDat
       take: 50
     }),
     prisma.subject.findMany({
+      where: { code: { in: curriculum.codes } },
       orderBy: { name: "asc" }
     }),
     prisma.flashcardShare.findMany({
       where: {
-        ownerUserId: user.id
+        ownerUserId: user.id,
+        rootDeck: { subject: { code: { in: curriculum.codes } } }
       },
       orderBy: {
         createdAt: "desc"
@@ -1919,7 +1920,7 @@ export async function getFlashcardsOverviewData(): Promise<FlashcardsOverviewDat
     return {
       id: deck.id,
       title: deck.title,
-      subject: deck.subject.name,
+      subject: curriculum.label(deck.subject.code),
       chapter: deck.chapter?.name ?? "Sans chapitre",
       parentDeckId: deck.parentDeckId,
       due: stats.due,
@@ -2039,7 +2040,7 @@ export async function getFlashcardsOverviewData(): Promise<FlashcardsOverviewDat
         deckId: card.deckId,
         deckTitle: card.deck.title,
         deckPath,
-        subject: card.deck.subject.name,
+        subject: curriculum.label(card.deck.subject.code),
         frontText: card.frontText,
         backText: card.backText,
         nextReviewLabel: getNextReviewLabel(state?.nextReviewAt ?? null, state?.status ?? null),
@@ -2095,7 +2096,7 @@ export async function getFlashcardsOverviewData(): Promise<FlashcardsOverviewDat
       .map((deck) => ({
         id: deck.id,
         title: getDeckPath(deck.id),
-        subject: deck.subject.name
+        subject: curriculum.label(deck.subject.code)
       }))
       .sort((left, right) =>
         `${left.subject} ${left.title}`.localeCompare(`${right.subject} ${right.title}`, "fr")
@@ -2104,7 +2105,7 @@ export async function getFlashcardsOverviewData(): Promise<FlashcardsOverviewDat
       .map((deck) => ({
         id: deck.id,
         title: getDeckPath(deck.id),
-        subject: deck.subject.name,
+        subject: curriculum.label(deck.subject.code),
         isRoot: !deck.parentDeckId
       }))
       .sort((left, right) =>
@@ -2121,7 +2122,7 @@ export async function getFlashcardsOverviewData(): Promise<FlashcardsOverviewDat
     })),
     subjectsForForms: subjectsForForms.map((subject) => ({
       code: subject.code,
-      name: subject.name
+      name: curriculum.label(subject.code)
     })),
     browserCards,
     browserTotal: stateCards.length
@@ -2136,11 +2137,12 @@ export async function getFlashcardBrowserPage(input: {
   deckId?: string;
 }) {
   const { user } = await ensureDemoFlashcards();
+  const curriculum = await getStudentSubjects(user.id);
   const query = input.query?.trim().slice(0, 120) ?? "";
   const offset = Math.max(0, Math.min(Math.trunc(input.offset ?? 0), 20_000));
   const deckId = input.deckId?.trim() || "";
   const where: Prisma.FlashcardWhereInput = {
-    deck: { ownerUserId: user.id },
+    deck: { ownerUserId: user.id, ...(!deckId ? { subject: { code: { in: curriculum.codes } } } : {}) },
     ...(deckId ? { deckId } : {})
   };
 
@@ -2164,7 +2166,7 @@ export async function getFlashcardBrowserPage(input: {
         deck: {
           select: {
             title: true,
-            subject: { select: { name: true } }
+            subject: { select: { name: true, code: true } }
           }
         },
         states: {
@@ -2204,7 +2206,7 @@ export async function getFlashcardBrowserPage(input: {
         deckId: card.deckId,
         deckTitle: card.deck.title,
         deckPath: getDeckPath(card.deckId) || card.deck.title,
-        subject: card.deck.subject.name,
+        subject: curriculum.label(card.deck.subject.code),
         frontText: card.frontText,
         backText: card.backText,
         nextReviewLabel: getNextReviewLabel(state?.nextReviewAt ?? null, state?.status ?? null),

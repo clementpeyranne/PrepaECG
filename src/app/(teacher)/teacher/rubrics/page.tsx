@@ -7,9 +7,9 @@ import { SectionCard } from "@/components/ui/section-card";
 import { getTeacherRubricsData } from "@/lib/essays";
 
 function getMessage(status: string | null) {
-  if (status === "created") return "La grille a ete creee.";
-  if (status === "already_exists") return "Cette grille existe deja.";
-  if (status === "invalid") return "Complete le titre, la matiere et au moins un critere.";
+  if (status === "created") return "La grille a été créée.";
+  if (status === "already_exists") return "Cette grille existe déjà.";
+  if (status === "invalid") return "Complete le titre, la matière et au moins un critere.";
   return null;
 }
 
@@ -31,7 +31,7 @@ export default async function TeacherRubricsPage({
           {message ? <p className="mb-4 rounded-2xl bg-sand p-4 text-sm text-pine">{message}</p> : null}
           <form action={createTeacherRubricAction} className="space-y-4">
             <label className="block">
-              <span className="mb-2 block text-sm font-medium text-pine">Matiere</span>
+              <span className="mb-2 block text-sm font-medium text-pine">Matière</span>
               <select name="subjectId" required className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm">
                 {data.subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.name}</option>)}
               </select>
@@ -41,16 +41,16 @@ export default async function TeacherRubricsPage({
               <input name="title" required placeholder="Ex. Dissertation ESH - BCE" className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm" />
             </label>
             <label className="block">
-              <span className="mb-2 block text-sm font-medium text-pine">Criteres, un par ligne</span>
-              <textarea name="criteria" required rows={6} placeholder={"Problematique\nStructure\nPrecision des connaissances"} className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm" />
+              <span className="mb-2 block text-sm font-medium text-pine">Critères, un par ligne</span>
+              <textarea name="criteria" required rows={6} placeholder={"Problématique\nStructure\nPrecision des connaissances"} className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm" />
             </label>
-            <PendingSubmitButton label="Creer la grille" pendingLabel="Creation..." className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-sand disabled:opacity-60" />
+            <PendingSubmitButton label="Créer la grille" pendingLabel="Création..." className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-sand disabled:opacity-60" />
           </form>
         </SectionCard>
 
-        <SectionCard eyebrow="Base pedagogique" title="Grilles existantes">
+        <SectionCard title="Grilles existantes">
           {data.rubrics.length === 0 ? (
-            <p className="rounded-2xl bg-sand p-5 text-sm text-pine">Aucune grille creee pour le moment.</p>
+            <p className="rounded-2xl bg-sand p-5 text-sm text-pine">Aucune grille créée pour le moment.</p>
           ) : (
             <div className="space-y-4">
               {data.rubrics.map((rubric) => (

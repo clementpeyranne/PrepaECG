@@ -54,9 +54,9 @@ export function AdaptiveOnboardingFields({
     if (ratio < 0.55) {
       return {
         score: 20,
-        title: "Charge tres insuffisante",
+        title: "Charge très insuffisante",
         message:
-          "Avec ces ecoles visees, le volume annonce semble trop faible. Il y a un vrai risque de decalage entre ambition et execution.",
+          "Le temps prévu semble faible pour ces objectifs. Ajuste-le en tenant compte des cours, des pauses et du sommeil.",
         tone: "bg-red-100 text-red-700"
       };
     }
@@ -66,7 +66,7 @@ export function AdaptiveOnboardingFields({
         score: 45,
         title: "Charge fragile",
         message:
-          "Le cadrage commence a exister, mais il risque d'etre trop leger pour soutenir l'objectif annonce sur la duree.",
+          "Le temps prévu reste limité pour ces objectifs. Vérifie qu'il permet de travailler toutes les matières régulièrement.",
         tone: "bg-amber-100 text-amber-700"
       };
     }
@@ -74,9 +74,9 @@ export function AdaptiveOnboardingFields({
     if (ratio <= 1.15) {
       return {
         score: 75,
-        title: "Charge plutot coherente",
+        title: "Charge plutôt cohérente",
         message:
-          "Le volume annonce semble globalement coherent avec les ecoles visees. L'enjeu sera ensuite la regularite et la qualite du travail.",
+          "Le temps prévu semble cohérent avec les objectifs choisis. La régularité et la qualité du travail restent essentielles.",
         tone: "bg-emerald-100 text-emerald-700"
       };
     }
@@ -85,7 +85,7 @@ export function AdaptiveOnboardingFields({
       score: 92,
       title: "Charge ambitieuse",
       message:
-        "Le volume annonce est ambitieux. Il peut convenir, a condition d'etre soutenable et correctement reparti entre les matieres.",
+        "Le temps prévu est important. Préserve les pauses et le sommeil, et répartis le travail entre toutes les matières.",
       tone: "bg-sky-100 text-sky-700"
     };
   }, [selectedBce, selectedEcricome, weekdayDailyHours, weekendDailyHours]);
@@ -111,13 +111,13 @@ export function AdaptiveOnboardingFields({
 
       <div className="grid gap-4 lg:grid-cols-2">
         <NumberField
-          label="Heures utiles visees par jour de semaine"
+          label="Heures utiles visées par jour de semaine"
           name="weekdayDailyHours"
           value={weekdayDailyHours}
           onChange={setWeekdayDailyHours}
         />
         <NumberField
-          label="Heures utiles visees par jour de week-end"
+          label="Heures utiles visées par jour de week-end"
           name="weekendDailyHours"
           value={weekendDailyHours}
           onChange={setWeekendDailyHours}
@@ -131,7 +131,7 @@ export function AdaptiveOnboardingFields({
             <p className="mt-2 max-w-3xl text-sm leading-7 text-pine/80">{guidance.message}</p>
           </div>
           <span className={`rounded-full px-3 py-2 text-xs font-semibold ${guidance.tone}`}>
-            Coherence {guidance.score}/100
+            Cohérence {guidance.score}/100
           </span>
         </div>
 
@@ -146,8 +146,8 @@ export function AdaptiveOnboardingFields({
           />
           <div className="mt-2 flex justify-between text-xs text-pine/60">
             <span>trop faible</span>
-            <span>coherent</span>
-            <span>tres ambitieux</span>
+            <span>cohérent</span>
+            <span>très ambitieux</span>
           </div>
         </div>
       </div>

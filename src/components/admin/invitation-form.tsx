@@ -25,14 +25,14 @@ export function AdminInvitationForm({ classes }: { classes: Array<{ id: string; 
         />
       </label>
       <label>
-        <span className="mb-2 block text-sm font-medium text-pine">Etablissement</span>
+        <span className="mb-2 block text-sm font-medium text-pine">Établissement</span>
         <select name="classId" required className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm">
           {classes.map((prepClass) => <option key={prepClass.id} value={prepClass.id}>{prepClass.name}</option>)}
         </select>
       </label>
       <PendingSubmitButton
-        label="Creer l'invitation"
-        pendingLabel="Creation..."
+        label="Créer l'invitation"
+        pendingLabel="Création..."
         disabled={classes.length === 0}
         className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-sand disabled:opacity-50"
       />

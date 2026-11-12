@@ -110,7 +110,7 @@ export async function resetPasswordAction(formData: FormData) {
   const confirmPassword = getString(formData, "confirmPassword");
 
   if (!token) {
-    redirectWithMessage("/reset-password", "Le lien de reinitialisation est incomplet.");
+    redirectWithMessage("/reset-password", "Le lien de réinitialisation est incomplet.");
   }
 
   if (!password || !confirmPassword) {

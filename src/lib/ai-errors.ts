@@ -8,5 +8,5 @@ export class AIServiceError extends Error {
 export function getAIErrorMessage(error: unknown) {
   return error instanceof AIServiceError
     ? error.message
-    : "L'analyse n'a pas abouti. Ton document est conserve. Reessaie dans quelques instants.";
+    : "L'analyse n'a pas abouti. Ton document est conserve. Réessaie dans quelques instants.";
 }

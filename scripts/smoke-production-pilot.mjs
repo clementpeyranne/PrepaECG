@@ -79,7 +79,7 @@ try {
 
   const signupPage = await getPage("/signup");
   if (!signupPage.ok) throw new Error(`La page d'inscription renvoie HTTP ${signupPage.status}.`);
-  const signupAction = findActionId(await signupPage.text(), "Creer mon compte");
+  const signupAction = findActionId(await signupPage.text(), "Créer un compte");
   if (!signupAction) throw new Error("Le formulaire d'inscription est introuvable.");
 
   const signup = new FormData();
@@ -169,7 +169,7 @@ try {
   }
 
   const dashboardPage = await getPage("/dashboard", cookie);
-  const logoutAction = findActionId(await dashboardPage.text(), "Se deconnecter");
+  const logoutAction = findActionId(await dashboardPage.text(), "Se déconnecter");
   if (!logoutAction) throw new Error("Le bouton de deconnexion est introuvable.");
   const logout = new FormData();
   logout.set(logoutAction, "");

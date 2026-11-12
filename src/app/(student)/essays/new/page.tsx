@@ -15,21 +15,21 @@ import { getFileStorageDriver, isDemoModeEnabled } from "@/lib/app-config";
 function getSubmissionMessage(status: string | null) {
   if (status === "submitted") {
     return {
-      text: "Copie bien deposee. Elle a ete enregistree une seule fois.",
+      text: "Copie bien déposée. Elle a été enregistrée une seule fois.",
       tone: "success" as const
     };
   }
 
   if (status === "already_submitted") {
     return {
-      text: "Cette copie etait deja enregistree. Aucun doublon n'a ete ajoute.",
+      text: "Cette copie était déjà enregistrée. Aucun doublon n'a été ajouté.",
       tone: "warning" as const
     };
   }
 
   if (status === "invalid") {
     return {
-      text: "Le depot n'a pas pu etre finalise. Verifie le titre et le fichier, puis recommence.",
+      text: "Le dépôt n'a pas pu être finalise. Vérifie le titre et le fichier, puis recommence.",
       tone: "error" as const
     };
   }
@@ -58,7 +58,7 @@ export default async function NewEssayPage({
     <div>
       <PageHeader title="Nouvelle copie" />
 
-      <SectionCard eyebrow="Soumission" title="Deposer un document">
+      <SectionCard eyebrow="Soumission" title="Déposer un document">
         {message ? (
           <div
             className={`mb-5 rounded-[20px] px-4 py-3 text-sm ${
@@ -92,7 +92,7 @@ export default async function NewEssayPage({
             <SubjectChapterFields subjects={data.subjects} chapters={data.chapters} />
 
             <label className="rounded-[22px] bg-sand p-4">
-              <span className="text-sm font-semibold">Type d'epreuve</span>
+              <span className="text-sm font-semibold">Type d'épreuve</span>
               <input
                 name="examType"
                 defaultValue="Dissertation"
@@ -110,7 +110,7 @@ export default async function NewEssayPage({
             </label>
 
             <label className="rounded-[22px] bg-sand p-4">
-              <span className="text-sm font-semibold">Correction souhaitee</span>
+              <span className="text-sm font-semibold">Correction souhaitée</span>
               <select
                 name="correctionMode"
                 defaultValue={!data.teachers.length && aiEnabled ? "ai_only" : aiEnabled ? "ai_then_teacher" : "teacher_only"}
@@ -135,21 +135,21 @@ export default async function NewEssayPage({
                     </option>
                   ))
                 ) : (
-                  <option value="">Aucun professeur disponible dans cette prepa</option>
+                  <option value="">Aucun professeur disponible dans cette prépa</option>
                 )}
               </select>
               <p className="mt-3 text-sm leading-7 text-pine/75">
-                Seuls les professeurs de ton etablissement apparaissent ici.
+                Seuls les professeurs de ton établissement apparaissent ici.
               </p>
             </label>
           </div>
 
           <label className="block rounded-[22px] bg-sand p-4">
-            <span className="text-sm font-semibold">Consignes eventuelles</span>
+            <span className="text-sm font-semibold">Consignes éventuelles</span>
             <textarea
               name="instructions"
               rows={3}
-              placeholder="Ex. Corrige surtout la methode, la problematique et l'usage des exemples."
+              placeholder="Ex. Corrige surtout la méthode, la problématique et l'usage des exemples."
               className="mt-3 w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm leading-7 outline-none transition focus:border-pine"
             />
           </label>
@@ -166,14 +166,14 @@ export default async function NewEssayPage({
 
           <PendingSubmitButton
             label="Envoyer la copie"
-            pendingLabel="Depot en cours..."
+            pendingLabel="Dépôt en cours..."
             disabled={isSubmitDisabled}
             className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-sand transition hover:bg-pine disabled:cursor-not-allowed disabled:opacity-60"
           />
 
           {isSubmitDisabled ? (
             <p className="text-sm text-clay">
-              Aucun professeur n'est encore disponible dans cette prepa pour recevoir la copie.
+              Aucun professeur n'est encore disponible dans cette prépa pour recevoir la copie.
             </p>
           ) : null}
         </DocumentUploadForm>

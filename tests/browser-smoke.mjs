@@ -23,22 +23,23 @@ try {
   await page.locator('[name="password"]').fill("test-password-123");
   await page.locator('[name="role"]').selectOption("teacher");
   await page.locator('[name="accessCode"]').fill("PREPA-A");
-  await page.getByRole("button", { name: "Creer mon compte" }).click();
-  await expect(page.getByText("Une invitation personnelle est necessaire pour creer un compte professeur.")).toBeVisible();
+  await page.locator('[name="legalAccepted"]').check();
+  await page.getByRole("button", { name: "Créer un compte" }).click();
+  await expect(page.getByText("Une invitation personnelle est nécessaire pour créer un compte professeur.")).toBeVisible();
   console.log("PASS: inscription professeur sans invitation refusee dans l'interface");
 
   await login("teacher@example.test", "test-password-123");
   await page.goto(`${base}/teacher/resources/new`);
-  await page.locator('[name="subjectCode"]').selectOption("ESH");
-  await expect(page.locator('[name="chapterId"] option')).toHaveCount(2);
-  await expect(page.locator('[name="chapterId"]')).toContainText("Croissance");
+  await page.locator('[name="subjectCode"]').selectOption("HGG");
+  await expect(page.locator('[name="chapterId"] option')).toHaveCount(3);
+  await expect(page.locator('[name="chapterId"]')).toContainText("Mondialisation");
   const title = `Cours navigateur ${Date.now()}`;
   await page.locator('[name="title"]').fill(title);
   await page.locator('[name="content"]').fill("La croissance est une augmentation durable de la production.");
   await page.getByRole("button", { name: "Publier la ressource" }).click();
-  await expect(page.getByText("Ressource publiee dans ta prepa.")).toBeVisible();
+  await expect(page.getByText("Ressource publiée dans ta prépa.")).toBeVisible({ timeout: 15000 });
   console.log("PASS: selection matiere/chapitre et publication avec confirmation");
-  await page.getByRole("button", { name: "Se deconnecter" }).click();
+  await page.getByRole("button", { name: "Se déconnecter" }).click();
   await expect(page).toHaveURL(/\/login/);
 
   await login("student@example.test", "new-password-123");
@@ -50,17 +51,20 @@ try {
 
   await page.goto(`${base}/flashcards`);
   await expect(page.getByRole("heading", { name: "Flashcards", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Se deconnecter" }).click();
+  await page.getByRole("button", { name: "Se déconnecter" }).click();
   await login("student-b@example.test", "test-password-123");
   await page.goto(`${base}/resources`);
   await expect(page.getByText(title, { exact: true })).toHaveCount(0);
   console.log("PASS: cours absent pour un eleve d'une autre prepa");
-  await page.getByRole("button", { name: "Se deconnecter" }).click();
+  await page.getByRole("button", { name: "Se déconnecter" }).click();
   await page.goto(`${base}/forgot-password`);
-  await expect(page.getByText("La reinitialisation automatique par email n'est pas encore disponible.")).toBeVisible();
+  await expect(page.getByText("La réinitialisation automatique par email n'est pas encore disponible.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Recevoir le lien par email" })).toHaveCount(0);
   if (errors.length) throw new Error(errors.join("\n"));
   console.log("PASS: interface honnête sans fournisseur email, aucune erreur JavaScript");
+} catch (error) {
+  console.error("Failed at:", page.url(), "Browser errors:", errors);
+  throw error;
 } finally {
   await browser.close();
 }

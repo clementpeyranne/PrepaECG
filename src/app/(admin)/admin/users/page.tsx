@@ -24,7 +24,7 @@ export default async function AdminUsersPage({
           <input name="q" defaultValue={query} placeholder="Nom ou email" className="rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm" />
           <select name="role" defaultValue={role} className="rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm">
             <option value="">Tous les roles</option>
-            <option value="STUDENT">Eleves</option>
+            <option value="STUDENT">Élèves</option>
             <option value="TEACHER">Professeurs</option>
             <option value="ADMIN">Administrateurs</option>
           </select>
@@ -40,8 +40,8 @@ export default async function AdminUsersPage({
           <table className="min-w-[1160px] w-full text-left text-sm">
             <thead className="border-b border-ink/8 bg-sand/70 text-xs uppercase tracking-[0.14em] text-pine/60">
               <tr>
-                <th className="px-4 py-3">Compte</th><th className="px-4 py-3">Role</th><th className="px-4 py-3">Etablissement</th>
-                <th className="px-4 py-3">Derniere connexion</th><th className="px-4 py-3">CGU</th><th className="px-4 py-3">Connexions</th><th className="px-4 py-3">Contenus</th><th className="px-4 py-3">Action</th>
+                <th className="px-4 py-3">Compte</th><th className="px-4 py-3">Role</th><th className="px-4 py-3">Établissement</th>
+                <th className="px-4 py-3">Dernière connexion</th><th className="px-4 py-3">CGU</th><th className="px-4 py-3">Connexions</th><th className="px-4 py-3">Contenus</th><th className="px-4 py-3">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-ink/6 bg-white/60">
@@ -55,12 +55,12 @@ export default async function AdminUsersPage({
                   <td className="px-4 py-4">{user.loginCount}</td>
                   <td className="px-4 py-4">{user.contentCount}</td>
                   <td className="px-4 py-4">
-                    {user.role === "ADMIN" ? <span className="text-xs text-pine/55">Protege</span> : (
+                    {user.role === "ADMIN" ? <span className="text-xs text-pine/55">Protégé</span> : (
                       <form action={setUserActiveAction}>
                         <input type="hidden" name="userId" value={user.id} />
                         <input type="hidden" name="isActive" value={String(!user.isActive)} />
                         <PendingSubmitButton
-                          label={user.isActive ? "Suspendre" : "Reactiver"}
+                          label={user.isActive ? "Suspendre" : "Réactiver"}
                           pendingLabel="Patiente..."
                           className={`rounded-full px-4 py-2 text-xs font-semibold ${user.isActive ? "bg-clay/10 text-clay" : "bg-moss/15 text-pine"}`}
                         />

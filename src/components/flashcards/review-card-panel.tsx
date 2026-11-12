@@ -34,8 +34,8 @@ export function ReviewCardPanel({ deckId, card, reviewOptions, planningEntryId =
   if (!card) {
     return (
       <div className="rounded-[32px] bg-ink p-8 text-sand shadow-panel">
-        <p className="text-xs uppercase tracking-[0.25em] text-sand/55">Revision</p>
-        <h2 className="mt-3 font-display text-3xl">File vide</h2>
+        <p className="text-xs uppercase tracking-[0.25em] text-sand/55">Révision</p>
+        <h2 className="mt-3 font-display text-3xl">Aucune carte à réviser pour le moment</h2>
         <p className="mt-4 text-sm leading-7 text-sand/82">
           Aucune carte n'est due dans ce deck pour l'instant. Tu peux ajouter de nouvelles cartes
           ou revenir plus tard.
@@ -46,8 +46,8 @@ export function ReviewCardPanel({ deckId, card, reviewOptions, planningEntryId =
 
   return (
     <div className="rounded-[32px] bg-ink p-8 text-sand shadow-panel">
-      <p className="text-xs uppercase tracking-[0.25em] text-sand/55">Revision</p>
-      <h2 className="mt-3 font-display text-4xl">Carte du moment</h2>
+      <p className="text-xs uppercase tracking-[0.25em] text-sand/55">Révision</p>
+      <h2 className="mt-3 font-display text-4xl">Carte à réviser</h2>
 
       <div className="mt-6 rounded-[28px] bg-white/10 p-6 md:p-8">
         <p className="text-xs uppercase tracking-[0.25em] text-sand/55">Question</p>
@@ -58,7 +58,7 @@ export function ReviewCardPanel({ deckId, card, reviewOptions, planningEntryId =
 
       {showAnswer ? (
         <div className="mt-4 rounded-[28px] bg-white/10 p-6 md:p-8">
-          <p className="text-xs uppercase tracking-[0.25em] text-sand/55">Reponse</p>
+          <p className="text-xs uppercase tracking-[0.25em] text-sand/55">Réponse</p>
           <div className="mt-5 text-lg text-sand/88 md:text-xl">
             <FlashcardRichContent value={card.backText} />
           </div>
@@ -72,7 +72,7 @@ export function ReviewCardPanel({ deckId, card, reviewOptions, planningEntryId =
             onClick={() => setShowAnswer(true)}
             className="rounded-full bg-clay px-6 py-3 text-sm font-semibold text-white transition hover:bg-clay/90"
           >
-            Afficher la reponse
+            Afficher la réponse
           </button>
         ) : (
           <form action={reviewCardAction} className="space-y-4">
@@ -117,7 +117,7 @@ function RatingButton({
     >
       <p className="text-sm font-semibold">{pending ? "..." : label}</p>
       <p className="mt-2 text-xs uppercase tracking-[0.18em] text-sand/55">
-        Reproposee dans {nextReviewLabel}
+        Prochaine révision : {nextReviewLabel}
       </p>
     </button>
   );

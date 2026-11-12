@@ -39,27 +39,27 @@ export default async function ForgotPasswordPage({
       <div className="mx-auto flex min-h-screen max-w-6xl items-center px-4 py-8 lg:px-8">
         <div className="grid w-full gap-6 lg:grid-cols-[1.05fr_0.95fr]">
           <section className="panel-dark rounded-[36px] p-8 text-sand shadow-panel lg:p-10">
-            <p className="text-xs uppercase tracking-[0.35em] text-sand/55">Recuperation</p>
+            <p className="text-xs uppercase tracking-[0.35em] text-sand/55">Récupération</p>
             <h1 className="mt-4 font-display text-5xl leading-tight lg:text-6xl">
-              Recuperer l'acces a ton compte.
+              Récupérer l'accès a ton compte.
             </h1>
             <p className="mt-6 max-w-2xl text-base leading-8 text-sand/78">
               {resetMode === "direct-link"
-                ? "Entre ton email pour reinitialiser ton compte de demonstration."
+                ? "Entre ton email pour réinitialiser ton compte de demonstration."
                 : emailEnabled ? "Indique ton email pour recevoir un lien valable une heure."
-                : "La reinitialisation automatique par email n'est pas encore disponible."}
+                : "La réinitialisation automatique par email n'est pas encore disponible."}
             </p>
 
             <div className="mt-10 rounded-[24px] bg-sand/8 p-5 text-sm leading-7 text-sand/82">
               {resetMode === "direct-link"
-                ? "Ce lien est reserve aux essais en local, sans envoi d'email."
-                : "Ne communique jamais ton mot de passe, meme au support."}
+                ? "Ce lien est réservé aux essais en local, sans envoi d'email."
+                : "Ne communique jamais ton mot de passe, même au support."}
             </div>
           </section>
 
           <section className="rounded-[32px] border border-white/70 bg-white/82 p-6 shadow-panel lg:p-8">
             <p className="text-xs uppercase tracking-[0.25em] text-pine/55">Mot de passe</p>
-            <h2 className="mt-3 font-display text-3xl text-ink">Reinitialiser</h2>
+            <h2 className="mt-3 font-display text-3xl text-ink">Réinitialiser</h2>
 
             {message ? (
               <div className="mt-5 rounded-[20px] border border-clay/15 bg-clay/10 px-4 py-3 text-sm text-clay">
@@ -84,20 +84,20 @@ export default async function ForgotPasswordPage({
                 type="submit"
                 className="w-full rounded-full bg-ink px-5 py-3 text-sm font-semibold text-sand transition hover:bg-pine"
               >
-                {emailEnabled ? "Recevoir le lien par email" : "Generer un lien"}
+                {emailEnabled ? "Recevoir le lien par email" : "Générer un lien"}
               </button>
             </form> : (
               <p className="mt-6 text-sm leading-7 text-pine/80">
                 {supportEmail ? <>
                   Pour obtenir de l'aide, contacte <a className="font-semibold underline" href={`mailto:${encodeURIComponent(supportEmail)}`}>{supportEmail}</a>.
                 </> : "Contacte le responsable de la plateforme pour obtenir de l'aide."}
-                {" "}Aucun email de reinitialisation n'a ete envoye depuis cette page.
+                {" "}Aucun email de réinitialisation n'a été envoyé depuis cette page.
               </p>
             )}
 
             {resetLink ? (
               <div className="mt-5 rounded-[20px] border border-pine/15 bg-pine/8 px-4 py-4 text-sm text-pine">
-                <p className="font-semibold text-ink">Lien pret</p>
+                <p className="font-semibold text-ink">Lien prêt</p>
                 <a className="mt-2 block break-all text-sm text-pine transition hover:text-ink" href={resetLink}>
                   {resetLink}
                 </a>
@@ -106,7 +106,7 @@ export default async function ForgotPasswordPage({
 
             <div className="mt-6 flex flex-col gap-3">
               <Link href="/login" className="text-sm font-semibold text-ink transition hover:text-pine">
-                Retour a la connexion
+                Retour à la connexion
               </Link>
               <PublicFooterLinks />
             </div>

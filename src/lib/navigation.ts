@@ -14,13 +14,13 @@ export const studentNavigation: NavItem[] = [
   { href: "/annales", label: "Annales de maths" },
   { href: "/essays", label: "Copies" },
   { href: "/assistant", label: "Assistant IA" },
-  { href: "/actualites", label: "Actualites" },
+  { href: "/actualites", label: "Actualités" },
   { href: "/progress", label: "Progression" }
 ];
 
 export const teacherNavigation: NavItem[] = [
   { href: "/teacher/resources", label: "Ressources" },
-  { href: "/teacher/resources/new", label: "Nouveau depot" },
+  { href: "/teacher/resources/new", label: "Nouveau dépôt" },
   { href: "/teacher/essays", label: "Copies" },
   { href: "/teacher/grades", label: "Notes" },
   { href: "/teacher/rubrics", label: "Grilles" }
@@ -29,7 +29,7 @@ export const teacherNavigation: NavItem[] = [
 export const adminNavigation: NavItem[] = [
   { href: "/admin", label: "Vue d'ensemble" },
   { href: "/admin/users", label: "Utilisateurs" },
-  { href: "/admin/establishments", label: "Etablissements" },
+  { href: "/admin/establishments", label: "Établissements" },
   { href: "/admin/activity", label: "Connexions" },
-  { href: "/admin/system", label: "Systeme" }
+  { href: "/admin/system", label: "Système" }
 ];

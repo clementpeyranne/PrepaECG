@@ -23,7 +23,8 @@ for (const [email, password, expectedCourse] of [
   const cookie = await login(email, password);
   const response = await fetch(`${base}/resources`, { headers: { Cookie: cookie } });
   assert.equal(response.status, 200);
-  assert.equal((await response.text()).includes("Cours ESH"), expectedCourse);
+  // This fixture now follows HGG: legacy ESH documents remain saved but are not suggested.
+  assert.equal((await response.text()).includes("Cours ESH"), false);
   console.log(`PASS: connexion serveur et isolation des ressources pour ${email}`);
   if (expectedCourse) {
     for (const route of ["/dashboard", "/planning", "/flashcards", "/resources", "/essays", "/assistant", "/actualites", "/progress", "/onboarding"]) {

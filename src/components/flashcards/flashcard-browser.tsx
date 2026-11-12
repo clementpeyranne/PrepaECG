@@ -93,7 +93,7 @@ export function FlashcardBrowser({
         setRemoteTotal(result.total);
       } catch {
         if (!controller.signal.aborted) {
-          setLoadError("La recherche n'a pas pu aboutir. Reessaie dans quelques secondes.");
+          setLoadError("La recherche n'a pas pu aboutir. Réessaie dans quelques secondes.");
         }
       } finally {
         if (!controller.signal.aborted) setIsLoading(false);
@@ -135,7 +135,7 @@ export function FlashcardBrowser({
       setRemoteCards((current) => [...current, ...result.cards]);
       setRemoteTotal(result.total);
     } catch {
-      setLoadError("Les cartes suivantes n'ont pas pu etre chargees.");
+      setLoadError("Les cartes suivantes n'ont pas pu être chargees.");
     } finally {
       setIsLoading(false);
     }
@@ -145,11 +145,11 @@ export function FlashcardBrowser({
     <div className="rounded-[28px] border border-white/80 bg-white p-5 shadow-panel">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.25em] text-pine/55">Navigateur</p>
+          <p className="text-xs uppercase tracking-[0.25em] text-pine/55">Cartes</p>
           <h2 className="mt-3 font-display text-2xl text-ink">{title}</h2>
           {description ? <p className="mt-2 text-sm leading-6 text-pine/75">{description}</p> : null}
           <p className="mt-3 text-xs uppercase tracking-[0.18em] text-pine/55">
-            {visibleCards.length} sur {resultTotal} carte{resultTotal > 1 ? "s" : ""} affichee
+            {visibleCards.length} sur {resultTotal} carte{resultTotal > 1 ? "s" : ""} affichée
             {visibleCards.length > 1 ? "s" : ""}
             {isLoading ? " - chargement..." : ""}
           </p>
@@ -159,7 +159,7 @@ export function FlashcardBrowser({
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Question, reponse, deck, matiere..."
+            placeholder="Question, réponse, deck, matière..."
             className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm outline-none transition focus:border-pine"
           />
         </label>
@@ -174,7 +174,7 @@ export function FlashcardBrowser({
 
         {!isLoading && visibleCards.length === 0 ? (
           <div className="rounded-2xl bg-sand p-5 text-sm text-pine/75">
-            Aucune carte ne correspond a la recherche.
+            Aucune carte ne correspond à la recherche.
           </div>
         ) : (
           visibleCards.map((card) => (
@@ -187,7 +187,7 @@ export function FlashcardBrowser({
                       className="max-h-[5.75rem] overflow-hidden text-base font-semibold leading-7 text-ink [&_p]:my-0 [&_mjx-container]:inline-block [&_mjx-container]:max-w-full [&_mjx-container]:align-middle"
                     />
                     <p className="mt-1 text-sm text-pine/75">
-                      {card.deckPath ?? card.deckTitle ?? "Deck"} - {card.subject ?? "Matiere"} - {card.statusLabel}
+                      {card.deckPath ?? card.deckTitle ?? "Deck"} - {card.subject ?? "Matière"} - {card.statusLabel}
                     </p>
                   </div>
                   <span className="rounded-full bg-white px-3 py-1 text-xs text-pine">

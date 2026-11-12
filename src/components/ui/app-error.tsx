@@ -18,14 +18,14 @@ export function AppError({ error, reset }: AppErrorProps) {
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-coral">Incident temporaire</p>
         <h1 className="mt-3 text-2xl font-semibold text-pine">Cette page n'a pas pu se charger.</h1>
         <p className="mt-3 text-sm leading-6 text-pine/70">
-          Tes donnees sont conservees. Relance simplement la page pour reprendre ton travail.
+          Tes données sont conservées. Relance simplement la page pour reprendre ton travail.
         </p>
         <button
           className="mt-6 rounded-full bg-pine px-5 py-3 text-sm font-semibold text-white transition hover:bg-pine/90"
           onClick={reset}
           type="button"
         >
-          Reessayer
+          Réessayer
         </button>
       </div>
     </div>

@@ -12,21 +12,19 @@ import { getFileStorageDriver } from "@/lib/app-config";
 export default async function TeacherNewResourcePage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
   const data = await getTeacherResourcesData();
   const status = (await searchParams)?.status;
-  const message = status === "created" ? "Ressource publiee dans ta prepa."
-    : status === "already_exists" ? "Cette ressource est deja enregistree. Aucun doublon n'a ete cree."
-    : status === "invalid" ? "Depot non enregistre. Verifie la matiere, le chapitre et le fichier, puis reessaie." : null;
+  const message = status === "created" ? "Ressource publiée dans ta prépa."
+    : status === "already_exists" ? "Cette ressource est déjà enregistrée. Aucun doublon n'a été créé."
+    : status === "invalid" ? "Dépôt non enregistré. Vérifie la matière, le chapitre et le fichier, puis réessaie." : null;
 
   return (
     <div>
       <PageHeader
-        title="Nouveau depot"
-        description="Ajouter une ressource a la classe."
+        title="Nouveau dépôt"
       />
 
       <SectionCard
         eyebrow="Formulaire"
         title="Ajouter une ressource"
-        description="Cours, fiche, exercice ou correction."
       >
         {message ? <p role="status" className="mb-5 rounded-2xl bg-sand p-4 text-sm">{message}</p> : null}
         <DocumentUploadForm action={createTeacherResourceAction} folder="resources" cloud={getFileStorageDriver() === "supabase"}>
@@ -54,7 +52,7 @@ export default async function TeacherNewResourcePage({ searchParams }: { searchP
                 <option value="SUMMARY">Fiche</option>
                 <option value="EXERCISE">Exercice</option>
                 <option value="CORRECTION">Correction</option>
-                <option value="METHOD">Methode</option>
+                <option value="METHOD">Méthode</option>
                 <option value="REPORT">Rapport</option>
               </select>
             </label>
@@ -65,7 +63,7 @@ export default async function TeacherNewResourcePage({ searchParams }: { searchP
             <textarea
               name="description"
               rows={3}
-              placeholder="Quelques lignes pour aider l'eleve a comprendre ce qu'il va trouver."
+              placeholder="Quelques lignes pour aider l'élève a comprendre ce qu'il va trouver."
               className="mt-3 w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-pine"
             />
           </label>
@@ -89,18 +87,18 @@ export default async function TeacherNewResourcePage({ searchParams }: { searchP
               className="mt-3 block w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-pine/80 file:mr-4 file:rounded-full file:border-0 file:bg-ink file:px-4 file:py-2 file:text-sm file:font-semibold file:text-sand"
             />
             <p className="mt-3 text-xs leading-6 text-pine/70">
-              Tu peux deposer un PDF, une image ou un fichier texte. Il faut remplir au moins l'un
+              Tu peux déposer un PDF, une image ou un fichier texte. Il faut remplir au moins l'un
               des deux champs : texte ou fichier.
             </p>
           </label>
 
           <label className="flex items-center gap-3 rounded-[22px] bg-mist px-4 py-4 text-sm text-pine/85">
             <input type="checkbox" name="aiEnabled" defaultChecked className="size-4 rounded border-ink/20" />
-            Autoriser les actions IA pour les eleves sur cette ressource
+            Autoriser les actions IA pour les élèves sur cette ressource
           </label>
 
           <div className="grid gap-3 md:grid-cols-3">
-            {["Resume IA", "Creation de fiches", "Generation de flashcards"].map((option) => (
+            {["Résumé IA", "Création de fiches", "Génération de flashcards"].map((option) => (
               <div key={option} className="rounded-[22px] bg-mist p-4 text-sm text-pine/85">
                 {option}
               </div>

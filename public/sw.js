@@ -35,7 +35,7 @@ self.addEventListener("fetch", (event) => {
       return await fetch(request);
     } catch {
       const cache = await caches.open(CACHE_NAME);
-      return await cache.match(OFFLINE_URL) || new Response("Connexion Internet necessaire.", {
+      return await cache.match(OFFLINE_URL) || new Response("Connexion Internet nécessaire.", {
         status: 503,
         headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" }
       });

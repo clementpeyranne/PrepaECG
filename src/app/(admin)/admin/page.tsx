@@ -14,7 +14,7 @@ export default async function AdminDashboardPage() {
       <AdminStatGrid stats={data.stats} />
 
       <div className="mt-5 grid gap-5 xl:grid-cols-[1.45fr_0.55fr]">
-        <SectionCard title="Activite recente">
+        <SectionCard title="Activité récente">
           <AuthEventTable events={data.recentEvents} />
           <Link href="/admin/activity" className="mt-5 inline-flex text-sm font-semibold text-pine underline decoration-pine/30 underline-offset-4">
             Ouvrir tout le journal

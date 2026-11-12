@@ -27,8 +27,8 @@ export async function sendRecoveryEmail(email: string, token: string, requestId:
     body: JSON.stringify({
       from: process.env.EMAIL_FROM!.trim(),
       to: [email],
-      subject: "Prepa ECG - Reinitialiser ton mot de passe",
-      text: `Pour choisir un nouveau mot de passe, ouvre ce lien :\n\n${link.href}\n\nCe lien est valable une heure et ne peut servir qu'une fois.\nSi tu n'as pas demande ce changement, ignore cet email. Ton mot de passe reste inchange.`
+      subject: "Prépatempo - Réinitialiser le mot de passe",
+      text: `Pour choisir un nouveau mot de passe, ouvre ce lien :\n\n${link.href}\n\nCe lien est valable une heure et ne peut servir qu'une fois.\nSi tu n'as pas demandé ce changement, ignore cet email. Ton mot de passe reste inchangé.`
     }),
     signal: AbortSignal.timeout(10000)
   });

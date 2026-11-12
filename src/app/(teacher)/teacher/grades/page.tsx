@@ -7,9 +7,9 @@ import { SectionCard } from "@/components/ui/section-card";
 import { getTeacherGradeEntryData } from "@/lib/student-app";
 
 function getMessage(status: string | null) {
-  if (status === "created") return "La note a ete ajoutee a la progression de l'eleve.";
-  if (status === "already_exists") return "Cette note etait deja enregistree. Aucun doublon n'a ete cree.";
-  if (status === "invalid") return "La note n'a pas pu etre enregistree. Verifie les informations.";
+  if (status === "created") return "La note a été ajoutee à la progression de l'élève.";
+  if (status === "already_exists") return "Cette note était déjà enregistrée. Aucun doublon n'a été créé.";
+  if (status === "invalid") return "La note n'a pas pu être enregistrée. Vérifie les informations.";
   return null;
 }
 
@@ -29,24 +29,24 @@ export default async function TeacherGradesPage({
       <SectionCard eyebrow="Progression" title="Ajouter une note">
         {message ? <p className="mb-5 rounded-2xl bg-sand p-4 text-sm text-pine">{message}</p> : null}
         {data.students.length === 0 ? (
-          <p className="rounded-2xl bg-sand p-5 text-sm text-pine">Aucun eleve n'est encore rattache a cet etablissement.</p>
+          <p className="rounded-2xl bg-sand p-5 text-sm text-pine">Aucun élève n'est encore rattaché a cet établissement.</p>
         ) : (
           <form action={createTeacherGradeAction} className="grid gap-4 md:grid-cols-2">
             <label>
-              <span className="mb-2 block text-sm font-medium text-pine">Eleve</span>
+              <span className="mb-2 block text-sm font-medium text-pine">Élève</span>
               <select name="studentId" required className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm">
                 {data.students.map((student) => <option key={student.id} value={student.id}>{student.label}</option>)}
               </select>
             </label>
             <label>
-              <span className="mb-2 block text-sm font-medium text-pine">Matiere</span>
+              <span className="mb-2 block text-sm font-medium text-pine">Matière</span>
               <select name="subjectId" required className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm">
                 {data.subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.name}</option>)}
               </select>
             </label>
             <label>
-              <span className="mb-2 block text-sm font-medium text-pine">Evaluation</span>
-              <input name="title" required placeholder="Ex. DS de probabilites" className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm" />
+              <span className="mb-2 block text-sm font-medium text-pine">Évaluation</span>
+              <input name="title" required placeholder="Ex. DS de probabilités" className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm" />
             </label>
             <label>
               <span className="mb-2 block text-sm font-medium text-pine">Note sur 20</span>
@@ -57,9 +57,9 @@ export default async function TeacherGradesPage({
               <input name="capturedAt" type="date" defaultValue={new Date().toISOString().slice(0, 10)} required className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm" />
             </label>
             <label>
-              <span className="mb-2 block text-sm font-medium text-pine">Categorie</span>
+              <span className="mb-2 block text-sm font-medium text-pine">Catégorie</span>
               <select name="sourceType" className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm">
-                <option value="teacher_entry">Controle / devoir</option>
+                <option value="teacher_entry">Contrôle / devoir</option>
                 <option value="mock_exam">Concours blanc</option>
               </select>
             </label>

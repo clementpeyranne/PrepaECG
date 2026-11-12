@@ -18,7 +18,7 @@ export function PlanningCalendar({ week }: { week: PlanningDay[] }) {
   const [view, setView] = useState<"week" | "day">("week");
   const [selectedIndex, setSelectedIndex] = useState(todayIndex);
   const selectedDay = week[selectedIndex] ?? week[todayIndex];
-  if (!selectedDay) return <p className="text-sm text-pine">Aucun bloc prevu cette semaine.</p>;
+  if (!selectedDay) return <p className="text-sm text-pine">Aucun bloc prévu cette semaine.</p>;
 
   function openDay(index: number) {
     setSelectedIndex(index);
@@ -62,7 +62,7 @@ export function PlanningCalendar({ week }: { week: PlanningDay[] }) {
                     <span className={`mt-1 block break-words ${day.isToday ? "text-sand/80" : "text-pine/75"}`}>{entry.title}</span>
                   </span>
                 ))}
-                {!day.entries.length ? <span className="block">Aucun bloc prevu</span> : null}
+                {!day.entries.length ? <span className="block">Aucun bloc prévu</span> : null}
               </span>
             </button>
           ))}
@@ -85,7 +85,7 @@ export function PlanningCalendar({ week }: { week: PlanningDay[] }) {
               <p className="mt-1 text-sm text-pine" role="status">{completed} / {selectedDay.entries.length} blocs valides</p>
             </div>
             <div className="flex items-center gap-1">
-              <button type="button" aria-label="Jour precedent" disabled={selectedIndex === 0} onClick={() => setSelectedIndex((index) => index - 1)}
+              <button type="button" aria-label="Jour précédent" disabled={selectedIndex === 0} onClick={() => setSelectedIndex((index) => index - 1)}
                 className={`flex size-11 items-center justify-center rounded-full hover:bg-mist disabled:opacity-30 ${focusRing}`}><ChevronLeft size={18} /></button>
               <button type="button" onClick={() => setSelectedIndex(todayIndex)} className={`min-h-11 rounded-full px-3 text-sm hover:bg-mist ${focusRing}`}>Aujourd'hui</button>
               <button type="button" aria-label="Jour suivant" disabled={selectedIndex === week.length - 1} onClick={() => setSelectedIndex((index) => index + 1)}

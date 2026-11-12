@@ -19,12 +19,12 @@ type ResourcesExplorerProps = {
 
 export function ResourcesExplorer({ resources }: ResourcesExplorerProps) {
   const [search, setSearch] = useState("");
-  const [subject, setSubject] = useState("Toutes les matieres");
+  const [subject, setSubject] = useState("Toutes les matières");
   const [teacher, setTeacher] = useState("Tous les profs");
   const [chapter, setChapter] = useState("Tous les chapitres");
   const [type, setType] = useState("Tous les types");
 
-  const subjects = useMemo(() => ["Toutes les matieres", ...uniqueValues(resources, "subject")], []);
+  const subjects = useMemo(() => ["Toutes les matières", ...uniqueValues(resources, "subject")], []);
   const teachers = useMemo(() => ["Tous les profs", ...uniqueValues(resources, "teacher")], []);
   const chapters = useMemo(() => ["Tous les chapitres", ...uniqueValues(resources, "chapter")], []);
   const types = useMemo(() => ["Tous les types", ...uniqueValues(resources, "type")], []);
@@ -40,7 +40,7 @@ export function ResourcesExplorer({ resources }: ResourcesExplorerProps) {
           .toLowerCase()
           .includes(query);
 
-      const matchesSubject = subject === "Toutes les matieres" || resource.subject === subject;
+      const matchesSubject = subject === "Toutes les matières" || resource.subject === subject;
       const matchesTeacher = teacher === "Tous les profs" || resource.teacher === teacher;
       const matchesChapter = chapter === "Tous les chapitres" || resource.chapter === chapter;
       const matchesType = type === "Tous les types" || resource.type === type;
@@ -52,14 +52,13 @@ export function ResourcesExplorer({ resources }: ResourcesExplorerProps) {
   return (
     <div className="space-y-5">
       <SectionCard
-        eyebrow="Cloud"
-        title="Bibliotheque par matiere"
+        title="Matières"
         accent="soft"
       >
         <div className="flex flex-wrap gap-3">
           {subjects.map((option) => {
             const count =
-              option === "Toutes les matieres"
+              option === "Toutes les matières"
                 ? resources.length
                 : resources.filter((resource) => resource.subject === option).length;
 
@@ -83,21 +82,20 @@ export function ResourcesExplorer({ resources }: ResourcesExplorerProps) {
 
       <div>
         <SectionCard
-          eyebrow="Recherche"
-          title="Filtres rapides"
+          title="Recherche"
         >
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             <label className="md:col-span-2 xl:col-span-3">
-              <span className="mb-2 block text-sm font-medium text-pine/80">Recherche libre</span>
+              <span className="mb-2 block text-sm font-medium text-pine/80">Rechercher un document</span>
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Ex. probabilites, Mme Laurent, dissertation..."
+                placeholder="Ex. probabilités, Mme Laurent, dissertation..."
                 className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm outline-none transition focus:border-pine"
               />
             </label>
 
-            <SelectFilter label="Matiere" value={subject} options={subjects} onChange={setSubject} />
+            <SelectFilter label="Matière" value={subject} options={subjects} onChange={setSubject} />
             <SelectFilter label="Prof" value={teacher} options={teachers} onChange={setTeacher} />
             <SelectFilter label="Chapitre" value={chapter} options={chapters} onChange={setChapter} />
             <SelectFilter label="Type" value={type} options={types} onChange={setType} />
@@ -106,22 +104,21 @@ export function ResourcesExplorer({ resources }: ResourcesExplorerProps) {
               type="button"
               onClick={() => {
                 setSearch("");
-                setSubject("Toutes les matieres");
+                setSubject("Toutes les matières");
                 setTeacher("Tous les profs");
                 setChapter("Tous les chapitres");
                 setType("Tous les types");
               }}
               className="self-end rounded-2xl bg-ink px-4 py-3 text-sm font-medium text-sand transition hover:bg-pine"
             >
-              Reinitialiser
+              Réinitialiser
             </button>
           </div>
         </SectionCard>
       </div>
 
       <SectionCard
-        eyebrow="Bibliotheque"
-        title={`${filteredResources.length} document${filteredResources.length > 1 ? "s" : ""} affiche${filteredResources.length > 1 ? "s" : ""}`}
+        title={`Documents (${filteredResources.length})`}
       >
         {filteredResources.length === 0 ? (
           <div className="rounded-[24px] bg-sand p-8 text-center text-sm text-pine/75">
@@ -151,7 +148,7 @@ export function ResourcesExplorer({ resources }: ResourcesExplorerProps) {
                   {resource.aiEnabled ? (
                     <>
                       <span className="rounded-full border border-ink/10 bg-sand px-3 py-1 text-xs text-pine/80">
-                        Resume IA
+                        Résumé IA
                       </span>
                       <span className="rounded-full border border-ink/10 bg-sand px-3 py-1 text-xs text-pine/80">
                         Fiche
@@ -162,7 +159,7 @@ export function ResourcesExplorer({ resources }: ResourcesExplorerProps) {
                     </>
                   ) : null}
                   <span className="rounded-full bg-mist px-3 py-1 text-xs text-pine">
-                    {resource.generatedOutputs} sortie{resource.generatedOutputs > 1 ? "s" : ""} generee
+                    {resource.generatedOutputs} sortie{resource.generatedOutputs > 1 ? "s" : ""} générée
                     {resource.generatedOutputs > 1 ? "s" : ""}
                   </span>
                 </div>

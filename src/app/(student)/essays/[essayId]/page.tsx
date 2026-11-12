@@ -28,17 +28,16 @@ export default async function EssayDetailPage({
       <PageHeader title={data.essay.title} />
       {feedback.error ? <p role="alert" className="mb-5 rounded-2xl bg-clay/10 p-4 text-sm text-clay">{feedback.error.slice(0, 400)}</p> : null}
       {feedback.reviewed === "yes" ? <p role="status" className="mb-5 rounded-2xl bg-moss/15 p-4 text-sm text-pine">La correction est disponible.</p> : null}
-      {data.essay.instructions ? <p className="mb-5 whitespace-pre-wrap rounded-2xl bg-sand p-4 text-sm text-pine">Tes consignes : {data.essay.instructions}</p> : null}
+      {data.essay.instructions ? <p className="mb-5 whitespace-pre-wrap rounded-2xl bg-sand p-4 text-sm text-pine">Consignes : {data.essay.instructions}</p> : null}
 
       <div className="grid gap-5 xl:grid-cols-[0.8fr_1.2fr]">
         <SectionCard
-          eyebrow="Synthese"
-          title={data.aiFeedback[0] ? `Fourchette indicative : ${data.aiFeedback[0].scoreRange}` : "Copie deposee"}
+          eyebrow="Synthèse"
+          title={data.aiFeedback[0] ? `Fourchette indicative : ${data.aiFeedback[0].scoreRange}` : "Copie déposée"}
           accent="soft"
         >
           <p className="text-sm leading-7 text-pine/80">
-            Statut : {data.essay.status}. La copie reste relue ici avec un retour IA, puis
-            eventuellement un retour professeur.
+            Statut : {data.essay.status}.
           </p>
           <form action={regenerateEssayAIFeedbackAction} className="mt-4">
             <input type="hidden" name="essayId" value={data.essay.id} />
@@ -48,14 +47,14 @@ export default async function EssayDetailPage({
 
         <SectionCard
           eyebrow="Copie"
-          title="Copie deposee"
+          title="Copie déposée"
         >
           {data.essay.fileUrl ? (
             <div className="space-y-4">
               <div className="rounded-[24px] bg-sand p-5 text-sm leading-8 text-pine/82">
                 {data.essay.mimeType === "application/pdf"
-                  ? "La copie a ete deposee en PDF."
-                  : "La copie a ete deposee en photo."}
+                  ? "La copie a été déposée en PDF."
+                  : "La copie a été déposée en photo."}
               </div>
               {data.essay.mimeType === "application/pdf" ? (
                 <iframe
@@ -66,7 +65,7 @@ export default async function EssayDetailPage({
               ) : (
                 <img
                   src={data.essay.fileUrl}
-                  alt="Copie deposee"
+                  alt="Copie déposée"
                   className="w-full rounded-[24px] border border-ink/8 bg-white object-contain"
                 />
               )}
@@ -85,15 +84,15 @@ export default async function EssayDetailPage({
         {data.aiFeedback.map((feedback) => (
           <SectionCard
             key={feedback.id}
-            eyebrow="Feedback IA"
+            eyebrow="Correction IA · Note indicative"
             title={feedback.scoreRange}
           >
             <p className="text-sm leading-7 text-pine/82">{feedback.overview}</p>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <FeedbackColumn title="Points forts" items={feedback.strengths} />
               <FeedbackColumn title="Erreurs majeures" items={feedback.mistakes} />
-              <FeedbackColumn title="Prochaines etapes" items={feedback.nextSteps} />
-              <FeedbackColumn title="Impact planning" items={feedback.planningSignals} />
+              <FeedbackColumn title="Prochaines étapes" items={feedback.nextSteps} />
+              <FeedbackColumn title="Travail conseillé" items={feedback.planningSignals} />
             </div>
           </SectionCard>
         ))}
@@ -101,7 +100,7 @@ export default async function EssayDetailPage({
         {data.teacherFeedback.map((feedback) => (
           <SectionCard
             key={feedback.id}
-            eyebrow="Feedback professeur"
+            eyebrow="Correction professeur"
             title={feedback.scoreRange}
             accent="dark"
           >
@@ -109,8 +108,8 @@ export default async function EssayDetailPage({
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <FeedbackColumn title="Points forts" items={feedback.strengths} dark />
               <FeedbackColumn title="Erreurs majeures" items={feedback.mistakes} dark />
-              <FeedbackColumn title="Prochaines etapes" items={feedback.nextSteps} dark />
-              <FeedbackColumn title="Impact planning" items={feedback.planningSignals} dark />
+              <FeedbackColumn title="Prochaines étapes" items={feedback.nextSteps} dark />
+              <FeedbackColumn title="Travail conseillé" items={feedback.planningSignals} dark />
             </div>
           </SectionCard>
         ))}

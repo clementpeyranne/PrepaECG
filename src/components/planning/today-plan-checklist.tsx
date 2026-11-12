@@ -33,7 +33,7 @@ type TodayPlanChecklistProps = {
 };
 
 export function TodayPlanChecklist({ entries }: TodayPlanChecklistProps) {
-  if (!entries.length) return <p className="rounded-2xl bg-sand p-5 text-sm text-pine">Aucun bloc prevu pour cette journee.</p>;
+  if (!entries.length) return <p className="rounded-2xl bg-sand p-5 text-sm text-pine">Aucun bloc prévu pour cette journée.</p>;
   return (
     <div className="space-y-3">
       {entries.map((entry) => {
@@ -45,13 +45,13 @@ export function TodayPlanChecklist({ entries }: TodayPlanChecklistProps) {
                 <p className="mt-2 break-words font-semibold">{entry.title}</p>
                 <p className="mt-1 text-sm text-pine/75">{entry.subject}{isDone ? " · Fait" : ""}</p>
                 {entry.requiresSubmission && isDone && !entry.hasSubmission ? (
-                  <p className="mt-2 text-xs font-semibold text-clay">Attention : copie non deposee.</p>
+                  <p className="mt-2 text-xs font-semibold text-clay">Attention : copie non déposée.</p>
                 ) : null}
                 {entry.requiresFlashcards ? (
                   <p className={`mt-2 text-xs font-semibold ${entry.hasCompletedFlashcardTime ? "text-pine" : "text-clay"}`}>
                     {entry.hasCompletedFlashcardTime
-                      ? "Temps de flashcards termine."
-                      : `Temps effectue : ${formatFocusTime(entry.flashcardFocusSeconds)} sur ${formatFocusTime(entry.flashcardRequiredSeconds)}.`}
+                      ? "Temps de flashcards terminé."
+                      : `Temps effectué : ${formatFocusTime(entry.flashcardFocusSeconds)} sur ${formatFocusTime(entry.flashcardRequiredSeconds)}.`}
                   </p>
                 ) : null}
               </div>
@@ -88,7 +88,7 @@ function ValidationControls({ entry }: { entry: TodayPlanEntry }) {
   function handleResult(result: PlanningActionResult) {
     if (result.ok) return;
     if (result.reason === "missing_copy") setShowMissingCopyWarning(true);
-    else if (result.reason === "flashcards_time_required") setError("Termine d'abord le temps de flashcards prevu.");
+    else if (result.reason === "flashcards_time_required") setError("Termine d'abord le temps de flashcards prévu.");
     else setError("Ce bloc n'est plus disponible. Recharge la page.");
   }
 
@@ -112,7 +112,7 @@ function ValidationControls({ entry }: { entry: TodayPlanEntry }) {
 
       {entry.requiresSubmission ? (
         <Link href={`/essays/new?${planningQuery}`} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-blue-600 px-3 py-2 text-center text-xs font-semibold text-white transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 sm:text-sm">
-          <FileUp size={16} aria-hidden="true" /> Deposer une copie
+          <FileUp size={16} aria-hidden="true" /> Déposer une copie
         </Link>
       ) : null}
       {entry.requiresFlashcards ? (
@@ -123,8 +123,8 @@ function ValidationControls({ entry }: { entry: TodayPlanEntry }) {
 
       {showMissingCopyWarning && !isDone ? (
         <div className="rounded-2xl border border-clay/20 bg-clay/10 p-3 text-xs text-clay" role="alert">
-          <p className="font-semibold">Attention : copie non deposee.</p>
-          <StatusForm action={markPlanningSessionDone} entry={entry} label="Valider quand meme" forceMissingSubmission onResult={handleResult} />
+          <p className="font-semibold">Attention : copie non déposée.</p>
+          <StatusForm action={markPlanningSessionDone} entry={entry} label="Valider quand même" forceMissingSubmission onResult={handleResult} />
         </div>
       ) : null}
       {error ? <p role="alert" className="text-xs text-clay">{error}</p> : null}
@@ -156,7 +156,7 @@ function StatusForm({ action, entry, label, forceMissingSubmission = false, disa
       <input type="hidden" name="entryId" value={entry.id} />
       {forceMissingSubmission ? <input type="hidden" name="confirmMissingSubmission" value="yes" /> : null}
       <SubmitButton label={label} title={entry.title} isDone={entry.status === "COMPLETED"} disabled={disabled} />
-      {error ? <p role="alert" className="mt-2 text-xs text-clay">Non enregistre. Reessaie ou recharge la page.</p> : null}
+      {error ? <p role="alert" className="mt-2 text-xs text-clay">Non enregistré. Réessaie ou recharge la page.</p> : null}
     </form>
   );
 }

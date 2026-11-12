@@ -8,13 +8,13 @@ export default function SupportPage() {
     <PublicPageShell
       eyebrow="Aide"
       title="Support"
-      intro="Pour toute difficulte d'acces, de configuration ou de fonctionnement, un point de contact unique est prevu."
+      intro="Une difficulté pour te connecter ou utiliser Prépatempo ? Contacte le support."
     >
       <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
         <section className="rounded-[26px] bg-white/80 p-5 shadow-panel">
-          <h2 className="font-display text-2xl text-ink">Comment nous ecrire</h2>
+          <h2 className="font-display text-2xl text-ink">Contacter le support</h2>
           <p className="mt-3 text-sm leading-8 text-pine/82">
-            Envoie ton message en precisant ton etablissement, ton role, la page concernee et une
+            Envoie ton message en précisant ton établissement, ton rôle, la page concernée et une
             capture si besoin.
           </p>
           <a
@@ -26,21 +26,21 @@ export default function SupportPage() {
         </section>
 
         <section className="rounded-[26px] bg-white/80 p-5 shadow-panel">
-          <h2 className="font-display text-2xl text-ink">Cas les plus frequents</h2>
+          <h2 className="font-display text-2xl text-ink">Cas les plus fréquents</h2>
           <div className="mt-4 space-y-3 text-sm leading-7 text-pine/80">
-            <p>Connexion impossible ou mot de passe a reinitialiser</p>
-            <p>Probleme de depot PDF ou photo</p>
-            <p>Compte rattache au mauvais etablissement</p>
+            <p>Connexion impossible ou mot de passe à réinitialiser</p>
+            <p>Problème de dépôt PDF ou photo</p>
+            <p>Compte rattaché au mauvais établissement</p>
             <p>Question sur une ressource, une copie ou une correction</p>
           </div>
         </section>
       </div>
       <section className="mt-5 rounded-[26px] bg-white/80 p-5 shadow-panel">
-        <h2 className="font-display text-2xl text-ink">Donnees personnelles</h2>
+        <h2 className="font-display text-2xl text-ink">Données personnelles</h2>
         <p className="mt-3 text-sm leading-8 text-pine/82">
-          Pour demander l'acces, la rectification, la portabilite ou la suppression de tes donnees,
-          ecris depuis l'adresse liee a ton compte en precisant la demande. Une verification d'identite
-          complementaire n'est demandee qu'en cas de doute raisonnable.
+          Pour demander l'accès, la rectification, la portabilité ou la suppression de tes données,
+          écris depuis l'adresse liée à ton compte en précisant la demande. Une vérification d'identité
+          complémentaire n'est demandée qu'en cas de doute raisonnable.
         </p>
         <a
           href={`mailto:${site.privacyEmail}?subject=Exercice%20de%20mes%20droits%20RGPD`}

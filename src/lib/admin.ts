@@ -46,21 +46,21 @@ function getDeviceLabel(userAgent: string | null) {
 
 function eventLabel(eventType: string) {
   const labels: Record<string, string> = {
-    ACCOUNT_CREATED: "Compte cree",
+    ACCOUNT_CREATED: "Compte créé",
     LOGIN_SUCCESS: "Connexion reussie",
-    LOGIN_FAILURE: "Echec de connexion",
+    LOGIN_FAILURE: "Échec de connexion",
     LOGIN_BLOCKED: "Compte suspendu bloque",
     LOGIN_RATE_LIMITED: "Trop de tentatives",
-    SIGNUP_RATE_LIMITED: "Inscriptions limitees",
+    SIGNUP_RATE_LIMITED: "Inscriptions limitées",
     LOGOUT: "Deconnexion",
-    PASSWORD_RESET: "Mot de passe modifie",
+    PASSWORD_RESET: "Mot de passe modifié",
     ACCOUNT_SUSPENDED: "Compte suspendu",
     ACCOUNT_REACTIVATED: "Compte reactive",
-    ESTABLISHMENT_CREATED: "Etablissement cree",
-    ACCESS_CODE_ROTATED: "Code d'acces renouvele",
-    TEACHER_INVITATION_CREATED: "Invitation professeur creee",
-    TEACHER_INVITATION_REVOKED: "Invitation professeur revoquee",
-    SECURITY_LOG_PURGED: "Journal de securite nettoye"
+    ESTABLISHMENT_CREATED: "Établissement créé",
+    ACCESS_CODE_ROTATED: "Code d'accès renouvelé",
+    TEACHER_INVITATION_CREATED: "Invitation professeur créée",
+    TEACHER_INVITATION_REVOKED: "Invitation professeur révoquée",
+    SECURITY_LOG_PURGED: "Journal de sécurité nettoyé"
   };
   return labels[eventType] ?? eventType.replaceAll("_", " ").toLowerCase();
 }
@@ -78,7 +78,7 @@ function mapEvent(event: {
     type: event.eventType,
     label: eventLabel(event.eventType),
     occurredAt: formatDate(event.createdAt),
-    account: event.user ? `${event.user.firstName} ${event.user.lastName}` : "Compte non identifie",
+    account: event.user ? `${event.user.firstName} ${event.user.lastName}` : "Compte non identifié",
     email: event.user?.email ?? null,
     role: event.user?.role ?? null,
     source: event.ipHash ? event.ipHash.slice(0, 10).toUpperCase() : "Non disponible",
@@ -126,9 +126,9 @@ export async function getAdminOverviewData() {
     stats: [
       { label: "Comptes", value: totalUsers, helper: `${activeUsers} actifs - ${totalUsers - activeUsers} suspendus` },
       { label: "Nouveaux comptes", value: newUsers, helper: "Sur les 7 derniers jours" },
-      { label: "Connexions", value: loginSuccess, helper: "Reussies sur les dernieres 24 h" },
-      { label: "Alertes connexion", value: loginFailures, helper: "Echecs ou blocages sur 24 h" },
-      { label: "Etablissements", value: classes, helper: `${noTeacherCount} sans professeur` },
+      { label: "Connexions", value: loginSuccess, helper: "Réussies sur les dernières 24 h" },
+      { label: "Alertes connexion", value: loginFailures, helper: "Échecs ou blocages sur 24 h" },
+      { label: "Établissements", value: classes, helper: `${noTeacherCount} sans professeur` },
       { label: "Invitations actives", value: activeInvitations, helper: "Professeurs uniquement" }
     ],
     content: { resources, essays, cards, completedSessions },
@@ -172,9 +172,9 @@ export async function getAdminUsersData(filters: { query?: string; role?: string
       name: `${user.firstName} ${user.lastName}`,
       email: user.email,
       role: user.role,
-      roleLabel: user.role === "STUDENT" ? "Eleve" : user.role === "TEACHER" ? "Professeur" : "Administrateur",
+      roleLabel: user.role === "STUDENT" ? "Élève" : user.role === "TEACHER" ? "Professeur" : "Administrateur",
       isActive: user.isActive,
-      establishment: user.memberships[0]?.class.name ?? "Aucun etablissement",
+      establishment: user.memberships[0]?.class.name ?? "Aucun établissement",
       createdAt: formatDate(user.createdAt),
       lastLoginAt: formatDate(user.lastLoginAt),
       loginCount: user.loginCount,
@@ -191,7 +191,7 @@ export async function setAdminUserActive(userId: string, isActive: boolean) {
   if (!userId || userId === admin.id) return { ok: false, message: "Tu ne peux pas suspendre ton propre compte." };
   const target = await prisma.user.findUnique({ where: { id: userId } });
   if (!target) return { ok: false, message: "Compte introuvable." };
-  if (target.role === UserRole.ADMIN) return { ok: false, message: "Un autre administrateur ne peut pas etre modifie ici." };
+  if (target.role === UserRole.ADMIN) return { ok: false, message: "Un autre administrateur ne peut pas être modifié ici." };
   await prisma.user.update({ where: { id: userId }, data: { isActive } });
   await recordSecurityEvent({
     eventType: isActive ? "ACCOUNT_REACTIVATED" : "ACCOUNT_SUSPENDED",
@@ -237,7 +237,7 @@ export async function getAdminEstablishmentsData() {
       establishment: invitation.class.name,
       createdAt: formatDate(invitation.createdAt),
       expiresAt: formatDate(invitation.expiresAt),
-      status: invitation.usedAt ? "Utilisee ou revoquee" : invitation.expiresAt.getTime() <= now ? "Expiree" : "Active",
+      status: invitation.usedAt ? "Utilisée ou révoquée" : invitation.expiresAt.getTime() <= now ? "Expirée" : "Active",
       canRevoke: !invitation.usedAt && invitation.expiresAt.getTime() > now
     }))
   };
@@ -250,15 +250,15 @@ export async function createAdminEstablishment(input: { name: string; yearLabel:
   const track = input.track.trim().slice(0, 30) || "ECG";
   const accessCode = input.accessCode.trim().toUpperCase();
   if (!name || !yearLabel || !/^[A-Z0-9-]{4,32}$/.test(accessCode)) {
-    return { ok: false, message: "Verifie le nom, l'annee et le code d'acces." };
+    return { ok: false, message: "Vérifie le nom, l'année et le code d'accès." };
   }
   try {
     const prepClass = await prisma.class.create({ data: { name, yearLabel, track, accessCode } });
     await recordSecurityEvent({ eventType: "ESTABLISHMENT_CREATED", metadata: { actorId: admin.id, classId: prepClass.id } });
-    return { ok: true, message: "Etablissement cree." };
+    return { ok: true, message: "Établissement créé." };
   } catch (error) {
     if (error && typeof error === "object" && "code" in error && error.code === "P2002") {
-      return { ok: false, message: "Ce code d'acces est deja utilise." };
+      return { ok: false, message: "Ce code d'accès est déjà utilisé." };
     }
     throw error;
   }
@@ -267,7 +267,7 @@ export async function createAdminEstablishment(input: { name: string; yearLabel:
 export async function rotateAdminAccessCode(classId: string) {
   const admin = await requireRole([UserRole.ADMIN]);
   const prepClass = await prisma.class.findUnique({ where: { id: classId } });
-  if (!prepClass) return { ok: false, message: "Etablissement introuvable." };
+  if (!prepClass) return { ok: false, message: "Établissement introuvable." };
   const prefix = prepClass.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-zA-Z0-9]/g, "").slice(0, 10).toUpperCase() || "PREPA";
   const accessCode = `${prefix}-${randomBytes(3).toString("hex").toUpperCase()}`;
@@ -284,8 +284,8 @@ export async function createAdminTeacherInvitation(input: { email: string; class
     prisma.class.findUnique({ where: { id: input.classId } }),
     prisma.user.findUnique({ where: { email } })
   ]);
-  if (!prepClass) return { ok: false, message: "Etablissement introuvable.", link: "" };
-  if (existingUser) return { ok: false, message: "Cette adresse possede deja un compte.", link: "" };
+  if (!prepClass) return { ok: false, message: "Établissement introuvable.", link: "" };
+  if (existingUser) return { ok: false, message: "Cette adresse possède déjà un compte.", link: "" };
   const token = randomBytes(32).toString("hex");
   await prisma.$transaction([
     prisma.teacherInvitation.updateMany({ where: { email, classId: prepClass.id, usedAt: null }, data: { usedAt: new Date() } }),
@@ -310,9 +310,9 @@ export async function revokeAdminTeacherInvitation(invitationId: string) {
     where: { id: invitationId, usedAt: null },
     data: { usedAt: new Date() }
   });
-  if (result.count !== 1) return { ok: false, message: "Invitation deja fermee." };
+  if (result.count !== 1) return { ok: false, message: "Invitation déjà fermée." };
   await recordSecurityEvent({ eventType: "TEACHER_INVITATION_REVOKED", metadata: { actorId: admin.id, invitationId } });
-  return { ok: true, message: "Invitation revoquee." };
+  return { ok: true, message: "Invitation révoquée." };
 }
 
 export async function getAdminActivityData(eventType?: string) {
@@ -366,13 +366,13 @@ export async function getAdminSystemData() {
   const featureLabels: Record<string, string> = {
     assistant_reply: "Assistant",
     essay_review: "Corrections",
-    resource_summary: "Resumes",
+    resource_summary: "Résumés",
     resource_sheet: "Fiches",
     resource_flashcards: "Flashcards",
-    assistant_snapshot: "Syntheses",
+    assistant_snapshot: "Synthèses",
     planning_guidance: "Planning",
     weekly_review: "Bilans",
-    news_insight: "Actualites"
+    news_insight: "Actualités"
   };
   return {
     runtime,
@@ -432,6 +432,6 @@ export async function purgeAdminSecurityData() {
   });
   return {
     ok: true,
-    message: `${events.count} evenement(s), ${limits.count} limite(s), ${resetTokens.count} jeton(s) et ${invitations.count} invitation(s) expires supprimes.`
+    message: `${events.count} événement(s), ${limits.count} limite(s), ${resetTokens.count} jeton(s) et ${invitations.count} invitation(s) expirés supprimés.`
   };
 }

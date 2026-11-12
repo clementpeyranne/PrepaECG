@@ -3,6 +3,7 @@ import { getCurrentUserClass } from "./auth";
 import { prisma } from "./db";
 import { getResourceReadableText, getResourceAIDocument } from "./resources";
 import { ensureDemoStudent } from "./student-app";
+import { getStudentSubjects } from "./student-subjects";
 
 export type AssistantWorkspaceData = {
   prompts: string[];
@@ -61,13 +62,14 @@ function getFeedbackSummary(value: unknown) {
 export async function getAssistantWorkspaceData(): Promise<AssistantWorkspaceData> {
   const { user } = await ensureDemoStudent();
   const membership = await getCurrentUserClass(user.id);
+  const curriculum = await getStudentSubjects(user.id);
   const snapshot = {
     prompts: [], responseTitle: "Assistant IA", responseSummary: "Pose ta question ou associe un document.", actions: [], aiStatus: getAIStatusMeta()
   };
 
   const [resources, essays] = await Promise.all([
     prisma.resource.findMany({
-      where: { classId: membership?.classId ?? "__no_class__" },
+      where: { classId: membership?.classId ?? "__no_class__", subject: { code: { in: curriculum.codes } } },
       orderBy: { createdAt: "desc" },
       take: 20,
       select: {
@@ -75,13 +77,13 @@ export async function getAssistantWorkspaceData(): Promise<AssistantWorkspaceDat
         title: true,
         subject: {
           select: {
-            name: true
+            name: true, code: true
           }
         }
       }
     }),
     prisma.essay.findMany({
-      where: { studentId: user.id },
+      where: { studentId: user.id, subject: { code: { in: curriculum.codes } } },
       orderBy: { createdAt: "desc" },
       take: 20,
       select: {
@@ -89,7 +91,7 @@ export async function getAssistantWorkspaceData(): Promise<AssistantWorkspaceDat
         title: true,
         subject: {
           select: {
-            name: true
+            name: true, code: true
           }
         }
       }
@@ -101,12 +103,12 @@ export async function getAssistantWorkspaceData(): Promise<AssistantWorkspaceDat
     resources: resources.map((resource) => ({
       id: resource.id,
       title: resource.title,
-      subject: resource.subject.name
+      subject: curriculum.label(resource.subject.code)
     })),
     essays: essays.map((essay) => ({
       id: essay.id,
       title: essay.title,
-      subject: essay.subject.name
+      subject: curriculum.label(essay.subject.code)
     }))
   };
 }

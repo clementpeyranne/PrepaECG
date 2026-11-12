@@ -11,21 +11,21 @@ import { getTeacherEssaysQueueData } from "@/lib/essays";
 function getTeacherFeedbackMessage(status: string | null) {
   if (status === "feedback_saved") {
     return {
-      text: "Retour professeur enregistre. Il a ete envoye une seule fois.",
+      text: "Retour professeur enregistré. Il a été envoyé une seule fois.",
       tone: "success" as const
     };
   }
 
   if (status === "feedback_exists") {
     return {
-      text: "Ce retour professeur etait deja enregistre. Aucun doublon n'a ete ajoute.",
+      text: "Ce retour professeur était déjà enregistré. Aucun doublon n'a été ajouté.",
       tone: "warning" as const
     };
   }
 
   if (status === "feedback_invalid") {
     return {
-      text: "Le retour n'a pas pu etre enregistre. Verifie les champs obligatoires puis recommence.",
+      text: "Le retour n'a pas pu être enregistré. Vérifie les champs obligatoires puis recommence.",
       tone: "error" as const
     };
   }
@@ -47,13 +47,11 @@ export default async function TeacherEssaysPage({
     <div>
       <PageHeader
         title="Copies"
-        description="Suivi des copies et retours enseignant."
       />
 
       <SectionCard
         eyebrow="A relire"
-        title="Copies recentes"
-        description="Copies en attente ou deja corrigees."
+        title="Copies récentes"
       >
         {message ? (
           <div
@@ -134,7 +132,7 @@ export default async function TeacherEssaysPage({
 
               {essay.hasTeacherFeedback ? (
                 <div className="mt-4 rounded-[20px] border border-pine/15 bg-pine/10 px-4 py-3 text-sm text-pine">
-                  Retour professeur deja envoye pour cette copie.
+                  Retour professeur déjà envoyé pour cette copie.
                 </div>
               ) : (
                 <form action={addTeacherEssayFeedbackAction} className="mt-4 space-y-3">
@@ -161,25 +159,25 @@ export default async function TeacherEssaysPage({
                   <textarea
                     name="strengths"
                     rows={3}
-                    placeholder="Points forts, une ligne par idee"
+                    placeholder="Points forts, une ligne par idée"
                     className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm outline-none transition focus:border-pine"
                   />
                   <textarea
                     name="mistakes"
                     rows={3}
-                    placeholder="Erreurs majeures, une ligne par idee"
+                    placeholder="Erreurs majeures, une ligne par idée"
                     className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm outline-none transition focus:border-pine"
                   />
                   <textarea
                     name="nextSteps"
                     rows={3}
-                    placeholder="Prochaines etapes, une ligne par idee"
+                    placeholder="Prochaines étapes, une ligne par idée"
                     className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm outline-none transition focus:border-pine"
                   />
                   <textarea
                     name="planningSignals"
                     rows={3}
-                    placeholder="Conseils de planning, une ligne par idee"
+                    placeholder="Travail conseillé, une consigne par ligne"
                     className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm outline-none transition focus:border-pine"
                   />
                   <PendingSubmitButton

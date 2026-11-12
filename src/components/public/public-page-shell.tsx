@@ -32,15 +32,14 @@ export function PublicPageShell({
               href="/"
               className="inline-flex items-center rounded-full border border-sand/15 px-5 py-2.5 text-sm font-semibold text-sand transition hover:border-sand/35"
             >
-              Retour a l'accueil
+              Retour à l'accueil
             </Link>
           </div>
         </div>
 
         {site.isIncomplete ? (
           <section className="mt-6 rounded-[26px] border border-clay/15 bg-clay/10 px-5 py-4 text-sm leading-7 text-clay shadow-panel">
-            Certaines informations legales utilisent encore des champs a renseigner avant l'ouverture
-            publique definitive.
+            Certaines informations légales ne sont pas encore renseignées. Le service reste en phase pilote.
           </section>
         ) : null}
 
@@ -51,7 +50,7 @@ export function PublicPageShell({
         <footer className="mt-6 flex flex-col gap-3 rounded-[24px] bg-white/70 px-5 py-4 shadow-panel">
           <PublicFooterLinks />
           <p className="text-sm text-pine/72">
-            Besoin d'aide ? Ecris a{" "}
+            Besoin d'aide ? Écris a{" "}
             <a className="font-semibold text-ink transition hover:text-pine" href={`mailto:${site.supportEmail}`}>
               {site.supportEmail}
             </a>

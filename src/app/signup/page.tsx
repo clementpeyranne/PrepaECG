@@ -35,11 +35,9 @@ export default async function SignupPage({
         <div className="grid w-full gap-6 lg:grid-cols-[1fr_1fr]">
           <section className="rounded-[36px] bg-white/82 p-6 shadow-panel lg:p-8">
             <p className="text-xs uppercase tracking-[0.25em] text-pine/55">Inscription</p>
-            <h1 className="mt-3 font-display text-3xl text-ink">Creer un compte</h1>
+            <h1 className="mt-3 font-display text-3xl text-ink">Créer un compte</h1>
             <p className="mt-2 text-sm leading-7 text-pine/78">
-              L&apos;inscription se fait dans l&apos;environnement de ta prepa grace a un code
-              d&apos;acces. Cela permet d&apos;isoler les eleves et professeurs de chaque
-              etablissement.
+              Entre le code fourni par ta prépa pour rejoindre son espace de travail.
             </p>
 
             {message ? (
@@ -51,7 +49,7 @@ export default async function SignupPage({
             <form action={signupAction} className="mt-6 space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-pine/80">Prenom</span>
+                  <span className="mb-2 block text-sm font-medium text-pine/80">Prénom</span>
                   <input
                     name="firstName"
                     className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm outline-none transition focus:border-pine"
@@ -97,14 +95,14 @@ export default async function SignupPage({
                   defaultValue={invitation ? "teacher" : "student"}
                   className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm outline-none transition focus:border-pine"
                 >
-                  <option value="student">Eleve</option>
+                  <option value="student">Élève</option>
                   <option value="teacher">Professeur</option>
                 </select>
               </label>
 
               <label className="block">
                 <span className="mb-2 block text-sm font-medium text-pine/80">
-                  Code d&apos;etablissement
+                  Code d&apos;établissement
                 </span>
                 <input
                   name="accessCode"
@@ -117,7 +115,7 @@ export default async function SignupPage({
               <details open={Boolean(invitation)} className="text-sm text-pine/80">
                 <summary className="cursor-pointer font-medium">Invitation professeur</summary>
                 <label className="mt-3 block">
-                  <span className="mb-2 block">Code personnel, reserve aux professeurs</span>
+                  <span className="mb-2 block">Code personnel, réservé aux professeurs</span>
                   <input name="invitationToken" defaultValue={invitation} autoComplete="off"
                     className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm" />
                 </label>
@@ -138,7 +136,7 @@ export default async function SignupPage({
                   </Link>{" "}
                   et je confirme avoir lu la{" "}
                   <Link href="/confidentialite" target="_blank" className="font-semibold text-ink underline underline-offset-2">
-                    politique de confidentialite
+                    politique de confidentialité
                   </Link>.
                 </span>
               </label>
@@ -147,13 +145,13 @@ export default async function SignupPage({
                 type="submit"
                 className="w-full rounded-full bg-ink px-5 py-3 text-sm font-semibold text-sand transition hover:bg-pine"
               >
-                Creer mon compte
+                Créer un compte
               </button>
 
             </form>
 
             <p className="mt-5 text-sm text-pine/76">
-              Deja un compte ?{" "}
+              Déjà un compte ?{" "}
               <Link href="/login" className="font-semibold text-ink transition hover:text-pine">
                 Se connecter
               </Link>
@@ -163,22 +161,20 @@ export default async function SignupPage({
           </section>
 
           <section className="rounded-[36px] bg-ink p-8 text-sand shadow-panel lg:p-10">
-            <p className="text-xs uppercase tracking-[0.35em] text-sand/55">Environnement</p>
+            <p className="text-xs uppercase tracking-[0.35em] text-sand/55">Établissement</p>
             <h2 className="mt-4 font-display text-5xl leading-tight">
-              Une prepa, un espace de travail ferme.
+              Rejoindre la prépa.
             </h2>
             <p className="mt-6 text-base leading-8 text-sand/78">
-              Les copies, ressources, retours professeurs et interactions sensibles doivent rester
-              dans le perimetre du bon etablissement. Le code d&apos;etablissement sert justement a
-              lier eleves et professeurs a la meme prepa.
+              Le code fourni par l’établissement permet de retrouver les cours et les professeurs
+              de la prépa.
             </p>
 
             <div className="mt-8 space-y-3 text-sm text-sand/86">
-              <p>1. Un compte rejoint un environnement de prepa</p>
-              <p>2. Les ressources restent visibles dans cet environnement</p>
-              <p>3. Les copies sont adressees aux professeurs de cette meme prepa</p>
+              <p>Les ressources sont partagées au sein de l’établissement.</p>
+              <p>Les copies sont envoyées aux professeurs de la même prépa.</p>
               {isDemoModeEnabled() ? null : (
-                <p>4. Les professeurs rejoignent la prepa sur invitation personnelle</p>
+                <p>Les professeurs s’inscrivent sur invitation personnelle.</p>
               )}
             </div>
           </section>

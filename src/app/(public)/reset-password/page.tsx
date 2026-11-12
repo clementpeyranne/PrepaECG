@@ -9,10 +9,10 @@ export const dynamic = "force-dynamic";
 export const metadata = { robots: { index: false, follow: false }, referrer: "no-referrer" as const };
 
 const stateMessages: Record<string, string> = {
-  missing: "Le lien de reinitialisation est incomplet.",
+  missing: "Le lien de réinitialisation est incomplet.",
   invalid: "Ce lien n'est pas reconnu.",
-  expired: "Ce lien a expire. Demande-en un nouveau.",
-  used: "Ce lien a deja ete utilise.",
+  expired: "Ce lien a expiré. Demande-en un nouveau.",
+  used: "Ce lien a déjà été utilise.",
   valid: ""
 };
 
@@ -59,7 +59,7 @@ export default async function ResetPasswordPage({
                 <input
                   type="password"
                   name="password"
-                  placeholder="Au moins 8 caracteres"
+                  placeholder="Au moins 8 caractères"
                   className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm outline-none transition focus:border-pine"
                 />
               </label>
@@ -69,7 +69,7 @@ export default async function ResetPasswordPage({
                 <input
                   type="password"
                   name="confirmPassword"
-                  placeholder="Retape le meme mot de passe"
+                  placeholder="Retape le même mot de passe"
                   className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm outline-none transition focus:border-pine"
                 />
               </label>

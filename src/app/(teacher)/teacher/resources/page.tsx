@@ -14,13 +14,13 @@ export default async function TeacherResourcesPage() {
     <div>
       <PageHeader
         title="Ressources professeur"
-        actionLabel="Deposer un cours"
+        actionLabel="Déposer un cours"
         actionHref={"/teacher/resources/new" as Route}
       />
 
       <SectionCard
-        eyebrow="Depots recents"
-        title="Bibliotheque publiee"
+        eyebrow="Dépôts récents"
+        title="Bibliothèque publiée"
       >
         <div className="space-y-4">
           {data.resources.map((resource) => (

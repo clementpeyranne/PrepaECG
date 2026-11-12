@@ -21,14 +21,14 @@ function getMetadataBase() {
 
 export const metadata: Metadata = {
   metadataBase: getMetadataBase(),
-  title: "Prepa ECG OS",
-  description: "L'application de travail quotidien pour les preparationnaires ECG.",
-  applicationName: "Prepa ECG OS",
+  title: "Prépatempo",
+  description: "L'application de travail quotidien pour les préparationnaires ECG.",
+  applicationName: "Prépatempo",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Prepa ECG OS"
+    title: "Prépatempo"
   },
   formatDetection: {
     telephone: false

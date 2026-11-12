@@ -26,7 +26,7 @@ export function getPublicSiteConfig() {
   const values = [supportEmail, privacyEmail, legalName, legalStatus, legalAddress, legalPhone, publicationDirector];
 
   return {
-    appName: "Prepa ECG OS",
+    appName: "Prépatempo",
     appUrl: getPublicAppUrl(),
     supportEmail,
     privacyEmail,

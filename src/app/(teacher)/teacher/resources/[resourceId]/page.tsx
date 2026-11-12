@@ -69,7 +69,7 @@ export default async function TeacherResourceDetailPage({
                 </div>
               ) : (
                 <div className="mt-4 rounded-[20px] bg-sand p-5 text-sm text-pine/78">
-                  {resource.fileName ?? "Document depose"} est disponible au telechargement.
+                  {resource.fileName ?? "Document déposé"} est disponible au téléchargement.
                 </div>
               )}
             </div>
@@ -89,7 +89,7 @@ export default async function TeacherResourceDetailPage({
               </p>
             </div>
             <div className="rounded-2xl bg-white/75 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-pine/55">Depose le</p>
+              <p className="text-xs uppercase tracking-[0.18em] text-pine/55">Déposé le</p>
               <p className="mt-2 text-sm font-semibold text-ink">{resource.uploadedAt}</p>
             </div>
             <div className="rounded-2xl bg-white/75 p-4">

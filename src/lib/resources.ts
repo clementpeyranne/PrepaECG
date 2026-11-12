@@ -11,6 +11,7 @@ import { ensureReferenceData } from "./reference-data";
 import { deleteStoredFile, discardDirectUpload, getStoredFileName, getStoredFileUrl, readStoredFileBuffer, saveUploadedFile, resolveDirectUpload } from "./storage";
 import { createHash } from "node:crypto";
 import { ensureDemoStudent } from "./student-app";
+import { getStudentSubjects } from "./student-subjects";
 
 type OutputType = "SUMMARY" | "SHEET" | "FLASHCARDS";
 
@@ -317,14 +318,14 @@ export async function getResourceAIDocument(resource: { storageKey: string; mime
 
 function getOutputTitle(type: OutputType) {
   if (type === "SUMMARY") {
-    return "Resume IA";
+    return "Résumé IA";
   }
 
   if (type === "SHEET") {
-    return "Fiche de revision";
+    return "Fiche de révision";
   }
 
-  return "Flashcards generees";
+  return "Flashcards générées";
 }
 
 function formatOutputContent(type: OutputType, payload: Record<string, unknown>) {
@@ -476,9 +477,10 @@ export async function getResourcesOverviewData(): Promise<ResourcesOverviewData>
   await ensureDemoResources();
   const { user } = await ensureDemoStudent();
   const membership = await getCurrentUserClass(user.id);
+  const curriculum = await getStudentSubjects(user.id);
 
   const resources = await prisma.resource.findMany({
-    where: { classId: membership?.classId ?? "__no_class__" },
+    where: { classId: membership?.classId ?? "__no_class__", subject: { code: { in: curriculum.codes } } },
     select: {
       id: true,
       title: true,
@@ -494,7 +496,8 @@ export async function getResourcesOverviewData(): Promise<ResourcesOverviewData>
       },
       subject: {
         select: {
-          name: true
+          name: true,
+          code: true
         }
       },
       chapter: {
@@ -514,7 +517,7 @@ export async function getResourcesOverviewData(): Promise<ResourcesOverviewData>
   const mappedResources = resources.map((resource) => ({
     id: resource.id,
     title: resource.title,
-    subject: resource.subject.name,
+    subject: curriculum.label(resource.subject.code),
     chapter: resource.chapter?.name ?? "Sans chapitre",
     type: formatResourceType(resource.resourceType),
     teacher: getTeacherName(resource.uploader.firstName, resource.uploader.lastName),
@@ -987,8 +990,8 @@ export function getResourceActionLabels(aiEnabled: boolean) {
   }
 
   return [
-    { value: "SUMMARY" as const, label: "Resumer" },
+    { value: "SUMMARY" as const, label: "Résumer" },
     { value: "SHEET" as const, label: "Faire une fiche" },
-    { value: "FLASHCARDS" as const, label: "Generer des flashcards" }
+    { value: "FLASHCARDS" as const, label: "Générer des flashcards" }
   ];
 }

@@ -56,7 +56,7 @@ export default async function FlashcardsPage({
       <FlashcardMathProvider />
       <PageHeader
         title="Flashcards"
-        actionLabel="Reviser maintenant"
+        actionLabel="Réviser maintenant"
         actionHref={reviewHref}
       />
 
@@ -71,7 +71,7 @@ export default async function FlashcardsPage({
           }`}
         >
           <p className="font-semibold">
-            {flashcardsStatus === "success" ? "Import termine" : "Import non realise"}
+            {flashcardsStatus === "success" ? "Import terminé" : "Import non réalisé"}
           </p>
           <p className="mt-1">{flashcardsMessage}</p>
           {flashcardsStatus === "success" && flashcardsDecks && flashcardsCards ? (
@@ -84,8 +84,7 @@ export default async function FlashcardsPage({
 
       <div className="grid items-start gap-5 xl:grid-cols-[1.05fr_0.95fr]">
         <SectionCard
-          eyebrow="Organisation"
-          title="Matieres, decks et sous-decks"
+          title="Decks et sous-decks"
         >
           <div className="max-h-[560px] space-y-4 overflow-y-auto pr-2">
             {data.subjectGroups.map((group) => (
@@ -98,7 +97,7 @@ export default async function FlashcardsPage({
                     </p>
                   </div>
                   <div className="rounded-full bg-clay/10 px-3 py-1 text-xs text-clay">
-                    {group.totalDue} a revoir
+                    {group.totalDue} à revoir
                   </div>
                 </div>
 
@@ -111,13 +110,12 @@ export default async function FlashcardsPage({
         </SectionCard>
 
         <SectionCard
-          eyebrow="Synthese"
-          title="Etat global"
+          title="Révisions"
           accent="soft"
         >
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="rounded-2xl bg-white/75 p-4">
-              <p className="text-xs uppercase tracking-[0.22em] text-pine/55">A revoir</p>
+              <p className="text-xs uppercase tracking-[0.22em] text-pine/55">À revoir</p>
               <p className="mt-3 font-display text-3xl text-ink">{data.globalState.due}</p>
             </div>
             <div className="rounded-2xl bg-white/75 p-4">
@@ -125,7 +123,7 @@ export default async function FlashcardsPage({
               <p className="mt-3 font-display text-3xl text-ink">{data.globalState.active}</p>
             </div>
             <div className="rounded-2xl bg-white/75 p-4">
-              <p className="text-xs uppercase tracking-[0.22em] text-pine/55">Decks termines</p>
+              <p className="text-xs uppercase tracking-[0.22em] text-pine/55">Decks terminés</p>
               <p className="mt-3 font-display text-3xl text-ink">{data.globalState.completed}</p>
             </div>
           </div>
@@ -134,7 +132,6 @@ export default async function FlashcardsPage({
 
       <div className="mt-5 grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
         <SectionCard
-          eyebrow="Creation"
           title="Nouveau deck"
         >
           <form action={createDeckAction} className="space-y-4">
@@ -154,16 +151,16 @@ export default async function FlashcardsPage({
               <span className="mb-2 block text-sm font-medium text-pine/80">Nom</span>
               <input
                 name="title"
-                placeholder="Ex. Probabilites"
+                placeholder="Ex. Probabilités"
                 className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm outline-none transition focus:border-pine"
               />
             </label>
 
             <label className="block">
-              <span className="mb-2 block text-sm font-medium text-pine/80">Matiere</span>
+              <span className="mb-2 block text-sm font-medium text-pine/80">Matière</span>
               <select
                 name="subjectCode"
-                defaultValue="ESH"
+                defaultValue={data.subjectsForForms[0]?.code}
                 className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm outline-none transition focus:border-pine"
               >
                 {data.subjectsForForms.map((subject) => (
@@ -194,14 +191,13 @@ export default async function FlashcardsPage({
               type="submit"
               className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-sand transition hover:bg-pine"
             >
-              Creer
+              Créer
             </button>
           </form>
         </SectionCard>
 
         <SectionCard
-          eyebrow="Creation"
-          title="Nouvelle carte"
+          title="Ajouter une carte"
         >
           <form action={createCardAction} className="space-y-4">
             <label className="block">
@@ -229,7 +225,7 @@ export default async function FlashcardsPage({
             </label>
 
             <label className="block">
-              <span className="mb-2 block text-sm font-medium text-pine/80">Reponse</span>
+              <span className="mb-2 block text-sm font-medium text-pine/80">Réponse</span>
               <textarea
                 name="backText"
                 rows={4}
@@ -279,7 +275,7 @@ export default async function FlashcardsPage({
                       type="submit"
                       className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-sand transition hover:bg-pine"
                     >
-                      Creer un code
+                      Créer un code
                     </button>
                   </form>
                 </div>
@@ -288,7 +284,7 @@ export default async function FlashcardsPage({
           </div>
 
           <div className="mt-5 rounded-[22px] border border-dashed border-ink/10 bg-white/80 p-4">
-            <p className="text-sm font-semibold text-ink">Codes recents</p>
+            <p className="text-sm font-semibold text-ink">Codes récents</p>
             <div className="mt-3 grid gap-2">
               {data.recentShares.length > 0 ? (
                 data.recentShares.map((share) => (
@@ -306,7 +302,7 @@ export default async function FlashcardsPage({
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-pine/72">Aucun code cree pour le moment.</p>
+                <p className="text-sm text-pine/72">Aucun code créé pour le moment.</p>
               )}
             </div>
           </div>
@@ -314,7 +310,7 @@ export default async function FlashcardsPage({
 
         <SectionCard
           eyebrow="Import"
-          title="Recuperer un deck"
+          title="Importer un deck"
           accent="soft"
         >
           <div className="space-y-5">
@@ -338,7 +334,7 @@ export default async function FlashcardsPage({
 
             <FlashcardImportForm action={importFlashcardFileAction} cloud={cloudUploadsEnabled}>
               <label className="block">
-                <span className="mb-2 block text-sm font-medium text-pine/80">Fichier deck</span>
+                <span className="mb-2 block text-sm font-medium text-pine/80">Fichier du deck</span>
                 <input
                   type="file"
                   name="archive"
@@ -347,10 +343,7 @@ export default async function FlashcardsPage({
                 />
               </label>
 
-              <p className="text-xs text-pine/72">
-                `.json` pour les decks exportes depuis l&apos;application, `.apkg` pour importer un
-                paquet Anki et sa structure de decks/sous-decks.
-              </p>
+              <p className="text-xs text-pine/72">Formats acceptés : .json (Prépatempo) et .apkg (Anki). Les sous-decks sont conservés.</p>
 
               <button
                 type="submit"
@@ -391,7 +384,7 @@ function renderDeckTree(deck: FlashcardsOverviewDeckNode, planningEntryId = "") 
           </div>
           <div className="text-right text-xs text-pine/72">
             <p>{deck.due} a revoir</p>
-            <p className="mt-1">{deck.retention}% de reussite</p>
+            <p className="mt-1">{deck.retention}% de réussite</p>
           </div>
         </div>
       </Link>

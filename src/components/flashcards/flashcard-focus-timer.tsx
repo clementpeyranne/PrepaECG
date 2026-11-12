@@ -74,9 +74,9 @@ export function FlashcardFocusTimer({ planningEntryId }: { planningEntryId: stri
             {focus?.complete ? <CheckCircle2 size={21} aria-hidden="true" /> : <Clock3 size={21} aria-hidden="true" />}
           </div>
           <div>
-            <p className="font-semibold text-ink">Temps de revision du planning</p>
+            <p className="font-semibold text-ink">Temps de révision du planning</p>
             <p className="mt-1 text-sm text-pine/75">
-              {!focus ? "Initialisation du chronometre..." : focus.complete ? "Duree atteinte : tu peux valider le bloc." : `${formatDuration(remaining)} restantes`}
+              {!focus ? "Initialisation du chronometre..." : focus.complete ? "Durée atteinte : tu peux valider le bloc." : `${formatDuration(remaining)} restantes`}
             </p>
           </div>
         </div>

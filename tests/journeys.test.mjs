@@ -865,6 +865,18 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
       assert.ok(selectedProgress.grades.every((grade) => !["ESH", "Espagnol", "Italien"].includes(grade.subject)));
       assert.ok(selectedProgress.grades.some((grade) => grade.title === "Concours blanc geopolitique"));
       assert.ok(!(await planning.getStudentDashboardData()).weakPoints.some((point) => point.label === "Argumentation"));
+      const submission = await essays.getEssaySubmissionFormData();
+      assert.deepEqual(new Set(submission.subjects.map((subject) => subject.code)), new Set(["MATHS", "HGG", "ANG", "ALL", "CG"]));
+      const workspace = await assistant.getAssistantWorkspaceData();
+      assert.ok(workspace.resources.every((resource) => !["ESH", "Espagnol", "Italien"].includes(resource.subject)));
+      assert.ok(workspace.essays.every((essay) => !["ESH", "Espagnol", "Italien"].includes(essay.subject)));
+      const library = await resources.getResourcesOverviewData();
+      assert.ok(library.resources.every((resource) => !["ESH", "Espagnol", "Italien"].includes(resource.subject)));
+      assert.ok(await resources.getResourceDetailData(resourceId), "Un ancien lien de cours reste lisible apres changement de parcours");
+      const flashcards = await cards.getFlashcardsOverviewData();
+      assert.equal(flashcards.subjectsForForms.length, 5);
+      assert.ok(flashcards.subjectGroups.every((group) => !["ESH", "Espagnol", "Italien"].includes(group.subject)));
+      assert.ok(await cards.getFlashcardDeckData(rootDeck.id), "Un ancien deck reste disponible, sans suppression");
     });
   } finally {
     globalThis.fetch = previousFetch;

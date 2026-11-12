@@ -11,8 +11,8 @@ export default async function ActualitesPage() {
     return (
       <div>
         <PageHeader
-          title="Actualites"
-          actionLabel="Configurer mon profil"
+          title="Actualités"
+          actionLabel="Configurer le profil"
           actionHref="/onboarding"
         />
 
@@ -27,7 +27,7 @@ export default async function ActualitesPage() {
 
   return (
     <div>
-      <PageHeader title="Actualites" />
+      <PageHeader title="Actualités" />
 
       <div className="grid gap-5 xl:grid-cols-3">
         {data.sections.map((section) => (
@@ -47,9 +47,9 @@ export default async function ActualitesPage() {
                     <p className="mt-1 text-xs uppercase tracking-[0.18em] text-pine/45">
                       {section.hasFreshArticle
                         ? section.isLive
-                          ? "Article recent"
+                          ? "Article récent"
                           : "Article memorise"
-                        : "Aucune nouveaute recente"}
+                        : "Aucune nouveauté récente"}
                     </p>
                   </div>
                   <a

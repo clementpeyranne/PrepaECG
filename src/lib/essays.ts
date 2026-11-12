@@ -9,6 +9,7 @@ import { ensureDemoResources } from "./resources";
 import { deleteStoredFile, discardDirectUpload, getStoredFileName, getStoredFileUrl, readStoredFileBuffer, saveUploadedFile, resolveDirectUpload } from "./storage";
 import { validateDocumentBytes } from "./upload-rules";
 import { ensureDemoStudent } from "./student-app";
+import { getStudentSubjects } from "./student-subjects";
 
 type EssayFeedbackPayload = {
   overview: string;
@@ -726,11 +727,13 @@ export async function addTeacherEssayFeedback(input: {
 
 export async function getStudentEssaysOverviewData(): Promise<EssaysOverviewData> {
   const { user } = await ensureDemoStudent();
+  const curriculum = await getStudentSubjects(user.id);
   await ensureDemoEssays();
 
   const essays = await prisma.essay.findMany({
     where: {
-      studentId: user.id
+      studentId: user.id,
+      subject: { code: { in: curriculum.codes } }
     },
     include: {
       subject: true,
@@ -749,7 +752,7 @@ export async function getStudentEssaysOverviewData(): Promise<EssaysOverviewData
       return {
         id: essay.id,
         title: essay.title,
-        subject: essay.subject.name,
+        subject: curriculum.label(essay.subject.code),
         teacher: essay.teacher ? getTeacherLabel(essay.teacher.firstName, essay.teacher.lastName) : "IA uniquement",
         examType: essay.examType,
         targetExam: essay.targetExam,
@@ -969,12 +972,15 @@ export async function getEssaySubmissionFormData(): Promise<EssaySubmissionFormD
   const { user } = await ensureDemoStudent();
   await ensureDemoResources();
   const membership = await getCurrentUserClass(user.id);
+  const curriculum = await getStudentSubjects(user.id);
 
   const [subjects, chapters, teachers] = await Promise.all([
     prisma.subject.findMany({
+      where: { code: { in: curriculum.codes } },
       orderBy: { name: "asc" }
     }),
     prisma.chapter.findMany({
+      where: { subject: { code: { in: curriculum.codes } } },
       include: {
         subject: true
       },
@@ -1002,7 +1008,7 @@ export async function getEssaySubmissionFormData(): Promise<EssaySubmissionFormD
   return {
     subjects: subjects.map((subject) => ({
       code: subject.code,
-      name: subject.name
+      name: curriculum.label(subject.code)
     })),
     chapters: chapters.map((chapter) => ({
       id: chapter.id,

@@ -28,7 +28,7 @@ export function FlashcardImportForm({
 
         try {
           const archive = formData.get("archive");
-          if (!(archive instanceof File) || archive.size === 0) throw new Error("Selectionne un fichier .json ou .apkg.");
+          if (!(archive instanceof File) || archive.size === 0) throw new Error("Sélectionne un fichier .json ou .apkg.");
           const extension = archive.name.toLowerCase().split(".").pop();
           if (!extension || !["json", "apkg"].includes(extension)) throw new Error("Seuls les fichiers .json et .apkg sont acceptes.");
           if (archive.size > MAX_FLASHCARD_ARCHIVE_BYTES) throw new Error("Le fichier depasse la limite de 150 Mo.");
@@ -48,7 +48,7 @@ export function FlashcardImportForm({
               headers: { "Content-Type": mimeType, "x-upsert": "false" },
               body: archive
             });
-            if (!uploaded.ok) throw new Error("Le paquet n'a pas pu etre envoye. Verifie ta connexion puis reessaie.");
+            if (!uploaded.ok) throw new Error("Le fichier du deck n'a pas pu être envoyé. Vérifie ta connexion puis réessaie.");
             formData.delete("archive");
             formData.set("archiveReceipt", result.receipt);
           }
@@ -56,7 +56,7 @@ export function FlashcardImportForm({
           await action(formData);
         } catch (cause) {
           if (cause && typeof cause === "object" && "digest" in cause && String(cause.digest).startsWith("NEXT_REDIRECT")) throw cause;
-          setError(cause instanceof Error ? cause.message : "Import impossible. Reessaie.");
+          setError(cause instanceof Error ? cause.message : "Import impossible. Réessaie.");
           busy.current = false;
           setSending(false);
         }

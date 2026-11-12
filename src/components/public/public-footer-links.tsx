@@ -2,8 +2,8 @@ import type { Route } from "next";
 import Link from "next/link";
 
 const links: Array<{ href: Route; label: string }> = [
-  { href: "/mentions-legales", label: "Mentions legales" },
-  { href: "/confidentialite", label: "Confidentialite" },
+  { href: "/mentions-legales", label: "Mentions légales" },
+  { href: "/confidentialite", label: "Confidentialité" },
   { href: "/cookies", label: "Cookies" },
   { href: "/cgu", label: "CGU" },
   { href: "/support", label: "Support" }

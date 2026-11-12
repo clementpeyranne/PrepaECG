@@ -865,21 +865,21 @@ export function getAIStatusMeta(): AIStatusMeta {
     return {
       isLive: true,
       providerLabel: "OpenAI",
-      title: "IA OpenAI connectee",
+      title: "Assistant IA activé",
       description:
-        "Le site peut utiliser le moteur OpenAI via l'API Responses avec des sorties structurees pour les ressources, les copies et le pilotage eleve.",
-      nextStep: "Le suivi peut maintenant devenir plus fin a mesure que l'etudiant accumule des revisions et des retours de copies."
+        "Les documents associés peuvent être utilisés pour répondre aux questions et préparer les révisions.",
+      nextStep: "Une réponse IA peut contenir des erreurs : vérifier les éléments importants."
     };
   }
 
   return {
     isLive: false,
-    providerLabel: "Local",
-    title: "Coach local actif",
+    providerLabel: "Démonstration",
+    title: "Assistant IA non activé",
     description:
-      "Le site fonctionne deja avec une couche IA locale structuree. Elle relie profil, flashcards, ressources et copies, mais sans modele externe tant qu'aucune cle OpenAI n'est configuree.",
+      "Les réponses de démonstration sont limitées et ne remplacent pas une analyse du cours ou de la copie.",
     nextStep:
-      "Ajoute ensuite OPENAI_API_KEY pour passer du mode local a une IA OpenAI plus puissante sans changer l'application."
+      "Les corrections des professeurs restent accessibles dans la rubrique Copies."
   };
 }
 

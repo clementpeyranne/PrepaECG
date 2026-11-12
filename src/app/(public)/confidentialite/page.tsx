@@ -7,39 +7,39 @@ import { getPublicSiteConfig } from "@/lib/public-site";
 
 const processing = [
   {
-    title: "Compte et rattachement a la prepa",
-    data: "Nom, prenom, email, role, etablissement, langue vivante et parametres du profil.",
-    purpose: "Creer l'espace personnel, isoler chaque etablissement et gerer les acces.",
-    basis: "Execution du service demande et interet legitime de securisation.",
-    retention: "Pendant la vie du compte, puis suppression des donnees actives apres une demande de fermeture validee, sous reserve des sauvegardes techniques temporaires."
+    title: "Compte et rattachement à la prépa",
+    data: "Nom, prénom, email, rôle, établissement, langue vivante et paramètres du profil.",
+    purpose: "Créer l'espace personnel, isoler chaque établissement et gérer les accès.",
+    basis: "Exécution du service demandé et intérêt légitime de sécurisation.",
+    retention: "Pendant la vie du compte, puis suppression des données actives après une demande de fermeture validée, sous réserve des sauvegardes techniques temporaires."
   },
   {
     title: "Travail et progression",
-    data: "Planning, temps de travail valide, flashcards et revisions, notes, objectifs, points a consolider et statistiques de progression.",
-    purpose: "Fournir le suivi pedagogique et adapter les outils de travail.",
-    basis: "Execution du service demande.",
-    retention: "Pendant la vie du compte ou jusqu'a suppression par l'utilisateur lorsque la fonction le permet."
+    data: "Planning, temps de travail validé, flashcards et révisions, notes, objectifs, points à consolider et statistiques de progression.",
+    purpose: "Fournir le suivi pédagogique et adapter les outils de travail.",
+    basis: "Exécution du service demandé.",
+    retention: "Pendant la vie du compte ou jusqu'à suppression par l'utilisateur lorsque la fonction le permet."
   },
   {
-    title: "Documents et echanges pedagogiques",
+    title: "Documents et échanges pédagogiques",
     data: "Cours, ressources, copies, photos ou PDF, corrections, grilles et commentaires professeur.",
-    purpose: "Permettre les depots, corrections et partages au sein du bon etablissement.",
-    basis: "Execution du service demande.",
-    retention: "Pendant la vie du compte et tant que le partage pedagogique reste necessaire, puis suppression sur demande legitime ou fermeture du service."
+    purpose: "Permettre les dépôts, corrections et partages au sein du bon établissement.",
+    basis: "Exécution du service demandé.",
+    retention: "Pendant la vie du compte et tant que le partage pédagogique reste nécessaire, puis suppression sur demande légitime ou fermeture du service."
   },
   {
     title: "Fonctions d'intelligence artificielle",
-    data: "Demande saisie et, uniquement si l'utilisateur les associe a l'action, extraits de ressources, copies, corrections ou contexte de progression.",
-    purpose: "Repondre, resumer, creer des fiches ou cartes et proposer une correction ou un planning.",
-    basis: "Execution de la fonctionnalite demandee par l'utilisateur.",
-    retention: "Les metadonnees de generation suivent la vie du compte. Si OpenAI est active, les donnees API suivent aussi les conditions de conservation du fournisseur indiquees ci-dessous."
+    data: "Demande saisie et, uniquement si l'utilisateur les associe à l'action, extraits de ressources, copies, corrections ou contexte de progression.",
+    purpose: "Répondre, résumer, créer des fiches ou cartes et proposer une correction ou un planning.",
+    basis: "Exécution de la fonctionnalité demandée par l'utilisateur.",
+    retention: "Les métadonnées de génération suivent la vie du compte. Si OpenAI est activé, les données API suivent aussi les conditions de conservation du fournisseur indiquées ci-dessous."
   },
   {
-    title: "Securite et assistance",
-    data: "Dates de connexion, type d'appareil, evenement de securite, empreintes quotidiennes non reversibles de l'email et de l'adresse reseau, demandes de support.",
-    purpose: "Proteger les comptes, prevenir les abus, diagnostiquer un incident et assister les utilisateurs.",
-    basis: "Interet legitime a securiser le service et ses utilisateurs.",
-    retention: "Journaux de securite : 90 jours maximum. Compteurs anti-abus : 15 minutes. Echanges de support : le temps necessaire a la resolution puis archivage limite."
+    title: "Sécurité et assistance",
+    data: "Dates de connexion, type d'appareil, événement de sécurité, empreintes quotidiennes non réversibles de l'email et de l'adresse réseau, demandes de support.",
+    purpose: "Protéger les comptes, prévenir les abus, diagnostiquer un incident et assister les utilisateurs.",
+    basis: "Intérêt légitime à sécuriser le service et ses utilisateurs.",
+    retention: "Journaux de sécurité : 90 jours maximum. Compteurs anti-abus : 15 minutes. Échanges de support : le temps nécessaire à la résolution puis archivage limité."
   }
 ];
 
@@ -47,28 +47,28 @@ export default function PrivacyPage() {
   const site = getPublicSiteConfig();
   return (
     <PublicPageShell
-      eyebrow="Protection des donnees"
-      title="Politique de confidentialite"
-      intro="Cette politique explique simplement quelles donnees sont utilisees, pourquoi, par qui et pendant combien de temps."
+      eyebrow="Protection des données"
+      title="Politique de confidentialité"
+      intro="Cette politique explique simplement quelles données sont utilisées, pourquoi, par qui et pendant combien de temps."
     >
-      <LegalMeta version={`${PRIVACY_VERSION} - mise a jour ${LEGAL_LAST_UPDATED_LABEL}`} />
+      <LegalMeta version={`${PRIVACY_VERSION} - mise à jour ${LEGAL_LAST_UPDATED_LABEL}`} />
 
       <LegalSection title="Responsable du traitement">
         <p>
           Le responsable du traitement est <strong>{site.legalName}</strong>, {site.legalStatus}, joignable
-          pour toute question relative aux donnees a <a className="font-semibold text-ink underline" href={`mailto:${site.privacyEmail}`}>{site.privacyEmail}</a>.
+          pour toute question relative aux données à <a className="font-semibold text-ink underline" href={`mailto:${site.privacyEmail}`}>{site.privacyEmail}</a>.
         </p>
       </LegalSection>
 
-      <LegalSection title="Donnees, finalites et durees">
+      <LegalSection title="Données, finalités et durées">
         <div className="grid gap-4">
           {processing.map((item) => (
             <article key={item.title} className="rounded-[22px] border border-ink/8 bg-white/65 p-5">
               <h3 className="font-semibold text-ink">{item.title}</h3>
               <dl className="mt-3 grid gap-2">
-                <div><dt className="inline font-semibold text-pine">Donnees : </dt><dd className="inline">{item.data}</dd></div>
+                <div><dt className="inline font-semibold text-pine">Données : </dt><dd className="inline">{item.data}</dd></div>
                 <div><dt className="inline font-semibold text-pine">Pourquoi : </dt><dd className="inline">{item.purpose}</dd></div>
-                <div><dt className="inline font-semibold text-pine">Base legale : </dt><dd className="inline">{item.basis}</dd></div>
+                <div><dt className="inline font-semibold text-pine">Base légale : </dt><dd className="inline">{item.basis}</dd></div>
                 <div><dt className="inline font-semibold text-pine">Conservation : </dt><dd className="inline">{item.retention}</dd></div>
               </dl>
             </article>
@@ -76,76 +76,76 @@ export default function PrivacyPage() {
         </div>
       </LegalSection>
 
-      <LegalSection title="Qui peut acceder aux donnees ?">
+      <LegalSection title="Qui peut accéder aux données ?">
         <LegalList items={[
-          "L'utilisateur accede a ses propres donnees et contenus.",
-          "Les professeurs accedent uniquement aux ressources de leur environnement et aux copies qui leur sont adressees.",
-          "L'administrateur gere les comptes, les etablissements et la securite ; l'administration n'est pas un outil de surveillance pedagogique individuelle.",
-          "Les prestataires techniques n'accedent aux donnees que pour fournir leurs services et selon leurs engagements contractuels."
+          "L'utilisateur accède à ses propres données et contenus.",
+          "Les professeurs accèdent uniquement aux ressources de leur environnement et aux copies qui leur sont adressées.",
+          "L'administrateur gère les comptes, les établissements et la sécurité ; l'administration n'est pas un outil de surveillance pédagogique individuelle.",
+          "Les prestataires techniques n'accèdent aux données que pour fournir leurs services et selon leurs engagements contractuels."
         ]} />
       </LegalSection>
 
       <LegalSection title="Prestataires et transferts">
         <LegalList items={[
-          "Vercel Inc. : hebergement et execution de l'application.",
-          "Supabase : base PostgreSQL et stockage prive des PDF, photos et ressources, actuellement dans la region Stockholm de l'Union europeenne.",
-          "Resend : envoi des emails de recuperation uniquement lorsqu'il sera active.",
-          "OpenAI : fonctions IA uniquement lorsqu'une cle API est active et qu'une action IA est demandee. Les donnees envoyees via l'API ne sont pas utilisees par defaut pour entrainer les modeles."
+          "Vercel Inc. : hébergement et exécution de l'application.",
+          "Supabase : base PostgreSQL et stockage privé des PDF, photos et ressources, actuellement dans la région Stockholm de l'Union européenne.",
+          "Resend : envoi des emails de récupération uniquement lorsqu'il sera activé.",
+          "OpenAI : fonctions IA uniquement lorsqu'une clé API est active et qu'une action IA est demandée. Les données envoyées via l'API ne sont pas utilisées par défaut pour entraîner les modèles."
         ]} />
         <p>
-          Certains prestataires sont etablis hors de l'Espace economique europeen. Les transferts
-          eventuels doivent etre encadres par les mecanismes prevus par le RGPD et les accords de
+          Certains prestataires sont établis hors de l'Espace économique européen. Les transferts
+          éventuels doivent être encadrés par les mécanismes prévus par le RGPD et les accords de
           traitement applicables. Les fonctions Resend et OpenAI restent inactives tant que leur
-          configuration n'est pas finalisee.
+          configuration n'est pas finalisée.
         </p>
       </LegalSection>
 
       <LegalSection title="Intelligence artificielle">
         <p>
-          L'IA fournit une aide au travail et une indication pedagogique. Elle ne prend aucune decision
-          produisant un effet juridique sur l'eleve, ne remplace pas le professeur et peut commettre des
-          erreurs. Une note ou correction generee par IA doit etre verifiee avant d'etre utilisee.
+          L'IA fournit une aide au travail et une indication pédagogique. Elle ne prend aucune décision
+          produisant un effet juridique sur l'élève, ne remplace pas le professeur et peut commettre des
+          erreurs. Une note ou correction générée par IA doit être vérifiée avant d'être utilisée.
         </p>
         <p>
-          Evite d'inclure des donnees sensibles ou des informations concernant des tiers dans une
-          demande. Les documents ne sont joints a une demande IA que lorsque la fonctionnalite le prevoit.
+          Évite d'inclure des données sensibles ou des informations concernant des tiers dans une
+          demande. Les documents ne sont joints à une demande IA que lorsque la fonctionnalité le prévoit.
         </p>
       </LegalSection>
 
       <LegalSection title="Tes droits">
         <p>
-          Tu peux demander l'acces, la rectification, l'effacement, la limitation ou la portabilite de
-          tes donnees et t'opposer aux traitements fondes sur l'interet legitime. Ecris a
+          Tu peux demander l'accès, la rectification, l'effacement, la limitation ou la portabilité de
+          tes données et t'opposer aux traitements fondés sur l'intérêt légitime. Écris à
           {" "}<a className="font-semibold text-ink underline" href={`mailto:${site.privacyEmail}?subject=Exercice%20de%20mes%20droits%20RGPD`}>{site.privacyEmail}</a>.
-          Une preuve d'identite peut etre demandee uniquement en cas de doute raisonnable sur l'auteur de la demande.
+          Une preuve d'identité peut être demandée uniquement en cas de doute raisonnable sur l'auteur de la demande.
         </p>
         <p>
-          Une reponse est apportee dans le delai legal, en principe un mois. Tu peux aussi adresser une
-          reclamation a la <a className="font-semibold text-ink underline" href="https://www.cnil.fr/fr/plaintes" target="_blank" rel="noreferrer">CNIL</a>.
+          Une réponse est apportée dans le délai légal, en principe un mois. Tu peux aussi adresser une
+          réclamation à la <a className="font-semibold text-ink underline" href="https://www.cnil.fr/fr/plaintes" target="_blank" rel="noreferrer">CNIL</a>.
         </p>
       </LegalSection>
 
       <LegalSection title="Mineurs">
         <p>
-          Le service est destine aux preparationnaires. Un utilisateur de moins de 15 ans ne doit pas
-          creer seul un compte lorsque le traitement repose sur son consentement ; l'accord conjoint
-          du titulaire de l'autorite parentale est alors requis. L'information doit rester comprise par
-          l'eleve, qui peut exercer ses droits directement.
+          Le service est destiné aux préparationnaires. Un utilisateur de moins de 15 ans ne doit pas
+          créer seul un compte lorsque le traitement repose sur son consentement ; l'accord conjoint
+          du titulaire de l'autorité parentale est alors requis. L'information doit rester comprise par
+          l'élève, qui peut exercer ses droits directement.
         </p>
       </LegalSection>
 
       <LegalSection title="Cookies et stockage sur l'appareil">
         <p>
-          Aucun traceur publicitaire ni outil de mesure d'audience n'est actuellement installe. Le
-          service utilise seulement une session de connexion et des preferences locales indispensables
-          ou demandees. Le detail figure sur la page <Link className="font-semibold text-ink underline" href="/cookies">Cookies et stockage local</Link>.
+          Aucun traceur publicitaire ni outil de mesure d'audience n'est actuellement installé. Le
+          service utilise seulement une session de connexion et des préférences locales indispensables
+          ou demandées. Le détail figure sur la page <Link className="font-semibold text-ink underline" href="/cookies">Cookies et stockage local</Link>.
         </p>
       </LegalSection>
 
-      <LegalSection title="Evolution de cette politique">
+      <LegalSection title="Évolution de cette politique">
         <p>
-          Toute evolution importante des finalites, des destinataires ou des droits fera l'objet d'une
-          information visible. La version et la date de mise a jour permettent d'identifier le texte applicable.
+          Toute évolution importante des finalités, des destinataires ou des droits fera l'objet d'une
+          information visible. La version et la date de mise à jour permettent d'identifier le texte applicable.
         </p>
       </LegalSection>
     </PublicPageShell>

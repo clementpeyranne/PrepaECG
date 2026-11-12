@@ -304,7 +304,7 @@ export function AssistantConsole({
               id: createClientId("assistant"),
               role: "assistant",
               content:
-                "Une erreur est survenue pendant la reponse. Reessaie avec la meme demande ou relie un document pour que je reparte sur une base plus concrete."
+                "La réponse n'a pas pu être générée. Vérifie ta connexion et réessaie."
             }
           ]
         }));
@@ -356,7 +356,7 @@ export function AssistantConsole({
               {pendingConversationId === activeConversation.id ? (
                 <div className="mr-auto max-w-2xl">
                   <div className="rounded-[26px] border border-white/80 bg-white px-5 py-4 text-sm text-pine/72 shadow-sm">
-                    L'assistant ecrit sa reponse...
+                    L'assistant écrit sa réponse...
                   </div>
                 </div>
               ) : null}
@@ -443,7 +443,7 @@ export function AssistantConsole({
 
         <section className="overflow-hidden rounded-[30px] border border-white/80 bg-white shadow-panel">
           <div className="border-b border-ink/8 p-5">
-            <p className="text-xs uppercase tracking-[0.25em] text-pine/55">Contexte lie</p>
+            <p className="text-xs uppercase tracking-[0.25em] text-pine/55">Documents associés</p>
           </div>
           <div className="grid gap-3 p-5">
             <label className="block">

@@ -32,14 +32,14 @@ export function AppShell({
           href="/"
           className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/15 bg-white/6 px-4 py-2 text-sm font-medium text-sand transition hover:border-white/35 hover:bg-white/10"
         >
-          Retour a l'accueil
+          Retour à l'accueil
         </Link>
         <form action={logoutAction}>
           <button
             type="submit"
             className="inline-flex min-h-11 items-center justify-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:bg-sand"
           >
-            Se deconnecter
+            Se déconnecter
           </button>
         </form>
       </div>
@@ -53,7 +53,7 @@ export function AppShell({
           <div className="mb-8">
             <div className="inline-flex rounded-full border border-white/70 bg-white/55 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-pine/70">
               {audience === "student"
-                ? "Prepa ECG OS"
+                ? "Prépatempo"
                 : audience === "teacher"
                   ? "Espace professeur"
                   : "Administration"}

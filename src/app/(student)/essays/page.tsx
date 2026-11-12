@@ -14,13 +14,13 @@ export default async function EssaysPage() {
     <div>
       <PageHeader
         title="Copies"
-        actionLabel="Deposer une copie"
+        actionLabel="Déposer une copie"
         actionHref={"/essays/new" as Route}
       />
 
       <SectionCard
         eyebrow="Historique"
-        title="Copies deposees"
+        title="Copies déposées"
       >
         <div className="space-y-4">
           {data.essays.map((essay) => (

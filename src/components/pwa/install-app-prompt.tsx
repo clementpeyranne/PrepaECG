@@ -90,8 +90,8 @@ export function InstallAppPrompt() {
           <p className="text-xs uppercase tracking-[0.25em] text-sand/55">Application</p>
           <p className="mt-2 text-sm leading-7 text-sand/84">
             {promptEvent
-              ? "Installe Prepa ECG OS sur ton ecran d'accueil pour l'ouvrir comme une vraie application."
-              : "Sur iPhone, utilise le bouton Partager puis ajoute l'application sur l'ecran d'accueil."}
+              ? "Installer Prépatempo pour accéder aux révisions depuis l’écran d’accueil."
+              : "Sur iPhone, utilise le bouton Partager puis ajoute l'application sur l'écran d'accueil."}
           </p>
         </div>
 
@@ -107,7 +107,7 @@ export function InstallAppPrompt() {
           ) : null}
           {isIosHintVisible ? (
             <span className="rounded-full border border-sand/15 px-4 py-2 text-sm text-sand/82">
-              Safari iPhone : Partager puis Sur l'ecran d'accueil
+              Safari iPhone : Partager puis Sur l'écran d'accueil
             </span>
           ) : null}
           <button

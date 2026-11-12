@@ -46,23 +46,23 @@ export default async function DeckDetailPage({
 
         <SectionCard
           eyebrow="Progression"
-          title="Ou en est ce deck ?"
+          title="Révisions du deck"
         >
           <div className="grid gap-3 md:grid-cols-4">
             <div className="rounded-2xl bg-sand p-4 text-sm">
-              <p className="text-pine/60">Taux de reussite</p>
+              <p className="text-pine/60">Taux de réussite</p>
               <p className="mt-2 font-display text-3xl text-ink">
                 {data.stats.retention > 0 ? `${data.stats.retention}%` : "--"}
               </p>
             </div>
             <div className="rounded-2xl bg-sand p-4 text-sm">
-              <p className="text-pine/60">Cartes revisees</p>
+              <p className="text-pine/60">Cartes révisées</p>
               <p className="mt-2 font-display text-3xl text-ink">
                 {data.stats.reviewedCards}/{data.stats.total}
               </p>
             </div>
             <div className="rounded-2xl bg-sand p-4 text-sm">
-              <p className="text-pine/60">A revoir aujourd'hui</p>
+              <p className="text-pine/60">À revoir aujourd'hui</p>
               <p className="mt-2 font-display text-3xl text-ink">{data.stats.due}</p>
             </div>
             <div className="rounded-2xl bg-sand p-4 text-sm">

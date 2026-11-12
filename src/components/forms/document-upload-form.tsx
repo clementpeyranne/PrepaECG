@@ -28,13 +28,13 @@ export function DocumentUploadForm({ action, folder, cloud, children }: {
           const uploaded = await fetch(result.signedUrl, {
             method: "PUT", headers: { "Content-Type": file.type, "x-upsert": "false" }, body: file
           });
-          if (!uploaded.ok) throw new Error("Le fichier n'a pas pu etre envoye. Verifie ta connexion puis reessaie.");
+          if (!uploaded.ok) throw new Error("Le fichier n'a pas pu être envoyé. Vérifie ta connexion puis réessaie.");
           formData.delete("file");
           formData.set("uploadReceipt", result.receipt);
         }
       }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Envoi impossible. Reessaie.");
+      setError(cause instanceof Error ? cause.message : "Envoi impossible. Réessaie.");
       busy.current = false;
       setSending(false);
       return;
@@ -42,7 +42,7 @@ export function DocumentUploadForm({ action, folder, cloud, children }: {
     try { await action(formData); }
     catch (cause) {
       if (cause && typeof cause === "object" && "digest" in cause && String(cause.digest).startsWith("NEXT_REDIRECT")) throw cause;
-      setError("Enregistrement non confirme. Verifie ta connexion et reessaie : un meme envoi ne sera pas cree deux fois.");
+      setError("Enregistrement non confirmé. Vérifie ta connexion et réessaie : un même envoi ne sera pas créé deux fois.");
     }
     finally { busy.current = false; setSending(false); }
   }}>
