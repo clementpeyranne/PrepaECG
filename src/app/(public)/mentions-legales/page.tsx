@@ -13,6 +13,7 @@ export default function LegalNoticePage() {
       intro="Identification de l'éditeur, de la direction de publication et de l'hébergeur de la plateforme."
     >
       <LegalMeta version={LEGAL_LAST_UPDATED_LABEL} />
+      <p className="mb-6">Prépatempo est actuellement proposé dans le cadre d'un pilote gratuit sur invitation, sans abonnement ni publicité.</p>
       <LegalSection title="Éditeur du service">
         <p><strong>{site.legalName}</strong></p>
         <p>{site.legalStatus}</p>
@@ -29,10 +30,17 @@ export default function LegalNoticePage() {
       <LegalSection title="Hébergement">
         <p><strong>{site.hostingName}</strong></p>
         <p>{site.hostingAddress}</p>
+        <p>Téléphone : {site.hostingPhone}</p>
         <p>
           Le service utilise également Supabase pour la base de données et le stockage privé des
           documents. Les détails relatifs à ces traitements figurent dans la politique de confidentialité.
         </p>
+      </LegalSection>
+
+      <LegalSection title="Stockage des données et des documents">
+        <p><strong>{site.storageLegalName}</strong></p>
+        <p>{site.storageLegalAddress}</p>
+        <p>Supabase fournit la base de données et le stockage privé des ressources, PDF et photos.</p>
       </LegalSection>
 
       <LegalSection title="Propriété intellectuelle">

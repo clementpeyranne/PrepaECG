@@ -21,6 +21,7 @@ export default function TermsPage() {
           progression et assistance pédagogique. Le service vise à aider l'étudiant à organiser son
           travail ; il ne garantit aucun résultat scolaire ou admission à un concours.
         </p>
+        <p>Le pilote est gratuit et réservé aux personnes invitées. Aucun abonnement ni paiement n'est demandé pendant cette phase.</p>
       </LegalSection>
 
       <LegalSection title="2. Accès et compte">

@@ -765,9 +765,11 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
       const unknown = await auth.requestPasswordReset("nobody@example.test");
       assert.deepEqual(known, unknown); assert.equal(known.resetToken, null);
       assert.equal(sent.length, 1); assert.deepEqual(sent[0].to, [student.email]);
+      assert.ok(sent[0].html.includes("Réinitialiser le mot de passe"));
       const url = new URL(sent[0].text.match(/https:\/\/\S+/)[0]);
       const token = url.searchParams.get("token");
       assert.equal(url.origin, "https://prepa.example.test");
+      assert.ok(sent[0].html.includes(token));
       const stored = await db.passwordResetToken.findFirst({ where: { userId: student.id } });
       assert.notEqual(stored.tokenHash, token);
       const oldCookie = sessions.get(student.id);

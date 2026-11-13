@@ -159,18 +159,19 @@ function getAiStatus(): RuntimeCheck {
 }
 
 function getLegalStatus(): RuntimeCheck {
-  if (getPublicSiteConfig().isIncomplete) {
+  const site = getPublicSiteConfig();
+  if (site.isIncomplete) {
     return {
       label: "legal",
       state: "warn",
-      detail: "Les informations legales et de support doivent encore etre renseignees."
+      detail: `À vérifier : ${site.missingLegalFields.join(" ; ")}.`
     };
   }
 
   return {
     label: "legal",
     state: "pass",
-    detail: "Informations legales et de support configurees."
+    detail: "Informations légales renseignées. Ce contrôle ne constitue pas une validation juridique."
   };
 }
 

@@ -170,6 +170,7 @@ Principes :
 - `DATABASE_URL` devra pointer vers une base en ligne pour la vraie production.
 - `PASSWORD_RESET_MODE="direct-link"` ne fonctionne qu'en demonstration sous `npm run dev`, hors Vercel. Il ne doit jamais etre utilise pour des comptes reels.
 - La reinitialisation par email utilise Resend : `PASSWORD_RESET_MODE="email"`, `RESEND_API_KEY` et `EMAIL_FROM` (adresse seule, sur un domaine verifie). Tant que ces elements manquent, garder `support` : aucun envoi n'est annonce. Ne jamais mettre ces cles dans une variable `NEXT_PUBLIC_*`.
+- `npm run email:check:prod` controle les reglages sans envoyer d'email. Avec `RESEND_DOMAIN_ID`, il peut aussi verifier le domaine et l'absence de suivi des clics/ouvertures si la cle permet sa lecture. La livraison reelle reste a tester. Procedure : [mentions et emails du pilote](docs/LEGAL-EMAIL-PILOT.md).
 - `FILE_STORAGE_DRIVER="local"` convient au prototype, mais pas au deploiement final des fichiers.
 - `FILE_STORAGE_DRIVER="supabase"` est la direction retenue pour stocker les PDF et les photos en production.
 - `NEXT_PUBLIC_SUPPORT_EMAIL` et les champs legaux doivent etre completes avant ouverture publique.

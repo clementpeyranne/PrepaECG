@@ -14,6 +14,13 @@ const processing = [
     retention: "Pendant la vie du compte, puis suppression des données actives après une demande de fermeture validée, sous réserve des sauvegardes techniques temporaires."
   },
   {
+    title: "Récupération du compte par email",
+    data: "Adresse email du compte, lien de récupération et empreinte du jeton de sécurité.",
+    purpose: "Permettre de choisir un nouveau mot de passe après une demande de récupération.",
+    basis: "Exécution du service demandé et intérêt légitime à sécuriser les comptes.",
+    retention: "Le lien expire après une heure et ne peut servir qu'une fois. Seule son empreinte est stockée dans la base de l'application ; les jetons expirés sont supprimés lors du nettoyage de sécurité. Le prestataire email traite l'adresse du destinataire et le message pour l'acheminer."
+  },
+  {
     title: "Travail et progression",
     data: "Planning, temps de travail validé, flashcards et révisions, notes, objectifs, points à consolider et statistiques de progression.",
     purpose: "Fournir le suivi pédagogique et adapter les outils de travail.",
@@ -89,7 +96,7 @@ export default function PrivacyPage() {
         <LegalList items={[
           "Vercel Inc. : hébergement et exécution de l'application.",
           "Supabase : base PostgreSQL et stockage privé des PDF, photos et ressources, actuellement dans la région Stockholm de l'Union européenne.",
-          "Resend : envoi des emails de récupération uniquement lorsqu'il sera activé.",
+          "Resend : acheminement des emails de récupération, uniquement si ce service est configuré. Il reçoit l'adresse du destinataire et le message contenant le lien de récupération.",
           "OpenAI : fonctions IA uniquement lorsqu'une clé API est active et qu'une action IA est demandée. Les données envoyées via l'API ne sont pas utilisées par défaut pour entraîner les modèles."
         ]} />
         <p>

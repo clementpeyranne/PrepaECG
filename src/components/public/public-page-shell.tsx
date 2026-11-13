@@ -50,7 +50,7 @@ export function PublicPageShell({
         <footer className="mt-6 flex flex-col gap-3 rounded-[24px] bg-white/70 px-5 py-4 shadow-panel">
           <PublicFooterLinks />
           <p className="text-sm text-pine/72">
-            Besoin d'aide ? Écris a{" "}
+            Besoin d'aide ? Écris à{" "}
             <a className="font-semibold text-ink transition hover:text-pine" href={`mailto:${site.supportEmail}`}>
               {site.supportEmail}
             </a>
