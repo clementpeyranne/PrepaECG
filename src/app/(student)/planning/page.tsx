@@ -54,7 +54,7 @@ export default async function PlanningPage() {
               <div key={`${task.title}-${task.dueLabel}`} className="rounded-2xl bg-sand p-4">
                 <p className="font-semibold">{task.title}</p>
                 <p className="mt-1 text-sm text-pine/75">{task.subject}</p>
-                <p className="mt-2 text-xs uppercase tracking-[0.22em] text-pine/55">{task.dueLabel}</p>
+                <p className="mt-2 text-xs uppercase tracking-[0.22em] text-pine/75">{task.dueLabel}</p>
               </div>
             ))}
           </div>

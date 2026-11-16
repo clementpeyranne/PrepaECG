@@ -92,7 +92,7 @@ export function FlashcardFocusTimer({ planningEntryId }: { planningEntryId: stri
       <div className="mt-4 h-2 overflow-hidden rounded-full bg-mist">
         <div className="h-full rounded-full bg-clay transition-[width] duration-500" style={{ width: `${progress}%` }} />
       </div>
-      <p className="mt-3 text-xs text-pine/65">Le compteur avance uniquement lorsque cette page est ouverte et visible.</p>
+      <p className="mt-3 text-xs text-pine/75">Le compteur avance uniquement lorsque cette page est ouverte et visible.</p>
     </section>
   );
 }

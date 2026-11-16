@@ -566,7 +566,7 @@ test("Parcours comptes, documents, corrections et flashcards sur une base isolee
       assert.equal(detail.teacherFeedback[0].overview, "Progression nette");
       const progress = await planning.getStudentProgressData();
       assert.equal(progress.grades.length, 1);
-      assert.equal(progress.grades[0].sourceLabel, "Copie corrigee");
+      assert.equal(progress.grades[0].sourceLabel, "Copie corrigée");
       assert.equal(progress.grades[0].score, 14);
       const dashboard = await planning.getStudentDashboardData();
       assert.ok(dashboard.weakPoints.some((point) => point.label === "Argumentation"));

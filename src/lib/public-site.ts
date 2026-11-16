@@ -16,7 +16,7 @@ export function getPublicSiteConfig() {
   const legalName = readPublicValue("NEXT_PUBLIC_LEGAL_NAME", "Clément Peyranne");
   const legalStatus = readPublicValue("NEXT_PUBLIC_LEGAL_STATUS", "personne physique portant un projet personnel, sans entreprise immatriculée");
   const legalAddress = readPublicValue("NEXT_PUBLIC_LEGAL_ADDRESS", "Adresse a renseigner");
-  const legalPhone = readPublicValue("NEXT_PUBLIC_LEGAL_PHONE", "Telephone a renseigner");
+  const legalPhone = readPublicValue("NEXT_PUBLIC_LEGAL_PHONE", "Téléphone a renseigner");
   const legalRegistration = readPublicValue("NEXT_PUBLIC_LEGAL_REGISTRATION", "");
   const publicationDirector = readPublicValue(
     "NEXT_PUBLIC_PUBLICATION_DIRECTOR",

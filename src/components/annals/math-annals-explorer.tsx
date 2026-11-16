@@ -9,7 +9,7 @@ const initialFilters: AnnalsFilters = { track: "appliquees", category: "all", ye
 const focusRing = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-pine";
 
 function DocumentLink({ document, label, title }: { document: AnnalDocument | null; label: string; title: string }) {
-  if (!document) return <span className="flex min-h-11 items-center justify-center rounded-xl border border-ink/10 px-3 text-xs text-ink/60">{label} indisponible</span>;
+  if (!document) return <span className="flex min-h-11 items-center justify-center rounded-xl border border-ink/10 px-3 text-xs text-ink/75">{label} indisponible</span>;
   return (
     <div className="min-w-0">
       <a
@@ -21,7 +21,7 @@ function DocumentLink({ document, label, title }: { document: AnnalDocument | nu
       >
         {label}<ArrowUpRight size={15} aria-hidden="true" />
       </a>
-      <p className="mt-1.5 truncate text-center text-[11px] text-ink/60" title={annalSourceName(document.url)}>
+      <p className="mt-1.5 truncate text-center text-[11px] text-ink/75" title={annalSourceName(document.url)}>
         {document.format === "pdf" ? "PDF" : "Page"} · {annalSourceName(document.url)}
       </p>
     </div>
@@ -47,7 +47,7 @@ export function MathAnnalsExplorer({ records }: { records: MathAnnal[] }) {
         <div className="grid grid-cols-2 gap-2 rounded-2xl bg-sand p-1.5" role="group" aria-label="Filière de mathématiques">
           {([['appliquees', 'Maths appliquées'], ['approfondies', 'Maths approfondies']] as const).map(([id, label]) => (
             <button key={id} type="button" aria-pressed={filters.track === id} onClick={() => updateFilters({ track: id })}
-              className={`min-h-12 rounded-xl px-2 py-3 text-sm font-semibold transition sm:text-base ${focusRing} ${filters.track === id ? "bg-ink text-sand shadow-sm" : "text-ink/70 hover:bg-mist"}`}>
+              className={`min-h-12 rounded-xl px-2 py-3 text-sm font-semibold transition sm:text-base ${focusRing} ${filters.track === id ? "bg-ink text-sand shadow-sm" : "text-ink/80 hover:bg-mist"}`}>
               {label}
             </button>
           ))}
@@ -71,7 +71,7 @@ export function MathAnnalsExplorer({ records }: { records: MathAnnal[] }) {
           <label className="min-w-0">
             <span className="mb-2 block text-sm font-medium">Rechercher un sujet</span>
             <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-3.5 text-ink/45" size={18} aria-hidden="true" />
+              <Search className="pointer-events-none absolute left-3 top-3.5 text-ink/75" size={18} aria-hidden="true" />
               <input type="search" value={filters.query} onChange={(event) => updateFilters({ query: event.target.value })}
                 placeholder="École, année, ECE, ECS…" className={`min-h-12 w-full rounded-xl border border-ink/15 bg-sand py-3 pl-10 pr-3 text-sm ${focusRing}`} />
             </div>
@@ -90,11 +90,11 @@ export function MathAnnalsExplorer({ records }: { records: MathAnnal[] }) {
             <input type="checkbox" checked={filters.correctedOnly} onChange={(event) => updateFilters({ correctedOnly: event.target.checked })} className="h-4 w-4 accent-pine" />
             Avec un corrigé disponible
           </label>
-          <button type="button" onClick={() => updateFilters({ ...initialFilters, track: filters.track })} className={`min-h-11 rounded-lg px-2 text-sm underline underline-offset-4 text-ink/65 ${focusRing}`}>Réinitialiser les filtres</button>
+          <button type="button" onClick={() => updateFilters({ ...initialFilters, track: filters.track })} className={`min-h-11 rounded-lg px-2 text-sm underline underline-offset-4 text-ink/75 ${focusRing}`}>Réinitialiser les filtres</button>
         </div>
       </section>
 
-      <p className="px-1 text-xs leading-6 text-ink/65">
+      <p className="px-1 text-xs leading-6 text-ink/75">
         Avant 2023 : archives ECE en appliquées, ECS en approfondies. Certains exercices relèvent de l’ancien programme.
         Les anciens sujets ESSEC 1 sont regroupés avec HEC ; les épreuves Maths 2 sont séparées.
       </p>
@@ -102,7 +102,7 @@ export function MathAnnalsExplorer({ records }: { records: MathAnnal[] }) {
       <section className="panel-surface-strong overflow-hidden rounded-[26px]" aria-labelledby="annals-results">
         <div className="flex items-center justify-between gap-3 border-b border-ink/10 px-4 py-5 sm:px-6">
           <h2 id="annals-results" className="font-display text-2xl tracking-tight">Sujets et corrigés</h2>
-          <span className="text-sm text-ink/65" role="status">{results.length} résultat{results.length !== 1 ? "s" : ""}</span>
+          <span className="text-sm text-ink/75" role="status">{results.length} résultat{results.length !== 1 ? "s" : ""}</span>
         </div>
         {visible.length ? (
           <ul className="divide-y divide-ink/10">
@@ -112,7 +112,7 @@ export function MathAnnalsExplorer({ records }: { records: MathAnnal[] }) {
                   <span className="flex h-12 w-14 shrink-0 items-center justify-center rounded-xl bg-sand font-display text-xl">{record.year}</span>
                   <div className="min-w-0">
                     <h3 className="font-semibold leading-6">{record.title}</h3>
-                    <p className="mt-1 text-xs text-ink/65">{record.legacy ? `Archive ${record.legacy}` : "ECG"} · Maths {record.track === "appliquees" ? "appliquées" : "approfondies"}</p>
+                    <p className="mt-1 text-xs text-ink/75">{record.legacy ? `Archive ${record.legacy}` : "ECG"} · Maths {record.track === "appliquees" ? "appliquées" : "approfondies"}</p>
                     {!record.subject && <a className="mt-2 inline-block text-xs underline" href={record.sourcePage} target="_blank" rel="noopener noreferrer">Consulter la page d’archive</a>}
                   </div>
                 </div>
@@ -125,7 +125,7 @@ export function MathAnnalsExplorer({ records }: { records: MathAnnal[] }) {
           </ul>
         ) : (
           <div className="px-6 py-12 text-center">
-            <BookOpen size={28} aria-hidden="true" className="mx-auto mb-3 text-ink/45" />
+            <BookOpen size={28} aria-hidden="true" className="mx-auto mb-3 text-ink/75" />
             <p>Aucun sujet ne correspond à ces filtres.</p>
             <button type="button" onClick={() => updateFilters({ ...initialFilters, track: filters.track })} className={`mt-4 min-h-11 rounded-xl bg-ink px-4 text-sm text-sand ${focusRing}`}>Afficher tous les sujets</button>
           </div>
@@ -133,12 +133,12 @@ export function MathAnnalsExplorer({ records }: { records: MathAnnal[] }) {
         {pageCount > 1 && (
           <nav aria-label="Pagination des annales" className="flex items-center justify-between gap-2 border-t border-ink/10 p-4 sm:px-6">
             <button type="button" disabled={page === 1} onClick={() => setPage((current) => current - 1)} className={`min-h-11 rounded-xl border border-ink/15 px-3 text-sm disabled:opacity-35 ${focusRing}`}>Précédent</button>
-            <span className="text-xs text-ink/65" aria-live="polite">{page} / {pageCount}</span>
+            <span className="text-xs text-ink/75" aria-live="polite">{page} / {pageCount}</span>
             <button type="button" disabled={page === pageCount} onClick={() => setPage((current) => current + 1)} className={`min-h-11 rounded-xl border border-ink/15 px-3 text-sm disabled:opacity-35 ${focusRing}`}>Suivant</button>
           </nav>
         )}
       </section>
-      <p className="px-1 text-xs leading-6 text-ink/60">Les documents s’ouvrent sur le site de leur éditeur. Les corrigés peuvent être des propositions d’enseignants, et non des corrigés officiels.</p>
+      <p className="px-1 text-xs leading-6 text-ink/75">Les documents s’ouvrent sur le site de leur éditeur. Les corrigés peuvent être des propositions d’enseignants, et non des corrigés officiels.</p>
     </div>
   );
 }

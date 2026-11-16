@@ -22,32 +22,36 @@ export function AuthOrbs() {
   );
 }
 
-/** Pile de cartes en 3D, purement décorative. */
-export function AuthVisual() {
-  const cards = [
-    { icon: CalendarDays, label: "Planning", text: "Séances du jour", z: 0, x: 0, y: 0, tone: "bg-white text-ink" },
-    { icon: Layers, label: "Flashcards", text: "Cartes à revoir", z: 50, x: 26, y: 22, tone: "bg-gradient-to-br from-clay to-[#e6946f] text-white" },
-    { icon: PenLine, label: "Copies", text: "Corrections", z: 100, x: 52, y: 44, tone: "bg-ink/85 text-sand border border-white/15" }
-  ];
+const previewIcons = { planning: CalendarDays, flashcards: Layers, copies: PenLine } as const;
 
+/** Aperçu de l'espace de travail : carte opaque légèrement inclinée en 3D (décorative). */
+export function AuthPreview({
+  items
+}: {
+  items: Array<{ icon: keyof typeof previewIcons; title: string; text: string }>;
+}) {
   return (
-    <div className="scene mt-10 hidden h-48 lg:block" aria-hidden="true">
-      <div className="scene__stage float-a relative h-full" style={{ transform: "rotateX(22deg) rotateY(-18deg) rotateZ(4deg)" }}>
-        {cards.map(({ icon: Icon, label, text, z, x, y, tone }) => (
-          <div
-            key={label}
-            className={`absolute w-56 rounded-[22px] p-4 shadow-[0_30px_70px_rgba(0,0,0,0.4)] ${tone}`}
-            style={{ transform: `translate3d(${x}px, ${y}px, ${z}px)` }}
-          >
-            <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] opacity-75">
-              <Icon size={14} /> {label}
-            </p>
-            <p className="mt-3 font-display text-lg font-semibold">{text}</p>
-            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-current/15">
-              <div className="grow-x h-full w-3/5 rounded-full bg-current/60" />
-            </div>
-          </div>
-        ))}
+    <div className="scene mt-9" aria-hidden="true">
+      <div
+        data-tilt="6"
+        className="float-a rounded-[26px] border border-white/12 bg-[linear-gradient(160deg,rgba(255,255,255,0.12),rgba(255,255,255,0.04))] p-3 shadow-[0_30px_80px_rgba(0,0,0,0.35)] backdrop-blur-xl"
+      >
+        <ul className="space-y-2">
+          {items.map(({ icon, title, text }) => {
+            const Icon = previewIcons[icon];
+            return (
+              <li key={title} className="flex items-center gap-3.5 rounded-[18px] bg-white/[0.07] px-3.5 py-3">
+                <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-clay to-moss text-white shadow-[0_10px_24px_rgba(0,0,0,0.25)]">
+                  <Icon size={18} />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-semibold text-white">{title}</span>
+                  <span className="block truncate text-[13px] text-sand/70">{text}</span>
+                </span>
+              </li>
+            );
+          })}
+        </ul>
       </div>
     </div>
   );

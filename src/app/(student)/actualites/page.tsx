@@ -41,14 +41,14 @@ export default async function ActualitesPage() {
               <div className="rounded-[22px] bg-sand p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.18em] text-pine/55">
+                    <p className="text-xs uppercase tracking-[0.18em] text-pine/75">
                       {section.languageLabel} - {section.publishedAtLabel}
                     </p>
-                    <p className="mt-1 text-xs uppercase tracking-[0.18em] text-pine/45">
+                    <p className="mt-1 text-xs uppercase tracking-[0.18em] text-pine/75">
                       {section.hasFreshArticle
                         ? section.isLive
                           ? "Article récent"
-                          : "Article memorise"
+                          : "Article mémorisé"
                         : "Aucune nouveauté récente"}
                     </p>
                   </div>

@@ -12,7 +12,7 @@ export const SUBJECT_REFERENCES = [
   { code: "MATHS", name: "Maths" },
   { code: "ESH", name: "ESH" },
   { code: "HGG", name: "HGG" },
-  { code: "CG", name: "Culture generale" },
+  { code: "CG", name: "Culture générale" },
   { code: "ANG", name: "Anglais" },
   { code: "ESP", name: "Espagnol" },
   { code: "ALL", name: "Allemand" },

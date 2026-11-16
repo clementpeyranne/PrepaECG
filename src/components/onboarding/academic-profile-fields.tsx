@@ -40,7 +40,7 @@ export function AcademicProfileFields({ academicPath, lv2Language, assessments, 
           </select>
         </label>
       </div>
-      <p className="mt-4 text-sm text-ink/70">Culture générale fait également partie de ton parcours.</p>
+      <p className="mt-4 text-sm text-ink/80">Culture générale fait également partie de ton parcours.</p>
     </SectionCard>
     {children}
     <SectionCard eyebrow="Résultats" title="Résultats antérieurs">

@@ -60,6 +60,7 @@ export type TeacherResourcesData = {
     title: string;
     type: string;
     audience: string;
+    subject: string;
     chapter: string;
     uploadedAt: string;
     aiEnabled: boolean;
@@ -172,10 +173,10 @@ const SEEDED_RESOURCES: SeededResource[] = [
     resourceType: ResourceType.COURSE,
     description: "Cours dense sur Solow, Romer, Lucas et les enjeux de la croissance endogene.",
     content: `Solow : modele de croissance exogene fonde sur l'accumulation du capital et le progres technique exogene.
-Romer : la croissance endogene repose sur la production d'idees, la recherche et les externalites de connaissance.
+Romer : la croissance endogene repose sur la production d'idées, la recherche et les externalites de connaissance.
 Lucas : le capital humain nourrit durablement la croissance.
 Schumpeter : l'innovation cree un processus de destruction creatrice.
-Attention : toujours relier les auteurs a une idee precise dans la copie.
+Attention : toujours relier les auteurs a une idée précise dans la copie.
 Exemple : la politique d'innovation peut soutenir la croissance potentielle.
 Erreur classique : citer un auteur sans expliquer son mecanisme.`
   },
@@ -192,7 +193,7 @@ Liberalisation : ouverture progressive des mouvements de capitaux.
 Avantage : meilleure allocation theorique de l'epargne.
 Risque : contagion plus rapide des crises.
 Exemple : crise asiatique de 1997.
-Point de vigilance : distinguer finance de marche et financement de l'economie reelle.`
+Point de vigilance : distinguer finance de marche et financement de l'économie réelle.`
   },
   {
     id: "resource-demo-maths-laws",
@@ -217,10 +218,10 @@ Erreur classique : oublier les conditions d'application d'une approximation.`
     chapterSlug: "maths-methodologie",
     teacherId: "teacher-demo-dumas",
     resourceType: ResourceType.METHOD,
-    description: "Attendus de redaction et erreurs les plus penalisees en copie.",
-    content: `Une redaction propre justifie chaque implication utile.
-Il faut annoncer la methode avant les calculs longs.
-Un resultat non encadre ou non commente est fragile.
+    description: "Attendus de rédaction et erreurs les plus pénalisées en copie.",
+    content: `Une rédaction propre justifie chaque implication utile.
+Il faut annoncer la méthode avant les calculs longs.
+Un résultat non encadre ou non commente est fragile.
 Erreur classique : sauter une hypothese de depart.
 Conseil : faire apparaitre clairement les notations et les conclusions.`
   },
@@ -231,11 +232,11 @@ Conseil : faire apparaitre clairement les notations et les conclusions.`
     chapterSlug: "hgg-methodologie",
     teacherId: "teacher-demo-caron",
     resourceType: ResourceType.METHOD,
-    description: "Les attendus exacts sur la problematique, le plan et les transitions.",
+    description: "Les attendus exacts sur la problématique, le plan et les transitions.",
     content: `Problematique : reformuler le sujet en tension analytique.
 Plan : chaque partie doit faire progresser la demonstration.
 Transition : elle relie les parties en explicitant la limite de la precedente.
-Reference : une date ou un exemple doit servir une idee.
+Reference : une date ou un exemple doit servir une idée.
 Erreur classique : reciter un cours sans repondre au sujet.`
   },
   {
@@ -251,7 +252,7 @@ Erreur classique : reciter un cours sans repondre au sujet.`
 1989 : chute du mur de Berlin.
 1995 : creation de l'OMC.
 2001 : entree de la Chine a l'OMC.
-Conseil : toujours rattacher la date a sa portee geoeconomique ou geopolitique.`
+Conseil : toujours rattacher la date a sa portee geoeconomique ou géopolitique.`
   }
 ];
 
@@ -335,7 +336,7 @@ function formatOutputContent(type: OutputType, payload: Record<string, unknown>)
     const samples = Array.isArray(payload.samples) ? payload.samples.map(String) : [];
 
     return [
-      `${count} cartes ont ete generees dans le deck "${deckTitle}".`,
+      `${count} cartes ont été générées dans le deck "${deckTitle}".`,
       ...samples.slice(0, 4).map((sample) => `Carte : ${sample}`)
     ];
   }
@@ -583,7 +584,8 @@ export async function getTeacherResourcesData(): Promise<TeacherResourcesData> {
       id: resource.id,
       title: resource.title,
       type: formatResourceType(resource.resourceType),
-      audience: `${resource.subject.name} - ${resource.chapter?.name ?? "Sans chapitre"} - ECG`,
+      audience: `${resource.subject.name} · ${resource.chapter?.name ?? "Sans chapitre"}`,
+      subject: resource.subject.name,
       chapter: resource.chapter?.name ?? "Sans chapitre",
       uploadedAt: resource.createdAt.toLocaleDateString("fr-FR"),
       aiEnabled: resource.isAiActionsEnabled,
@@ -747,15 +749,17 @@ export async function createTeacherResource(input: {
   await ensureDemoResources();
   const teacher = await requireRole([UserRole.TEACHER, UserRole.ADMIN]);
   const membership = await getCurrentUserClass(teacher.id);
-  const chapter = await prisma.chapter.findFirst({
-    where: { id: input.chapterId, subject: { code: input.subjectCode } },
-    include: { subject: true }
-  });
+  // Chapitre facultatif (matières sans chapitres, comme les langues) ; s'il est fourni, il doit appartenir à la matière.
+  const subject = await prisma.subject.findUnique({ where: { code: input.subjectCode || "__no_subject__" } });
+  const chapter = input.chapterId
+    ? await prisma.chapter.findFirst({ where: { id: input.chapterId, subjectId: subject?.id ?? "__no_subject__" } })
+    : null;
+  const chapterIsValid = !input.chapterId || Boolean(chapter);
 
   const hasTextContent = Boolean(input.content.trim());
   const hasFile = Boolean((input.file && input.file.size > 0) || input.uploadReceipt);
 
-  if (!membership?.classId || !chapter || !input.title.trim() || !input.submissionKey.trim() || (!hasTextContent && !hasFile)) {
+  if (!membership?.classId || !subject || !chapterIsValid || !input.title.trim() || !input.submissionKey.trim() || (!hasTextContent && !hasFile)) {
     return { status: "invalid" as const };
   }
   const submissionKey = createHash("sha256").update(`${teacher.id}:${input.submissionKey}`).digest("hex");
@@ -794,8 +798,8 @@ export async function createTeacherResource(input: {
         submissionKey,
         uploaderId: teacher.id,
         classId: membership.classId,
-        subjectId: chapter.subject.id,
-        chapterId: chapter.id,
+        subjectId: subject.id,
+        chapterId: chapter?.id ?? null,
         title: input.title.trim(),
         description,
         resourceType: normalizedType,
@@ -841,7 +845,7 @@ export async function generateResourceOutput(resourceId: string, type: OutputTyp
 
   const text = await getResourceReadableText(resource) ?? "";
   const document = text ? undefined : await getResourceAIDocument(resource);
-  if (!text && !document) throw new AIServiceError("DOCUMENT_UNREADABLE", "Ce format ne peut pas etre analyse. Utilise un PDF, une photo ou un fichier texte.");
+  if (!text && !document) throw new AIServiceError("DOCUMENT_UNREADABLE", "Ce format ne peut pas être analyse. Utilise un PDF, une photo ou un fichier texte.");
   const chapterName = resource.chapter?.name ?? "Sans chapitre";
 
   if (type === "FLASHCARDS") {

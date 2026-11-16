@@ -1,5 +1,10 @@
 export const dynamic = "force-dynamic";
 
+import Link from "next/link";
+import type { Route } from "next";
+
+import { PendingSubmitButton } from "@/components/forms/pending-submit-button";
+import { Notice } from "@/components/ui/notice";
 import { PageHeader } from "@/components/ui/page-header";
 import { SectionCard } from "@/components/ui/section-card";
 import { createTeacherResourceAction } from "@/app/actions/resources";
@@ -12,21 +17,29 @@ import { getFileStorageDriver } from "@/lib/app-config";
 export default async function TeacherNewResourcePage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
   const data = await getTeacherResourcesData();
   const status = (await searchParams)?.status;
-  const message = status === "created" ? "Ressource publiée dans ta prépa."
-    : status === "already_exists" ? "Cette ressource est déjà enregistrée. Aucun doublon n'a été créé."
-    : status === "invalid" ? "Dépôt non enregistré. Vérifie la matière, le chapitre et le fichier, puis réessaie." : null;
+  const message = status === "created" ? { tone: "success" as const, text: "Ressource publiée dans ta prépa." }
+    : status === "already_exists" ? { tone: "warning" as const, text: "Cette ressource est déjà enregistrée. Aucun doublon n'a été créé." }
+    : status === "invalid" ? { tone: "error" as const, text: "Dépôt non enregistré. Vérifie le titre, la matière, le chapitre et le contenu (texte ou fichier), puis réessaie." } : null;
 
   return (
     <div>
       <PageHeader
         title="Nouveau dépôt"
+        description="Publier un cours, une fiche, un exercice ou une correction pour les élèves de la prépa."
       />
 
       <SectionCard
-        eyebrow="Formulaire"
-        title="Ajouter une ressource"
+        eyebrow="Ressource"
+        title="Informations et contenu"
       >
-        {message ? <p role="status" className="mb-5 rounded-2xl bg-sand p-4 text-sm">{message}</p> : null}
+        {message ? (
+          <Notice tone={message.tone} className="mb-5">
+            {message.text}
+            {message.tone === "success" ? (
+              <Link href={"/teacher/resources" as Route} className="ml-2 font-semibold underline underline-offset-4">Voir les ressources</Link>
+            ) : null}
+          </Notice>
+        ) : null}
         <DocumentUploadForm action={createTeacherResourceAction} folder="resources" cloud={getFileStorageDriver() === "supabase"}>
           <input type="hidden" name="submissionKey" value={randomUUID()} />
           <div className="grid gap-4 lg:grid-cols-2">
@@ -39,10 +52,8 @@ export default async function TeacherNewResourcePage({ searchParams }: { searchP
               />
             </label>
 
-            <SubjectChapterFields subjects={data.subjects} chapters={data.chapters} />
-
             <label className="rounded-[22px] bg-sand p-4">
-              <span className="text-sm font-semibold">Type</span>
+              <span className="text-sm font-semibold">Type de ressource</span>
               <select
                 name="resourceType"
                 defaultValue="COURSE"
@@ -56,6 +67,8 @@ export default async function TeacherNewResourcePage({ searchParams }: { searchP
                 <option value="REPORT">Rapport</option>
               </select>
             </label>
+
+            <SubjectChapterFields subjects={data.subjects} chapters={data.chapters} />
           </div>
 
           <label className="block rounded-[22px] bg-sand p-4">
@@ -63,7 +76,7 @@ export default async function TeacherNewResourcePage({ searchParams }: { searchP
             <textarea
               name="description"
               rows={3}
-              placeholder="Quelques lignes pour aider l'élève a comprendre ce qu'il va trouver."
+              placeholder="Quelques lignes pour aider l'élève à comprendre ce qu'il va trouver."
               className="mt-3 w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-pine"
             />
           </label>
@@ -86,31 +99,27 @@ export default async function TeacherNewResourcePage({ searchParams }: { searchP
               accept=".pdf,.png,.jpg,.jpeg,.txt,.md"
               className="mt-3 block w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-pine/80 file:mr-4 file:rounded-full file:border-0 file:bg-ink file:px-4 file:py-2 file:text-sm file:font-semibold file:text-sand"
             />
-            <p className="mt-3 text-xs leading-6 text-pine/70">
+            <p className="mt-3 text-xs leading-6 text-pine/80">
               Tu peux déposer un PDF, une image ou un fichier texte. Il faut remplir au moins l'un
               des deux champs : texte ou fichier.
             </p>
           </label>
 
-          <label className="flex items-center gap-3 rounded-[22px] bg-mist px-4 py-4 text-sm text-pine/85">
-            <input type="checkbox" name="aiEnabled" defaultChecked className="size-4 rounded border-ink/20" />
-            Autoriser les actions IA pour les élèves sur cette ressource
+          <label className="flex items-start gap-3 rounded-[22px] bg-mist px-4 py-4 text-sm text-ink">
+            <input type="checkbox" name="aiEnabled" defaultChecked className="mt-0.5 size-4 rounded border-ink/20" />
+            <span>
+              <span className="font-semibold">Autoriser les actions IA pour les élèves sur cette ressource</span>
+              <span className="mt-1 block leading-6 text-pine/85">
+                Les élèves pourront en tirer un résumé, une fiche de révision ou des flashcards. Le document d’origine reste inchangé.
+              </span>
+            </span>
           </label>
 
-          <div className="grid gap-3 md:grid-cols-3">
-            {["Résumé IA", "Création de fiches", "Génération de flashcards"].map((option) => (
-              <div key={option} className="rounded-[22px] bg-mist p-4 text-sm text-pine/85">
-                {option}
-              </div>
-            ))}
-          </div>
-
-          <button
-            type="submit"
-            className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-sand transition hover:bg-pine"
-          >
-            Publier la ressource
-          </button>
+          <PendingSubmitButton
+            label="Publier la ressource"
+            pendingLabel="Publication..."
+            className="btn-primary rounded-full px-6 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+          />
         </DocumentUploadForm>
       </SectionCard>
     </div>

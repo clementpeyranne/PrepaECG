@@ -37,7 +37,7 @@ export default async function ResetPasswordPage({
     <main className="bg-app-gradient">
       <div className="mx-auto flex min-h-screen max-w-5xl items-center px-4 py-8 lg:px-8">
         <section className="panel-surface-strong spotlight stagger w-full rounded-[34px] p-6 shadow-panel lg:p-8">
-          <p className="text-xs uppercase tracking-[0.25em] text-pine/55">Nouveau mot de passe</p>
+          <p className="text-xs uppercase tracking-[0.25em] text-pine/75">Nouveau mot de passe</p>
           <h1 className="mt-3 font-display text-4xl text-ink lg:text-5xl">Choisir un nouveau mot de passe</h1>
 
           {message ? (

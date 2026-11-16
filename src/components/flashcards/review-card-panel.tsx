@@ -34,7 +34,7 @@ export function ReviewCardPanel({ deckId, card, reviewOptions, planningEntryId =
   if (!card) {
     return (
       <div className="rounded-[32px] bg-ink p-8 text-sand shadow-panel">
-        <p className="text-xs uppercase tracking-[0.25em] text-sand/55">Révision</p>
+        <p className="text-xs uppercase tracking-[0.25em] text-sand/70">Révision</p>
         <h2 className="mt-3 font-display text-3xl">Aucune carte à réviser pour le moment</h2>
         <p className="mt-4 text-sm leading-7 text-sand/82">
           Aucune carte n'est due dans ce deck pour l'instant. Tu peux ajouter de nouvelles cartes
@@ -46,11 +46,11 @@ export function ReviewCardPanel({ deckId, card, reviewOptions, planningEntryId =
 
   return (
     <div className="rounded-[32px] bg-ink p-8 text-sand shadow-panel">
-      <p className="text-xs uppercase tracking-[0.25em] text-sand/55">Révision</p>
+      <p className="text-xs uppercase tracking-[0.25em] text-sand/70">Révision</p>
       <h2 className="mt-3 font-display text-4xl">Carte à réviser</h2>
 
       <div className="mt-6 rounded-[28px] bg-white/10 p-6 md:p-8">
-        <p className="text-xs uppercase tracking-[0.25em] text-sand/55">Question</p>
+        <p className="text-xs uppercase tracking-[0.25em] text-sand/70">Question</p>
         <div className="mt-5 text-2xl md:text-3xl md:leading-[3.2rem]">
           <FlashcardRichContent value={card.frontText} />
         </div>
@@ -58,7 +58,7 @@ export function ReviewCardPanel({ deckId, card, reviewOptions, planningEntryId =
 
       {showAnswer ? (
         <div className="mt-4 rounded-[28px] bg-white/10 p-6 md:p-8">
-          <p className="text-xs uppercase tracking-[0.25em] text-sand/55">Réponse</p>
+          <p className="text-xs uppercase tracking-[0.25em] text-sand/70">Réponse</p>
           <div className="mt-5 text-lg text-sand/88 md:text-xl">
             <FlashcardRichContent value={card.backText} />
           </div>
@@ -116,7 +116,7 @@ function RatingButton({
       className="rounded-[24px] border border-sand/20 px-5 py-4 text-left text-sand transition hover:border-sand/40 disabled:cursor-wait disabled:opacity-70"
     >
       <p className="text-sm font-semibold">{pending ? "..." : label}</p>
-      <p className="mt-2 text-xs uppercase tracking-[0.18em] text-sand/55">
+      <p className="mt-2 text-xs uppercase tracking-[0.18em] text-sand/70">
         Prochaine révision : {nextReviewLabel}
       </p>
     </button>

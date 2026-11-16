@@ -260,7 +260,7 @@ export async function askStudentAssistant(input: {
         ? JSON.stringify(essayFeedback.feedbackJson).slice(0, 15_000)
         : essay
           ? essay.submissionType === "FILE_UPLOAD"
-            ? "Copie deposee au format fichier."
+            ? "Copie déposée au format fichier."
             : essay.storageKey.slice(0, 15_000)
           : undefined,
     studentContext: {
@@ -277,7 +277,7 @@ export async function askStudentAssistant(input: {
         title: task.title,
         dueLabel: task.dueAt
           ? task.dueAt.toLocaleDateString("fr-FR", { day: "numeric", month: "short" })
-          : "sans echeance"
+          : "sans échéance"
       })),
       recentFeedback
     }

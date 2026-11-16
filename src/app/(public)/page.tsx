@@ -152,8 +152,8 @@ export default async function HomePage() {
       {/* ------------------------------------------------- Fonctionnalités */}
       <section id="fonctionnalites" className="mx-auto mt-20 max-w-7xl scroll-mt-28 px-4 lg:mt-28 lg:px-8">
         <div className="reveal max-w-3xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-clay">Fonctionnalités</p>
-          <h2 className="mt-4 font-display text-4xl font-semibold leading-[1.05] tracking-[-0.045em] text-ink lg:text-6xl">
+          <p className="canvas-accent text-xs font-semibold uppercase tracking-[0.3em]">Fonctionnalités</p>
+          <h2 className="canvas-text mt-4 font-display text-4xl font-semibold leading-[1.05] tracking-[-0.045em] lg:text-6xl">
             Tout le travail de prépa, <span className="text-gradient">au même endroit.</span>
           </h2>
         </div>
@@ -175,7 +175,7 @@ export default async function HomePage() {
                 <div className="grid grid-cols-7 gap-2">
                   {week.map((day, dayIndex) => (
                     <div key={dayIndex} className="flex flex-col items-center gap-1.5">
-                      <span className="text-[11px] font-semibold text-pine/60">{day.day}</span>
+                      <span className="text-[11px] font-semibold text-pine/75">{day.day}</span>
                       <div className="flex h-36 w-full flex-col justify-end gap-1.5 rounded-xl bg-white/70 p-1">
                         {day.blocks.map((height, blockIndex) => (
                           <span
@@ -233,7 +233,7 @@ export default async function HomePage() {
             </p>
             <p className="mt-6 font-display text-5xl font-semibold tracking-[-0.05em] text-ink">
               {annalCount}
-              <span className="ml-2 text-base font-medium tracking-normal text-pine/70">
+              <span className="ml-2 text-base font-medium tracking-normal text-pine/80">
                 sujets de maths, {firstYear}–{lastYear}
               </span>
             </p>
@@ -281,7 +281,7 @@ export default async function HomePage() {
                 ["Anglais", 86]
               ].map(([label, value], index) => (
                 <div key={label}>
-                  <div className="flex justify-between text-[12px] font-semibold text-pine/70">
+                  <div className="flex justify-between text-[12px] font-semibold text-pine/80">
                     <span>{label}</span>
                   </div>
                   <div className="mt-1 h-2.5 overflow-hidden rounded-full bg-mist">
@@ -326,11 +326,11 @@ export default async function HomePage() {
       <section id="methode" className="mx-auto mt-24 max-w-7xl scroll-mt-28 px-4 lg:mt-32 lg:px-8">
         <div className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr]">
           <div className="reveal lg:sticky lg:top-32 lg:self-start">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-clay">Méthode</p>
-            <h2 className="mt-4 font-display text-4xl font-semibold leading-[1.05] tracking-[-0.045em] text-ink lg:text-6xl">
+            <p className="canvas-accent text-xs font-semibold uppercase tracking-[0.3em]">Méthode</p>
+            <h2 className="canvas-text mt-4 font-display text-4xl font-semibold leading-[1.05] tracking-[-0.045em] lg:text-6xl">
               Une méthode simple, <span className="text-gradient">jour après jour.</span>
             </h2>
-            <p className="mt-5 max-w-md text-[15px] leading-7 text-pine/80">
+            <p className="canvas-muted mt-5 max-w-md text-[15px] leading-7">
               Une plateforme unique pour organiser le travail, mémoriser et progresser sans se disperser.
             </p>
           </div>
@@ -378,12 +378,12 @@ export default async function HomePage() {
 
       {/* ------------------------------------------------------------ Pied */}
       <footer className="mx-auto mb-8 mt-16 max-w-7xl px-4 lg:px-8">
-        <div className="flex flex-col gap-5 rounded-[28px] border border-white/60 bg-white/60 px-6 py-6 shadow-panel backdrop-blur md:flex-row md:items-center md:justify-between">
+        <div className="panel-surface-strong flex flex-col gap-5 rounded-[28px] px-6 py-6 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
             <BrandMark size={34} />
             <div>
               <p className="font-display text-base font-semibold text-ink">Prépatempo</p>
-              <p className="text-[13px] text-pine/70">Ton rythme. Tes ambitions.</p>
+              <p className="text-[13px] text-pine/80">Ton rythme. Tes ambitions.</p>
             </div>
           </div>
           <PublicFooterLinks />

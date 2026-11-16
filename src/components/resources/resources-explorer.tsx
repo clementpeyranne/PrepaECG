@@ -143,7 +143,7 @@ export function ResourcesExplorer({ resources }: ResourcesExplorerProps) {
                     {resource.type}
                   </span>
                 </div>
-                <p className="mt-4 max-w-4xl text-sm leading-7 text-pine/78">{resource.summary}</p>
+                <p className="mt-4 max-w-4xl text-sm leading-7 text-pine/85">{resource.summary}</p>
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                   {resource.aiEnabled ? (
                     <>

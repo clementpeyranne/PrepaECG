@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { signupAction } from "@/app/actions/auth";
-import { AuthBrand, AuthOrbs, AuthVisual } from "@/components/public/auth-visual";
+import { AuthBrand, AuthOrbs } from "@/components/public/auth-visual";
 import { PublicFooterLinks } from "@/components/public/public-footer-links";
 import { isDemoModeEnabled } from "@/lib/app-config";
 import { getCurrentUser, getUserLandingPath } from "@/lib/auth";
@@ -35,9 +35,9 @@ export default async function SignupPage({
       <div className="mx-auto flex min-h-screen max-w-6xl items-center px-4 py-8 lg:px-8">
         <div className="stagger grid w-full gap-6 lg:grid-cols-[1fr_1fr]">
           <section className="panel-surface-strong spotlight rounded-[36px] p-6 shadow-panel lg:p-8">
-            <p className="text-xs uppercase tracking-[0.25em] text-pine/55">Inscription</p>
+            <p className="text-xs uppercase tracking-[0.25em] text-pine/75">Inscription</p>
             <h1 className="mt-3 font-display text-3xl text-ink">Créer un compte</h1>
-            <p className="mt-2 text-sm leading-7 text-pine/78">
+            <p className="mt-2 text-sm leading-7 text-pine/85">
               Entre le code fourni par ta prépa pour rejoindre son espace de travail.
             </p>
 
@@ -151,7 +151,7 @@ export default async function SignupPage({
 
             </form>
 
-            <p className="mt-5 text-sm text-pine/76">
+            <p className="mt-5 text-sm text-pine/85">
               Déjà un compte ?{" "}
               <Link href="/login" className="font-semibold text-ink transition hover:text-pine">
                 Se connecter
@@ -164,7 +164,7 @@ export default async function SignupPage({
           <section className="panel-dark spotlight relative overflow-hidden rounded-[36px] p-8 text-sand shadow-panel lg:p-10">
             <AuthOrbs />
             <AuthBrand />
-            <p className="text-xs uppercase tracking-[0.35em] text-sand/55">Établissement</p>
+            <p className="text-xs uppercase tracking-[0.35em] text-sand/70">Établissement</p>
             <h2 className="mt-4 font-display text-5xl font-semibold leading-[1.02]">
               Rejoindre la <span className="text-gradient-light">prépa.</span>
             </h2>
@@ -173,15 +173,18 @@ export default async function SignupPage({
               de la prépa.
             </p>
 
-            <div className="mt-8 space-y-3 text-sm text-sand/86">
-              <p>Les ressources sont partagées au sein de l’établissement.</p>
-              <p>Les copies sont envoyées aux professeurs de la même prépa.</p>
-              {isDemoModeEnabled() ? null : (
-                <p>Les professeurs s’inscrivent sur invitation personnelle.</p>
-              )}
-            </div>
-
-            <AuthVisual />
+            <ul className="mt-8 space-y-3 text-sm text-sand/88">
+              {[
+                "Les ressources sont partagées au sein de l’établissement.",
+                "Les copies sont envoyées aux professeurs de la même prépa.",
+                ...(isDemoModeEnabled() ? [] : ["Les professeurs s’inscrivent sur invitation personnelle."])
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 backdrop-blur">
+                  <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-clay shadow-[0_0_10px_rgba(var(--accent-primary),0.8)]" />
+                  {item}
+                </li>
+              ))}
+            </ul>
           </section>
         </div>
       </div>

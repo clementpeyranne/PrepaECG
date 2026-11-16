@@ -77,6 +77,7 @@ export type TeacherEssaysQueueData = {
     instructions: string;
     id: string;
     title: string;
+    subjectId: string;
     subject: string;
     student: string;
     examType: string;
@@ -117,7 +118,7 @@ export type EssaySubmissionFormData = {
 function toFeedbackPayload(value: unknown): EssayFeedbackPayload {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return {
-      overview: "Feedback indisponible.",
+      overview: "Retour indisponible.",
       strengths: [],
       mistakes: [],
       nextSteps: [],
@@ -128,7 +129,7 @@ function toFeedbackPayload(value: unknown): EssayFeedbackPayload {
   const payload = value as Record<string, unknown>;
 
   return {
-    overview: typeof payload.overview === "string" ? payload.overview : "Feedback indisponible.",
+    overview: typeof payload.overview === "string" ? payload.overview : "Retour indisponible.",
     strengths: Array.isArray(payload.strengths) ? payload.strengths.map(String) : [],
     mistakes: Array.isArray(payload.mistakes) ? payload.mistakes.map(String) : [],
     nextSteps: Array.isArray(payload.nextSteps) ? payload.nextSteps.map(String) : [],
@@ -180,11 +181,11 @@ async function getDefaultRubric(subjectId: string, teacherId: string) {
       creatorId: teacherId,
       subjectId,
       title: "Grille principale",
-      description: "Grille par defaut pour les retours du MVP.",
+      description: "Grille créée automatiquement pour les premiers retours.",
       criteriaJson: [
-        "Pertinence de la reponse au sujet",
-        "Structure et methode",
-        "Precision des connaissances",
+        "Pertinence de la réponse au sujet",
+        "Structure et méthode",
+        "Précision des connaissances",
         "Qualite de l'argumentation"
       ]
     }
@@ -358,7 +359,7 @@ export async function generateEssayAiFeedback(essayId: string) {
         where: { id: weakPointId },
         update: {
           label: priorityLabel.slice(0, 180),
-          description: [review.overview, review.nextSteps[0]].filter(Boolean).join(" Prochaine etape : "),
+          description: [review.overview, review.nextSteps[0]].filter(Boolean).join(" Prochaine étape : "),
           severityScore: score < 10 ? 0.9 : score < 13 ? 0.7 : 0.45,
           status: score >= 14 ? "IMPROVING" : "ACTIVE",
           lastDetectedAt: new Date()
@@ -371,7 +372,7 @@ export async function generateEssayAiFeedback(essayId: string) {
           sourceType: `ai_feedback:${essay.id}`,
           severityScore: score < 10 ? 0.9 : score < 13 ? 0.7 : 0.45,
           label: priorityLabel.slice(0, 180),
-          description: [review.overview, review.nextSteps[0]].filter(Boolean).join(" Prochaine etape : "),
+          description: [review.overview, review.nextSteps[0]].filter(Boolean).join(" Prochaine étape : "),
           status: score >= 14 ? "IMPROVING" : "ACTIVE",
           lastDetectedAt: new Date()
         }
@@ -409,6 +410,14 @@ export async function generateEssayAiFeedback(essayId: string) {
   });
 }
 
+/** Banques d'épreuves proposées au dépôt d'une copie. */
+export const essayExamBanks = ["BCE", "Écricome"] as const;
+
+export function normalizeExamBank(value: string) {
+  const normalized = value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+  return normalized === "ecricome" ? "Écricome" : "BCE";
+}
+
 export async function createEssaySubmission(input: {
   subjectCode: string;
   chapterId: string;
@@ -427,10 +436,12 @@ export async function createEssaySubmission(input: {
   await ensureDemoResources();
   const membership = await getCurrentUserClass(user.id);
 
-  const chapter = await prisma.chapter.findFirst({
-    where: { id: input.chapterId, subject: { code: input.subjectCode } },
-    include: { subject: true }
-  });
+  // Le chapitre est facultatif : s'il est fourni, il doit appartenir à la matière choisie.
+  const subject = await prisma.subject.findUnique({ where: { code: input.subjectCode || "__no_subject__" } });
+  const chapter = input.chapterId
+    ? await prisma.chapter.findFirst({ where: { id: input.chapterId, subjectId: subject?.id ?? "__no_subject__" } })
+    : null;
+  const chapterIsValid = !input.chapterId || Boolean(chapter);
   if (input.correctionMode === "ai_only" && !isDemoModeEnabled() && !process.env.OPENAI_API_KEY?.trim()) return { status: "invalid" };
   const teacher = await prisma.user.findFirst({
     where: {
@@ -441,7 +452,7 @@ export async function createEssaySubmission(input: {
 
   if (!membership?.classId || (input.correctionMode !== "ai_only" && !teacher) ||
     !["teacher_only", "ai_only", "ai_then_teacher"].includes(input.correctionMode) ||
-    !chapter || !input.title.trim() || (!input.uploadReceipt && (!input.file || input.file.size === 0)) || !input.submissionKey.trim()) {
+    !subject || !chapterIsValid || !input.title.trim() || (!input.uploadReceipt && (!input.file || input.file.size === 0)) || !input.submissionKey.trim()) {
     return { status: "invalid" };
   }
 
@@ -473,16 +484,17 @@ export async function createEssaySubmission(input: {
   const contentHash = createHash("sha256").update(fileBuffer).digest("hex");
   const normalizedTitle = input.title.trim();
   const normalizedExamType = input.examType.trim() || "Copie";
-  const normalizedTargetExam = input.targetExam.trim() || "BCE";
+  const normalizedTargetExam = normalizeExamBank(input.targetExam);
   const deduplicationKey = createHash("sha256").update(JSON.stringify([
-    user.id, teacherId, chapter.id, normalizedTitle, normalizedExamType, normalizedTargetExam, contentHash
+    user.id, teacherId, subject.id, chapter?.id ?? null, normalizedTitle, normalizedExamType, normalizedTargetExam, contentHash
   ])).digest("hex");
 
   const existingDuplicate = await prisma.essay.findFirst({
     where: {
       studentId: user.id,
       teacherId,
-      chapterId: chapter.id,
+      subjectId: subject.id,
+      chapterId: chapter?.id ?? null,
       title: normalizedTitle,
       examType: normalizedExamType,
       targetExam: normalizedTargetExam,
@@ -507,8 +519,8 @@ export async function createEssaySubmission(input: {
       data: {
         studentId: user.id,
         teacherId,
-        subjectId: chapter.subject.id,
-        chapterId: chapter.id,
+        subjectId: subject.id,
+        chapterId: chapter?.id ?? null,
         submissionKey,
         deduplicationKey,
         instructions: input.instructions.trim().slice(0, 5000) || null,
@@ -546,7 +558,8 @@ export async function createEssaySubmission(input: {
         where: {
           studentId: user.id,
           teacherId,
-          chapterId: chapter.id,
+          subjectId: subject.id,
+          chapterId: chapter?.id ?? null,
           title: normalizedTitle,
           examType: normalizedExamType,
           targetExam: normalizedTargetExam,
@@ -570,6 +583,7 @@ export async function addTeacherEssayFeedback(input: {
   submissionKey: string;
   scoreMin?: number | null;
   scoreMax?: number | null;
+  rubricId?: string;
   overview: string;
   strengths: string;
   mistakes: string;
@@ -626,7 +640,10 @@ export async function addTeacherEssayFeedback(input: {
     return { status: "already_exists" };
   }
 
-  const rubric = await getDefaultRubric(essay.subjectId, teacher.id);
+  const chosenRubric = input.rubricId
+    ? await prisma.gradingRubric.findFirst({ where: { id: input.rubricId, creatorId: teacher.id, subjectId: essay.subjectId } })
+    : null;
+  const rubric = chosenRubric ?? (await getDefaultRubric(essay.subjectId, teacher.id));
   const strengths = linesFromTextarea(input.strengths);
   const mistakes = linesFromTextarea(input.mistakes);
   const nextSteps = linesFromTextarea(input.nextSteps);
@@ -689,7 +706,7 @@ export async function addTeacherEssayFeedback(input: {
             sourceType: `teacher_feedback:${essay.id}`,
             severityScore: score === null ? 0.65 : score < 10 ? 0.9 : score < 13 ? 0.7 : 0.45,
             label: priorityLabel.slice(0, 180),
-            description: [input.overview.trim(), nextSteps[0]].filter(Boolean).join(" Prochaine etape : "),
+            description: [input.overview.trim(), nextSteps[0]].filter(Boolean).join(" Prochaine étape : "),
             status: score !== null && score >= 14 ? "IMPROVING" : "ACTIVE",
             lastDetectedAt: new Date()
           }
@@ -761,7 +778,7 @@ export async function getStudentEssaysOverviewData(): Promise<EssaysOverviewData
             ? "Feedback prof disponible"
             : essay.status === "AI_REVIEWED"
               ? "Feedback IA disponible"
-              : "Copie deposee",
+              : "Copie déposée",
         latestScoreRange: latestFeedback ? getScoreRange(latestFeedback.scoreMin, latestFeedback.scoreMax) : "--",
         latestFeedbackLabel:
           latestFeedback?.reviewerType === ReviewerType.TEACHER ? "Professeur" : latestFeedback ? "IA" : "Aucun retour",
@@ -826,10 +843,10 @@ export async function getEssayDetailData(essayId: string): Promise<EssayDetailDa
             ? "Feedback prof disponible"
             : essay.status === "AI_REVIEWED"
               ? "Feedback IA disponible"
-              : "Copie deposee",
+              : "Copie déposée",
       content:
         essay.submissionType === "FILE_UPLOAD"
-          ? "La copie a ete deposee sous forme de fichier."
+          ? "La copie a été déposée sous forme de fichier."
           : essay.storageKey,
       fileUrl,
       mimeType: essay.mimeType,
@@ -886,6 +903,7 @@ export async function getTeacherEssaysQueueData(): Promise<TeacherEssaysQueueDat
         return {
           id: essay.id,
           title: essay.title,
+          subjectId: essay.subjectId,
           subject: essay.subject.name,
           student: `${essay.student.firstName} ${essay.student.lastName}`.trim(),
           instructions: essay.instructions ?? "",
@@ -893,12 +911,12 @@ export async function getTeacherEssaysQueueData(): Promise<TeacherEssaysQueueDat
           targetExam: essay.targetExam,
           status:
             hasTeacherFeedback || essay.status === "TEACHER_REVIEWED"
-              ? "Corrigee par un prof"
+              ? "Corrigée"
               : essay.status === "AI_REVIEWED"
-                ? "Correction IA disponible"
-                : "A corriger",
-          createdAtLabel: essay.createdAt.toLocaleDateString("fr-FR"),
-          latestAiSummary: aiPayload.overview,
+                ? "Pré-correction IA disponible"
+                : "À corriger",
+          createdAtLabel: essay.createdAt.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Paris" }),
+          latestAiSummary: latestAiFeedback ? aiPayload.overview : "",
           hasTeacherFeedback,
           fileUrl,
           mimeType: essay.mimeType
@@ -923,6 +941,7 @@ export async function getTeacherRubricsData() {
     rubrics: rubrics.map((rubric) => ({
       id: rubric.id,
       title: rubric.title,
+      subjectId: rubric.subjectId,
       subject: rubric.subject.name,
       criteria: Array.isArray(rubric.criteriaJson) ? rubric.criteriaJson.map(String) : [],
       usageCount: rubric._count.feedbacks
@@ -1019,6 +1038,59 @@ export async function getEssaySubmissionFormData(): Promise<EssaySubmissionFormD
       id: teacher.id,
       label: getTeacherLabel(teacher.firstName, teacher.lastName),
       email: teacher.email
+    }))
+  };
+}
+
+
+/** Accueil professeur : uniquement les copies reçues, les dépôts et les grilles du professeur. */
+export async function getTeacherHomeData() {
+  await ensureDemoResources();
+  const teacher = await requireRole([UserRole.TEACHER, UserRole.ADMIN]);
+  const membership = await getCurrentUserClass(teacher.id);
+  const classId = membership?.classId ?? "__no_class__";
+  const essayScope = { teacherId: teacher.id, student: { memberships: { some: { classId } } } };
+  const reviewedScope = {
+    ...essayScope,
+    OR: [
+      { status: "TEACHER_REVIEWED" as const },
+      { feedbacks: { some: { reviewerType: ReviewerType.TEACHER, reviewerUserId: teacher.id } } }
+    ]
+  };
+
+  const [totalEssays, reviewedEssays, resources, rubrics, pending] = await Promise.all([
+    prisma.essay.count({ where: essayScope }),
+    prisma.essay.count({ where: reviewedScope }),
+    prisma.resource.count({ where: { uploaderId: teacher.id, classId } }),
+    prisma.gradingRubric.count({ where: { creatorId: teacher.id } }),
+    prisma.essay.findMany({
+      where: {
+        ...essayScope,
+        status: { not: "TEACHER_REVIEWED" },
+        feedbacks: { none: { reviewerType: ReviewerType.TEACHER, reviewerUserId: teacher.id } }
+      },
+      include: { subject: true, student: true },
+      orderBy: { createdAt: "asc" },
+      take: 5
+    })
+  ]);
+
+  return {
+    firstName: teacher.firstName,
+    stats: {
+      toReview: totalEssays - reviewedEssays,
+      reviewed: reviewedEssays,
+      resources,
+      rubrics
+    },
+    pending: pending.map((essay) => ({
+      id: essay.id,
+      title: essay.title,
+      subject: essay.subject.name,
+      student: `${essay.student.firstName} ${essay.student.lastName}`.trim(),
+      examType: essay.examType,
+      targetExam: essay.targetExam,
+      createdAtLabel: essay.createdAt.toLocaleDateString("fr-FR", { day: "numeric", month: "long", timeZone: "Europe/Paris" })
     }))
   };
 }

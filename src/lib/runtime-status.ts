@@ -89,7 +89,7 @@ function getAppUrlStatus(): RuntimeCheck {
       detail:
         getAppMode() === "production"
           ? "L'URL publique pointe encore vers localhost ou n'est pas finalisee."
-          : "URL locale de developpement active."
+          : "URL locale de développement active."
     };
   }
 
@@ -107,8 +107,8 @@ function getAppUrlStatus(): RuntimeCheck {
       state: "warn",
       detail:
         source === "vercel-production"
-          ? "L'URL publique est deduite automatiquement depuis Vercel. Definir NEXT_PUBLIC_APP_URL reste preferable."
-          : "L'URL publique repose sur une URL Vercel de preview. Definir NEXT_PUBLIC_APP_URL est recommande."
+          ? "L'URL publique est deduite automatiquement depuis Vercel. Définir NEXT_PUBLIC_APP_URL reste preferable."
+          : "L'URL publique repose sur une URL Vercel de preview. Définir NEXT_PUBLIC_APP_URL est recommande."
     };
   }
 
@@ -122,7 +122,7 @@ function getAppUrlStatus(): RuntimeCheck {
 function getPasswordResetStatus(): RuntimeCheck {
   const mode = getPasswordResetMode();
   if (mode === "email" && isRecoveryEmailConfigured()) {
-    return { label: "password_reset", state: "pass", detail: "Service email configure. La reception effective doit etre testee." };
+    return { label: "password_reset", state: "pass", detail: "Service email configure. La reception effective doit être testee." };
   }
 
   if (mode === "direct-link") {
@@ -190,13 +190,13 @@ export async function getRuntimeStatus() {
     checks.unshift({
       label: "database",
       state: "pass",
-      detail: "Connexion base de donnees operationnelle."
+      detail: "Connexion base de données operationnelle."
     });
   } catch {
     checks.unshift({
       label: "database",
       state: "fail",
-      detail: "Connexion base de donnees impossible. Consulter les journaux du serveur."
+      detail: "Connexion base de données impossible. Consulter les journaux du serveur."
     });
   }
 

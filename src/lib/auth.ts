@@ -531,7 +531,7 @@ export async function getUserLandingPath(user: Pick<User, "role" | "id">) {
   }
 
   if (user.role === UserRole.TEACHER) {
-    return "/teacher/resources";
+    return "/teacher";
   }
 
   const profile = await getStudentProfileByUserId(user.id);

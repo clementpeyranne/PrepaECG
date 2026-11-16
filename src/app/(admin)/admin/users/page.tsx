@@ -38,7 +38,7 @@ export default async function AdminUsersPage({
 
         <div className="mt-5 overflow-x-auto rounded-[22px] border border-ink/8">
           <table className="min-w-[1160px] w-full text-left text-sm">
-            <thead className="border-b border-ink/8 bg-sand/70 text-xs uppercase tracking-[0.14em] text-pine/60">
+            <thead className="border-b border-ink/8 bg-sand/70 text-xs uppercase tracking-[0.14em] text-pine/75">
               <tr>
                 <th className="px-4 py-3">Compte</th><th className="px-4 py-3">Role</th><th className="px-4 py-3">Établissement</th>
                 <th className="px-4 py-3">Dernière connexion</th><th className="px-4 py-3">CGU</th><th className="px-4 py-3">Connexions</th><th className="px-4 py-3">Contenus</th><th className="px-4 py-3">Action</th>
@@ -47,15 +47,15 @@ export default async function AdminUsersPage({
             <tbody className="divide-y divide-ink/6 bg-white/60">
               {data.users.map((user) => (
                 <tr key={user.id} className={!user.isActive ? "bg-clay/5" : ""}>
-                  <td className="px-4 py-4"><p className="font-semibold text-ink">{user.name}</p><p className="mt-1 text-xs text-pine/60">{user.email}</p></td>
+                  <td className="px-4 py-4"><p className="font-semibold text-ink">{user.name}</p><p className="mt-1 text-xs text-pine/75">{user.email}</p></td>
                   <td className="px-4 py-4">{user.roleLabel}</td>
                   <td className="px-4 py-4">{user.establishment}</td>
                   <td className="px-4 py-4">{user.lastLoginAt}</td>
-                  <td className="px-4 py-4 text-xs text-pine/65">{user.legalStatus}</td>
+                  <td className="px-4 py-4 text-xs text-pine/75">{user.legalStatus}</td>
                   <td className="px-4 py-4">{user.loginCount}</td>
                   <td className="px-4 py-4">{user.contentCount}</td>
                   <td className="px-4 py-4">
-                    {user.role === "ADMIN" ? <span className="text-xs text-pine/55">Protégé</span> : (
+                    {user.role === "ADMIN" ? <span className="text-xs text-pine/75">Protégé</span> : (
                       <form action={setUserActiveAction}>
                         <input type="hidden" name="userId" value={user.id} />
                         <input type="hidden" name="isActive" value={String(!user.isActive)} />

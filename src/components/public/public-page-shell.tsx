@@ -26,7 +26,7 @@ export function PublicPageShell({
           <div className="relative flex flex-wrap items-start justify-between gap-6">
             <div className="max-w-3xl">
               <AuthBrand />
-              <p className="text-xs uppercase tracking-[0.35em] text-sand/55">{eyebrow}</p>
+              <p className="text-xs uppercase tracking-[0.35em] text-sand/70">{eyebrow}</p>
               <h1 className="mt-4 font-display text-4xl font-semibold leading-[1.04] lg:text-6xl">
                 <span className="text-gradient-light">{title}</span>
               </h1>
@@ -43,7 +43,7 @@ export function PublicPageShell({
         </div>
 
         {site.isIncomplete ? (
-          <section className="mt-6 rounded-[26px] border border-clay/15 bg-clay/10 px-5 py-4 text-sm leading-7 text-clay shadow-panel">
+          <section className="panel-surface-strong mt-6 rounded-[26px] border-l-4 !border-l-clay px-5 py-4 text-sm font-medium leading-7 text-clay">
             Certaines informations légales ne sont pas encore renseignées. Le service reste en phase pilote.
           </section>
         ) : null}
@@ -52,9 +52,9 @@ export function PublicPageShell({
           {children}
         </section>
 
-        <footer className="mt-6 flex flex-col gap-3 rounded-[24px] border border-white/60 bg-white/65 px-5 py-4 shadow-panel backdrop-blur">
+        <footer className="panel-surface-strong mt-6 flex flex-col gap-3 rounded-[24px] px-5 py-4">
           <PublicFooterLinks />
-          <p className="text-sm text-pine/72">
+          <p className="text-sm text-pine/80">
             Besoin d'aide ? Écris à{" "}
             <a className="font-semibold text-ink transition hover:text-pine" href={`mailto:${site.supportEmail}`}>
               {site.supportEmail}

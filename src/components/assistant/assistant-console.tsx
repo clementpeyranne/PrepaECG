@@ -330,7 +330,7 @@ export function AssistantConsole({
         <div className="mx-auto flex h-[74vh] max-w-6xl flex-col overflow-hidden rounded-[34px] border border-white/80 bg-white shadow-panel">
           <div className="border-b border-ink/8 px-6 py-3">
             <div className="mx-auto max-w-4xl">
-              <p className="text-xs uppercase tracking-[0.25em] text-pine/55">Conversation</p>
+              <p className="text-xs uppercase tracking-[0.25em] text-pine/75">Conversation</p>
               <h2 className="mt-2 font-display text-2xl text-ink">{activeConversation.title}</h2>
             </div>
           </div>
@@ -355,7 +355,7 @@ export function AssistantConsole({
 
               {pendingConversationId === activeConversation.id ? (
                 <div className="mr-auto max-w-2xl">
-                  <div className="rounded-[26px] border border-white/80 bg-white px-5 py-4 text-sm text-pine/72 shadow-sm">
+                  <div className="rounded-[26px] border border-white/80 bg-white px-5 py-4 text-sm text-pine/80 shadow-sm">
                     L'assistant écrit sa réponse...
                   </div>
                 </div>
@@ -370,7 +370,7 @@ export function AssistantConsole({
                 onChange={(event) => setPrompt(event.target.value)}
                 rows={2}
                 placeholder="Pose ta question ici."
-                className="w-full rounded-[22px] border border-ink/10 bg-sand px-4 py-3 text-sm leading-6 text-ink outline-none transition placeholder:text-pine/45 focus:border-pine"
+                className="w-full rounded-[22px] border border-ink/10 bg-sand px-4 py-3 text-sm leading-6 text-ink outline-none transition placeholder:text-pine/55 focus:border-pine"
               />
 
               <div className="mt-2 flex justify-end">
@@ -380,7 +380,7 @@ export function AssistantConsole({
                   disabled={!canSubmit}
                   className="min-w-[140px] rounded-full bg-clay px-5 py-3 text-sm font-semibold text-white transition hover:bg-clay/90 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {pendingConversationId ? "L'assistant reflechit..." : "Envoyer"}
+                  {pendingConversationId ? "L'assistant réfléchit..." : "Envoyer"}
                 </button>
               </div>
             </div>
@@ -392,7 +392,7 @@ export function AssistantConsole({
         <section className="overflow-hidden rounded-[30px] border border-white/80 bg-white shadow-panel">
           <div className="border-b border-ink/8 p-5">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-xs uppercase tracking-[0.25em] text-pine/55">Conversations</p>
+              <p className="text-xs uppercase tracking-[0.25em] text-pine/75">Conversations</p>
               <button
                 type="button"
                 onClick={handleCreateConversation}
@@ -443,7 +443,7 @@ export function AssistantConsole({
 
         <section className="overflow-hidden rounded-[30px] border border-white/80 bg-white shadow-panel">
           <div className="border-b border-ink/8 p-5">
-            <p className="text-xs uppercase tracking-[0.25em] text-pine/55">Documents associés</p>
+            <p className="text-xs uppercase tracking-[0.25em] text-pine/75">Documents associés</p>
           </div>
           <div className="grid gap-3 p-5">
             <label className="block">

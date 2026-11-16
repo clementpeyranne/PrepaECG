@@ -26,7 +26,7 @@ export function AppShell({
 }: AppShellProps) {
   const renderAccountCard = () => (
     <div className="panel-dark hero-glow spotlight rounded-[24px] p-4 text-sand lg:rounded-[28px] lg:p-5">
-      <p className="text-xs uppercase tracking-[0.25em] text-sand/58">Compte</p>
+      <p className="text-xs uppercase tracking-[0.25em] text-sand/70">Compte</p>
       {userLabel ? (
         <div className="mt-4 flex items-center gap-3">
           <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-clay to-moss text-sm font-semibold text-white shadow-[0_10px_24px_rgba(0,0,0,0.25)]">
@@ -68,7 +68,7 @@ export function AppShell({
               <BrandMark size={42} />
               <span className="flex flex-col leading-tight">
                 <span className="font-display text-lg font-semibold tracking-[-0.03em] text-ink">Prépatempo</span>
-                <span className="text-[12px] font-medium text-pine/65">
+                <span className="text-[12px] font-medium text-pine/90">
                   {audience === "student"
                     ? "Ton rythme. Tes ambitions."
                     : audience === "teacher"
@@ -81,7 +81,7 @@ export function AppShell({
               {title}
             </h1>
             {subtitle ? (
-              <p className="mt-3 max-w-[24rem] text-sm leading-7 text-pine/78">{subtitle}</p>
+              <p className="mt-3 max-w-[24rem] text-sm leading-7 text-pine/85">{subtitle}</p>
             ) : null}
           </div>
 

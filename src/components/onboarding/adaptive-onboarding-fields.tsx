@@ -144,7 +144,7 @@ export function AdaptiveOnboardingFields({
             readOnly
             className="h-2 w-full cursor-default appearance-none rounded-full bg-sand"
           />
-          <div className="mt-2 flex justify-between text-xs text-pine/60">
+          <div className="mt-2 flex justify-between text-xs text-pine/75">
             <span>trop faible</span>
             <span>cohérent</span>
             <span>très ambitieux</span>

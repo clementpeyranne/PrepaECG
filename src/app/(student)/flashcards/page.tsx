@@ -1,6 +1,10 @@
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
+import { Layers } from "lucide-react";
+
+import { EmptyState } from "@/components/ui/empty-state";
+import { StatTile } from "@/components/ui/stat-tile";
 import Link from "next/link";
 import type { Route } from "next";
 
@@ -86,14 +90,21 @@ export default async function FlashcardsPage({
         <SectionCard
           title="Decks et sous-decks"
         >
-          <div className="max-h-[560px] space-y-4 overflow-y-auto pr-2">
+          {data.subjectGroups.length === 0 ? (
+            <EmptyState
+              icon={Layers}
+              title="Aucun deck pour le moment"
+              text="Crée un premier deck ci-dessous ou importe un deck Anki (.apkg). Les sous-decks sont conservés."
+            />
+          ) : null}
+          <div className="scroll-fade max-h-[560px] space-y-4 overflow-y-auto overscroll-contain pr-1 empty:hidden">
             {data.subjectGroups.map((group) => (
               <div key={group.subject} className="rounded-[24px] border border-ink/8 bg-sand/50 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="font-display text-2xl text-ink">{group.subject}</p>
                     <p className="mt-1 text-sm text-pine/75">
-                      {group.deckCount} decks et sous-decks - {group.totalCards} cartes
+                      {group.deckCount} deck{group.deckCount > 1 ? "s" : ""} et sous-decks · {group.totalCards} carte{group.totalCards > 1 ? "s" : ""}
                     </p>
                   </div>
                   <div className="rounded-full bg-clay/10 px-3 py-1 text-xs text-clay">
@@ -114,18 +125,9 @@ export default async function FlashcardsPage({
           accent="soft"
         >
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl bg-white/75 p-4">
-              <p className="text-xs uppercase tracking-[0.22em] text-pine/55">À revoir</p>
-              <p className="mt-3 font-display text-3xl text-ink">{data.globalState.due}</p>
-            </div>
-            <div className="rounded-2xl bg-white/75 p-4">
-              <p className="text-xs uppercase tracking-[0.22em] text-pine/55">Decks actifs</p>
-              <p className="mt-3 font-display text-3xl text-ink">{data.globalState.active}</p>
-            </div>
-            <div className="rounded-2xl bg-white/75 p-4">
-              <p className="text-xs uppercase tracking-[0.22em] text-pine/55">Decks terminés</p>
-              <p className="mt-3 font-display text-3xl text-ink">{data.globalState.completed}</p>
-            </div>
+            <StatTile tone="white" label="À revoir" value={data.globalState.due} />
+            <StatTile tone="white" label="Decks actifs" value={data.globalState.active} />
+            <StatTile tone="white" label="Decks terminés" value={data.globalState.completed} />
           </div>
         </SectionCard>
       </div>
@@ -302,7 +304,7 @@ export default async function FlashcardsPage({
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-pine/72">Aucun code créé pour le moment.</p>
+                <p className="text-sm text-pine/80">Aucun code créé pour le moment.</p>
               )}
             </div>
           </div>
@@ -343,7 +345,7 @@ export default async function FlashcardsPage({
                 />
               </label>
 
-              <p className="text-xs text-pine/72">Formats acceptés : .json (Prépatempo) et .apkg (Anki). Les sous-decks sont conservés.</p>
+              <p className="text-xs text-pine/80">Formats acceptés : .json (Prépatempo) et .apkg (Anki). Les sous-decks sont conservés.</p>
 
               <button
                 type="submit"
@@ -379,11 +381,11 @@ function renderDeckTree(deck: FlashcardsOverviewDeckNode, planningEntryId = "") 
           <div>
             <p className="font-semibold text-ink">{deck.title}</p>
             <p className="mt-1 text-sm text-pine/75">
-              {deck.chapter} - {deck.total} cartes
+              {deck.chapter} · {deck.total} carte{deck.total > 1 ? "s" : ""}
             </p>
           </div>
-          <div className="text-right text-xs text-pine/72">
-            <p>{deck.due} a revoir</p>
+          <div className="text-right text-xs text-pine/80">
+            <p>{deck.due} à revoir</p>
             <p className="mt-1">{deck.retention}% de réussite</p>
           </div>
         </div>
@@ -401,11 +403,11 @@ function renderDeckTree(deck: FlashcardsOverviewDeckNode, planningEntryId = "") 
           <div className="min-w-0">
             <p className="font-semibold text-ink">{deck.title}</p>
             <p className="mt-1 text-sm text-pine/75">
-              {deck.childCount} sous-decks - {deck.total} cartes au total
+              {deck.childCount} sous-deck{deck.childCount > 1 ? "s" : ""} · {deck.total} carte{deck.total > 1 ? "s" : ""} au total
             </p>
           </div>
           <div className="rounded-full bg-sand px-3 py-1 text-xs text-pine">
-            {deck.due} a revoir
+            {deck.due} à revoir
           </div>
         </div>
       </summary>

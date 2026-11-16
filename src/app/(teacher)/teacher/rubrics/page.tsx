@@ -1,15 +1,21 @@
 export const dynamic = "force-dynamic";
 
+import { ListChecks } from "lucide-react";
+
 import { createTeacherRubricAction } from "@/app/actions/essays";
 import { PendingSubmitButton } from "@/components/forms/pending-submit-button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Notice } from "@/components/ui/notice";
 import { PageHeader } from "@/components/ui/page-header";
 import { SectionCard } from "@/components/ui/section-card";
 import { getTeacherRubricsData } from "@/lib/essays";
 
+const fieldClass = "mt-2 w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink outline-none transition focus:border-pine";
+
 function getMessage(status: string | null) {
-  if (status === "created") return "La grille a été créée.";
-  if (status === "already_exists") return "Cette grille existe déjà.";
-  if (status === "invalid") return "Complete le titre, la matière et au moins un critere.";
+  if (status === "created") return { tone: "success" as const, text: "Grille créée. Elle est proposée lors de la correction des copies de cette matière." };
+  if (status === "already_exists") return { tone: "warning" as const, text: "Une grille portant ce nom existe déjà pour cette matière." };
+  if (status === "invalid") return { tone: "error" as const, text: "Indique la matière, le nom de la grille et au moins un critère." };
   return null;
 }
 
@@ -25,46 +31,55 @@ export default async function TeacherRubricsPage({
 
   return (
     <div>
-      <PageHeader title="Grilles de correction" />
-      <div className="grid gap-5 xl:grid-cols-[0.8fr_1.2fr]">
-        <SectionCard eyebrow="Nouvelle grille" title="Definir les attentes">
-          {message ? <p className="mb-4 rounded-2xl bg-sand p-4 text-sm text-pine">{message}</p> : null}
+      <PageHeader title="Grilles de correction" description="Des critères réutilisables, proposés au moment de corriger une copie." />
+      {message ? <Notice tone={message.tone} className="mb-5">{message.text}</Notice> : null}
+
+      <div className="grid items-start gap-5 xl:grid-cols-[0.85fr_1.15fr]">
+        <SectionCard eyebrow="Nouvelle grille" title="Définir les attentes">
           <form action={createTeacherRubricAction} className="space-y-4">
-            <label className="block">
-              <span className="mb-2 block text-sm font-medium text-pine">Matière</span>
-              <select name="subjectId" required className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm">
+            <label className="block text-sm font-semibold text-ink">
+              Matière
+              <select name="subjectId" required className={fieldClass}>
                 {data.subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.name}</option>)}
               </select>
             </label>
-            <label className="block">
-              <span className="mb-2 block text-sm font-medium text-pine">Nom de la grille</span>
-              <input name="title" required placeholder="Ex. Dissertation ESH - BCE" className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm" />
+            <label className="block text-sm font-semibold text-ink">
+              Nom de la grille
+              <input name="title" required placeholder="Ex. Dissertation ESH - BCE" className={fieldClass} />
             </label>
-            <label className="block">
-              <span className="mb-2 block text-sm font-medium text-pine">Critères, un par ligne</span>
-              <textarea name="criteria" required rows={6} placeholder={"Problématique\nStructure\nPrecision des connaissances"} className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm" />
+            <label className="block text-sm font-semibold text-ink">
+              Critères
+              <textarea name="criteria" required rows={6} placeholder={"Problématique\nStructure\nPrécision des connaissances"} className={fieldClass} />
+              <span className="mt-1.5 block text-xs font-normal text-pine/80">Un critère par ligne.</span>
             </label>
-            <PendingSubmitButton label="Créer la grille" pendingLabel="Création..." className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-sand disabled:opacity-60" />
+            <PendingSubmitButton label="Créer la grille" pendingLabel="Création..." className="btn-primary rounded-full px-6 py-3 text-sm font-semibold text-white disabled:opacity-60" />
           </form>
         </SectionCard>
 
-        <SectionCard title="Grilles existantes">
+        <SectionCard eyebrow={`${data.rubrics.length} grille${data.rubrics.length > 1 ? "s" : ""}`} title="Grilles existantes">
           {data.rubrics.length === 0 ? (
-            <p className="rounded-2xl bg-sand p-5 text-sm text-pine">Aucune grille créée pour le moment.</p>
+            <EmptyState icon={ListChecks} title="Aucune grille pour le moment" text="Crée une première grille : elle sera proposée lors de la correction des copies de la matière." />
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {data.rubrics.map((rubric) => (
-                <div key={rubric.id} className="rounded-[24px] border border-ink/8 p-5">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
+                <div key={rubric.id} className="rounded-[22px] border border-ink/8 bg-white p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <p className="font-semibold">{rubric.title}</p>
-                      <p className="mt-1 text-sm text-pine/70">{rubric.subject}</p>
+                      <p className="font-display text-lg font-semibold text-ink">{rubric.title}</p>
+                      <p className="mt-0.5 text-sm text-pine/85">{rubric.subject} · {rubric.criteria.length} critère{rubric.criteria.length > 1 ? "s" : ""}</p>
                     </div>
-                    <span className="rounded-full bg-mist px-3 py-1 text-xs text-pine">{rubric.usageCount} utilisation(s)</span>
+                    <span className="rounded-full bg-sand px-3 py-1 text-xs font-semibold text-pine">
+                      Utilisée {rubric.usageCount} fois
+                    </span>
                   </div>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {rubric.criteria.map((criterion) => <span key={criterion} className="rounded-full bg-sand px-3 py-1 text-xs text-pine">{criterion}</span>)}
-                  </div>
+                  <ol className="mt-4 flex flex-wrap gap-2">
+                    {rubric.criteria.map((criterion, index) => (
+                      <li key={criterion} className="inline-flex items-center gap-1.5 rounded-full bg-sand px-3 py-1 text-xs text-ink">
+                        <span className="font-semibold text-clay">{index + 1}</span>
+                        {criterion}
+                      </li>
+                    ))}
+                  </ol>
                 </div>
               ))}
             </div>

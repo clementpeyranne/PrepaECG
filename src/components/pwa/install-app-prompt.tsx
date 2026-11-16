@@ -87,7 +87,7 @@ export function InstallAppPrompt() {
     >
       <div className="pointer-events-auto panel-dark flex w-full max-w-xl flex-col gap-3 rounded-[24px] px-5 py-4 text-sand shadow-panel">
         <div>
-          <p className="text-xs uppercase tracking-[0.25em] text-sand/55">Application</p>
+          <p className="text-xs uppercase tracking-[0.25em] text-sand/70">Application</p>
           <p className="mt-2 text-sm leading-7 text-sand/84">
             {promptEvent
               ? "Installer Prépatempo pour accéder aux révisions depuis l’écran d’accueil."

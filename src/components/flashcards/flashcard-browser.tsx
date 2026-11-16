@@ -145,10 +145,10 @@ export function FlashcardBrowser({
     <div className="rounded-[28px] border border-white/80 bg-white p-5 shadow-panel">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.25em] text-pine/55">Cartes</p>
+          <p className="text-xs uppercase tracking-[0.25em] text-pine/75">Cartes</p>
           <h2 className="mt-3 font-display text-2xl text-ink">{title}</h2>
           {description ? <p className="mt-2 text-sm leading-6 text-pine/75">{description}</p> : null}
-          <p className="mt-3 text-xs uppercase tracking-[0.18em] text-pine/55">
+          <p className="mt-3 text-xs uppercase tracking-[0.18em] text-pine/75">
             {visibleCards.length} sur {resultTotal} carte{resultTotal > 1 ? "s" : ""} affichée
             {visibleCards.length > 1 ? "s" : ""}
             {isLoading ? " - chargement..." : ""}

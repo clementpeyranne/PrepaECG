@@ -63,14 +63,14 @@ for (const [email, password, expectedCourse] of [
   }
 }
 const teacher = await login("teacher@example.test", "test-password-123");
-for (const route of ["/teacher/resources", "/teacher/resources/new", "/teacher/essays", "/teacher/grades", "/teacher/rubrics"]) {
+for (const route of ["/teacher", "/teacher/resources", "/teacher/resources/new", "/teacher/essays", "/teacher/grades", "/teacher/rubrics"]) {
   const response = await fetch(base + route, { headers: { Cookie: teacher } });
   assert.equal(response.status, 200);
   console.log(`PASS: ${route} HTTP 200`);
 }
 const studentArea = await fetch(`${base}/dashboard`, { headers: { Cookie: teacher }, redirect: "manual" });
 assert.ok([303, 307, 308].includes(studentArea.status));
-assert.equal(studentArea.headers.get("location"), "/teacher/resources");
+assert.equal(studentArea.headers.get("location"), "/teacher");
 console.log("PASS: un professeur est renvoye vers son espace dedie");
 const page = await fetch(`${base}/forgot-password`, { headers: { Cookie: "prepa_auth=invalid" } });
 assert.equal(page.status, 200);

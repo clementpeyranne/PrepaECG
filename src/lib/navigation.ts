@@ -19,11 +19,12 @@ export const studentNavigation: NavItem[] = [
 ];
 
 export const teacherNavigation: NavItem[] = [
+  { href: "/teacher", label: "Accueil" },
+  { href: "/teacher/essays", label: "Copies" },
   { href: "/teacher/resources", label: "Ressources" },
   { href: "/teacher/resources/new", label: "Nouveau dépôt" },
-  { href: "/teacher/essays", label: "Copies" },
   { href: "/teacher/grades", label: "Notes" },
-  { href: "/teacher/rubrics", label: "Grilles" }
+  { href: "/teacher/rubrics", label: "Grilles de correction" }
 ];
 
 export const adminNavigation: NavItem[] = [

@@ -207,7 +207,7 @@ async function selectEntry(config: NewsSectionConfig, userId: string, now: Date)
     return {
       title: activeSelection.articleTitle,
       url: activeSelection.articleUrl,
-      summary: `Article deja selectionne pour aujourd'hui dans ${config.sourceName}.`,
+      summary: `Article déjà sélectionné pour aujourd'hui dans ${config.sourceName}.`,
       publishedAt: activeSelection.publishedAt,
       publishedAtLabel: formatPublishedAtLabel(activeSelection.publishedAt),
       isLive: true,
@@ -245,7 +245,7 @@ async function selectEntry(config: NewsSectionConfig, userId: string, now: Date)
       title: "Aucune nouvelle proposition recente disponible",
       url: config.sourceUrl,
       summary:
-        "La rubrique attend un nouvel article de moins de 7 jours qui n'a pas encore ete propose. Reviens demain pour une nouvelle rotation.",
+        "La rubrique attend un nouvel article de moins de 7 jours qui n'a pas encore été propose. Reviens demain pour une nouvelle rotation.",
       publishedAt: null,
       publishedAtLabel: "A verifier demain",
       isLive: false,

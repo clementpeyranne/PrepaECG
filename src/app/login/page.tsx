@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { loginAction } from "@/app/actions/auth";
-import { AuthBrand, AuthOrbs, AuthVisual } from "@/components/public/auth-visual";
+import { AuthBrand, AuthOrbs, AuthPreview } from "@/components/public/auth-visual";
 import { PublicFooterLinks } from "@/components/public/public-footer-links";
 import { getCurrentUser, getUserLandingPath } from "@/lib/auth";
 
@@ -26,36 +26,32 @@ export default async function LoginPage({
     <main className="bg-app-gradient">
       <div className="mx-auto flex min-h-screen max-w-6xl items-center px-4 py-8 lg:px-8">
         <div className="stagger grid w-full gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-          <section className="panel-dark spotlight relative overflow-hidden rounded-[36px] p-8 text-sand shadow-panel lg:p-10">
+          <section className="order-2 lg:order-1 panel-dark spotlight relative flex flex-col overflow-hidden rounded-[36px] p-8 text-sand shadow-panel lg:p-10">
             <AuthOrbs />
             <AuthBrand />
-            <p className="text-xs uppercase tracking-[0.35em] text-sand/55">Connexion</p>
-            <h1 className="mt-4 font-display text-5xl font-semibold leading-[1.02] lg:text-6xl">
-              Reprendre les <span className="text-gradient-light">révisions.</span>
+            <p className="text-xs uppercase tracking-[0.35em] text-sand/70">Bon retour</p>
+            <h1 className="mt-4 font-display text-[2.6rem] font-semibold leading-[1.04] sm:text-5xl lg:text-[3.4rem]">
+              Le travail du jour <span className="text-gradient-light">t’attend.</span>
             </h1>
-            <p className="mt-6 max-w-2xl text-base leading-8 text-sand/78">
-              Planning, flashcards, cours et copies réunis dans un seul espace.
+            <p className="mt-5 max-w-md text-base leading-8 text-sand/80">
+              Connecte-toi pour retrouver le programme prévu, les cartes à revoir et les retours sur les copies.
             </p>
 
-            <div className="mt-10 grid gap-4 md:grid-cols-3">
-              {[
-                "Connexion par email et mot de passe",
-                "Session personnelle sécurisée",
-                "Accès élève ou professeur"
-              ].map((item) => (
-                <div key={item} className="rounded-[24px] border border-white/10 bg-white/[0.06] p-4 text-sm text-sand/85 backdrop-blur">
-                  {item}
-                </div>
-              ))}
-            </div>
+            <AuthPreview
+              items={[
+                { icon: "planning", title: "Programme du jour", text: "Les séances prévues, prêtes à valider" },
+                { icon: "flashcards", title: "Flashcards", text: "Les cartes arrivées à échéance" },
+                { icon: "copies", title: "Copies", text: "Les corrections reçues des professeurs" }
+              ]}
+            />
 
-            <AuthVisual />
+            <p className="mt-auto pt-10 text-sm font-medium text-sand/70">Ton rythme. Tes ambitions.</p>
           </section>
 
-          <section className="panel-surface-strong spotlight rounded-[32px] p-6 shadow-panel lg:p-8">
-            <p className="text-xs uppercase tracking-[0.25em] text-pine/55">Accès</p>
+          <section className="order-1 lg:order-2 panel-surface-strong spotlight rounded-[32px] p-6 shadow-panel lg:p-8">
+            <p className="text-xs uppercase tracking-[0.25em] text-pine/75">Accès</p>
             <h2 className="mt-3 font-display text-3xl text-ink">Se connecter</h2>
-            <p className="mt-2 text-sm leading-7 text-pine/78">
+            <p className="mt-2 text-sm leading-7 text-pine/85">
               Utilise l’adresse email et le mot de passe du compte.
             </p>
 
@@ -100,7 +96,7 @@ export default async function LoginPage({
               </Link>
             </div>
 
-            <p className="mt-5 text-sm text-pine/76">
+            <p className="mt-5 text-sm text-pine/85">
               Pas encore de compte ?{" "}
               <Link href="/signup" className="font-semibold text-ink transition hover:text-pine">
                 Créer un compte

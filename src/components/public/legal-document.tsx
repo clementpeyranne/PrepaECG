@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 export function LegalMeta({ version }: { version: string }) {
   return (
-    <div className="mb-8 flex flex-wrap gap-2 text-xs font-medium text-pine/65">
+    <div className="mb-8 flex flex-wrap gap-2 text-xs font-medium text-pine/75">
       <span className="rounded-full bg-sand px-3 py-1.5">Version {version}</span>
       <span className="rounded-full bg-sand px-3 py-1.5">Applicable au service en phase pilote</span>
     </div>

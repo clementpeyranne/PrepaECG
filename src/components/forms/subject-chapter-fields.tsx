@@ -17,8 +17,9 @@ export function SubjectChapterFields({ subjects, chapters }: {
     </label>
     <label className="rounded-[22px] bg-sand p-4">
       <span className="text-sm font-semibold">Chapitre ou thème</span>
-      <select name="chapterId" key={subject} defaultValue={options[0]?.id ?? ""} className={style} required>
-        {!options.length ? <option value="">Aucun chapitre disponible</option> : null}
+      {/* Matière sans chapitre (ex. langues) : la ressource est publiée sans chapitre. */}
+      <select name="chapterId" key={subject} defaultValue={options[0]?.id ?? ""} className={style} required={options.length > 0}>
+        {!options.length ? <option value="">Sans chapitre pour cette matière</option> : null}
         {options.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
       </select>
     </label>

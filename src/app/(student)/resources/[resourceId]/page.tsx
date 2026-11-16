@@ -41,7 +41,7 @@ export default async function ResourceDetailPage({
 
           {resource.content ? (
             <div className="mt-5 rounded-[26px] border border-ink/8 bg-white p-6">
-              <p className="text-xs uppercase tracking-[0.22em] text-pine/55">Contenu</p>
+              <p className="text-xs uppercase tracking-[0.22em] text-pine/75">Contenu</p>
               <div className="mt-4 space-y-3 text-sm leading-8 text-pine/82">
                 {resource.content.split("\n").filter(Boolean).map((line) => (
                   <p key={line}>{line}</p>
@@ -51,7 +51,7 @@ export default async function ResourceDetailPage({
           ) : resource.fileUrl ? (
             <div className="mt-5 rounded-[26px] border border-ink/8 bg-white p-6">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-xs uppercase tracking-[0.22em] text-pine/55">Document joint</p>
+                <p className="text-xs uppercase tracking-[0.22em] text-pine/75">Document joint</p>
                 <a
                   href={resource.fileUrl}
                   target="_blank"
@@ -79,7 +79,7 @@ export default async function ResourceDetailPage({
                   />
                 </div>
               ) : (
-                <div className="mt-4 rounded-[20px] bg-sand p-5 text-sm text-pine/78">
+                <div className="mt-4 rounded-[20px] bg-sand p-5 text-sm text-pine/85">
                   {resource.fileName ?? "Document déposé"} est disponible au téléchargement.
                 </div>
               )}

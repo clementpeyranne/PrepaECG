@@ -7,10 +7,12 @@ import { PageHeader } from "@/components/ui/page-header";
 import { SectionCard } from "@/components/ui/section-card";
 import { createEssaySubmissionAction } from "@/app/actions/essays";
 import { PendingSubmitButton } from "@/components/forms/pending-submit-button";
-import { getEssaySubmissionFormData } from "@/lib/essays";
+import { essayExamBanks, getEssaySubmissionFormData } from "@/lib/essays";
 import { DocumentUploadForm } from "@/components/forms/document-upload-form";
-import { SubjectChapterFields } from "@/components/forms/subject-chapter-fields";
 import { getFileStorageDriver, isDemoModeEnabled } from "@/lib/app-config";
+
+const fieldClass =
+  "mt-3 w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-pine";
 
 function getSubmissionMessage(status: string | null) {
   if (status === "submitted") {
@@ -29,7 +31,7 @@ function getSubmissionMessage(status: string | null) {
 
   if (status === "invalid") {
     return {
-      text: "Le dépôt n'a pas pu être finalise. Vérifie le titre et le fichier, puis recommence.",
+      text: "Le dépôt n'a pas pu être finalisé. Vérifie le titre et le fichier, puis recommence.",
       tone: "error" as const
     };
   }
@@ -84,37 +86,54 @@ export default async function NewEssayPage({
               <span className="text-sm font-semibold">Titre</span>
               <input
                 name="title"
+                required
                 placeholder="Ex. Dissertation ESH - Croissance et innovation"
-                className="mt-3 w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-pine"
+                className={fieldClass}
               />
             </label>
 
-            <SubjectChapterFields subjects={data.subjects} chapters={data.chapters} />
+            <label className="rounded-[22px] bg-sand p-4">
+              <span className="text-sm font-semibold">Matière</span>
+              <select name="subjectCode" required defaultValue={data.subjects[0]?.code ?? ""} className={fieldClass}>
+                {data.subjects.map((subject) => (
+                  <option key={subject.code} value={subject.code}>
+                    {subject.name}
+                  </option>
+                ))}
+              </select>
+            </label>
 
             <label className="rounded-[22px] bg-sand p-4">
               <span className="text-sm font-semibold">Type d'épreuve</span>
-              <input
-                name="examType"
-                defaultValue="Dissertation"
-                className="mt-3 w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-pine"
-              />
+              <input name="examType" defaultValue="Dissertation" list="essay-exam-types" className={fieldClass} />
+              <datalist id="essay-exam-types">
+                {["Dissertation", "Commentaire de documents", "Synthèse", "Essai", "Exercice", "Problème", "Version", "Thème"].map((type) => (
+                  <option key={type} value={type} />
+                ))}
+              </datalist>
             </label>
 
-            <label className="rounded-[22px] bg-sand p-4">
-              <span className="text-sm font-semibold">Concours cible</span>
-              <input
-                name="targetExam"
-                defaultValue="BCE"
-                className="mt-3 w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-pine"
-              />
-            </label>
+            <fieldset className="rounded-[22px] bg-sand p-4">
+              <legend className="sr-only">Banque d'épreuves</legend>
+              <span aria-hidden="true" className="text-sm font-semibold">Banque d'épreuves</span>
+              <div className="mt-3 grid grid-cols-2 gap-2 rounded-2xl border border-ink/10 bg-white p-1.5">
+                {essayExamBanks.map((bank) => (
+                  <label key={bank} className="relative cursor-pointer">
+                    <input type="radio" name="targetExam" value={bank} defaultChecked={bank === "BCE"} className="peer sr-only" />
+                    <span className="flex min-h-[2.6rem] items-center justify-center rounded-xl px-3 text-sm font-semibold text-pine/80 transition peer-checked:bg-ink peer-checked:text-sand peer-checked:shadow-[0_8px_20px_rgba(20,34,29,0.18)] peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-clay">
+                      {bank}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
 
             <label className="rounded-[22px] bg-sand p-4">
               <span className="text-sm font-semibold">Correction souhaitée</span>
               <select
                 name="correctionMode"
                 defaultValue={!data.teachers.length && aiEnabled ? "ai_only" : aiEnabled ? "ai_then_teacher" : "teacher_only"}
-                className="mt-3 w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-pine"
+                className={fieldClass}
               >
                 {aiEnabled ? <option value="ai_then_teacher">IA puis professeur si besoin</option> : null}
                 {aiEnabled ? <option value="ai_only">IA seulement</option> : null}
@@ -124,10 +143,7 @@ export default async function NewEssayPage({
 
             <label className="rounded-[22px] bg-sand p-4">
               <span className="text-sm font-semibold">Professeur destinataire</span>
-              <select
-                name="teacherId"
-                className="mt-3 w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-pine"
-              >
+              <select name="teacherId" className={fieldClass}>
                 {data.teachers.length > 0 ? (
                   data.teachers.map((teacher) => (
                     <option key={teacher.id} value={teacher.id}>
@@ -138,9 +154,7 @@ export default async function NewEssayPage({
                   <option value="">Aucun professeur disponible dans cette prépa</option>
                 )}
               </select>
-              <p className="mt-3 text-sm leading-7 text-pine/75">
-                Seuls les professeurs de ton établissement apparaissent ici.
-              </p>
+              <p className="mt-2 text-xs leading-6 text-pine/80">Seuls les professeurs de ta prépa apparaissent ici.</p>
             </label>
           </div>
 
@@ -168,7 +182,7 @@ export default async function NewEssayPage({
             label="Envoyer la copie"
             pendingLabel="Dépôt en cours..."
             disabled={isSubmitDisabled}
-            className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-sand transition hover:bg-pine disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn-primary rounded-full px-6 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
           />
 
           {isSubmitDisabled ? (

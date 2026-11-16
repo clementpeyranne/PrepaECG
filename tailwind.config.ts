@@ -1,9 +1,14 @@
 import type { Config } from "tailwindcss";
 
+// Toutes les opacités entières (ex. text-pine/78) : sans cela, Tailwind ignore les valeurs
+// hors de son échelle par défaut et le texte hérite de la couleur de la page.
+const opacity = Object.fromEntries(Array.from({ length: 101 }, (_, value) => [String(value), String(value / 100)]));
+
 const config: Config = {
   content: ["./src/**/*.{js,ts,jsx,tsx,mdx}"],
   theme: {
     extend: {
+      opacity,
       colors: {
         sand: "rgb(var(--color-sand) / <alpha-value>)",
         ink: "rgb(var(--color-ink) / <alpha-value>)",

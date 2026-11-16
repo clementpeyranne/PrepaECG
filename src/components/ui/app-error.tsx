@@ -17,7 +17,7 @@ export function AppError({ error, reset }: AppErrorProps) {
       <div className="rounded-[28px] border border-pine/10 bg-white/80 p-8 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-coral">Incident temporaire</p>
         <h1 className="mt-3 text-2xl font-semibold text-pine">Cette page n'a pas pu se charger.</h1>
-        <p className="mt-3 text-sm leading-6 text-pine/70">
+        <p className="mt-3 text-sm leading-6 text-pine/80">
           Tes données sont conservées. Relance simplement la page pour reprendre ton travail.
         </p>
         <button

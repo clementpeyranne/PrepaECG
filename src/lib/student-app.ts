@@ -185,8 +185,8 @@ function getWeakPointCandidates(input: OnboardingInput) {
       label: `${assessment.name} - ${assessment.score}/20`,
       description:
         index === 0
-          ? "Cette matiere demande un vrai renforcement pour ne pas prendre de retard."
-          : "Cette matiere doit etre remise dans une repartition solide du travail."
+          ? "Cette matière demande un vrai renforcement pour ne pas prendre de retard."
+          : "Cette matière doit être remise dans une répartition solide du travail."
     }));
   }
 
@@ -271,7 +271,7 @@ function getCoherenceFeedback(targets: TargetExamsPayload, weekdayDailyHours: nu
 
   if (ratio < 0.55) {
     return {
-      title: "Charge tres insuffisante",
+      title: "Charge très insuffisante",
       helper: "L'objectif ecoles / volume de travail semble trop decale."
     };
   }
@@ -292,7 +292,7 @@ function getCoherenceFeedback(targets: TargetExamsPayload, weekdayDailyHours: nu
 
   return {
     title: "Charge ambitieuse",
-    helper: "Le volume est eleve ; il faudra surveiller la soutenabilite et la regularite."
+    helper: "Le volume est élevé ; il faudra surveiller la soutenabilité et la régularité."
   };
 }
 
@@ -371,13 +371,13 @@ async function ensureDemoGrades(studentId: string) {
   const today = startOfToday();
 
   const demoGrades = [
-    { subjectCode: "MATHS", title: "DS probabilites", score: 8, daysAgo: 118, sourceType: "teacher_entry", teacherName: "M. Dumas" },
+    { subjectCode: "MATHS", title: "DS probabilités", score: 8, daysAgo: 118, sourceType: "teacher_entry", teacherName: "M. Dumas" },
     { subjectCode: "MATHS", title: "DM lois usuelles", score: 10.5, daysAgo: 92, sourceType: "teacher_entry", teacherName: "M. Dumas" },
     { subjectCode: "MATHS", title: "Concours blanc maths", score: 11.5, daysAgo: 7, sourceType: "mock_exam", teacherName: "Equipe concours" },
     { subjectCode: "ESH", title: "Dissertation croissance", score: 11, daysAgo: 110, sourceType: "teacher_entry", teacherName: "Mme Laurent" },
     { subjectCode: "ESH", title: "DS mondialisation", score: 12.5, daysAgo: 28, sourceType: "teacher_entry", teacherName: "Mme Laurent" },
     { subjectCode: "ESH", title: "Concours blanc ESH", score: 13, daysAgo: 6, sourceType: "mock_exam", teacherName: "Equipe concours" },
-    { subjectCode: "HGG", title: "Dissertation geopolitique", score: 12, daysAgo: 102, sourceType: "teacher_entry", teacherName: "Mme Caron" },
+    { subjectCode: "HGG", title: "Dissertation géopolitique", score: 12, daysAgo: 102, sourceType: "teacher_entry", teacherName: "Mme Caron" },
     { subjectCode: "HGG", title: "Devoir dates et enjeux", score: 13.5, daysAgo: 19, sourceType: "teacher_entry", teacherName: "Mme Caron" },
     { subjectCode: "ANG", title: "Version anglaise", score: 13, daysAgo: 96, sourceType: "teacher_entry", teacherName: "Mme Green" },
     { subjectCode: "ANG", title: "Essai anglais", score: 14, daysAgo: 12, sourceType: "teacher_entry", teacherName: "Mme Green" }
@@ -782,16 +782,16 @@ async function getAnonymousWorkRanking(
   for (const window of windows) {
     window.helper =
       cohortSize > 0
-        ? `${window.aheadCount} eleves comparables ont fait plus que toi sur cette periode.`
-        : "Pas encore assez d'etudiants comparables pour afficher un classement fiable.";
+        ? `${window.aheadCount} élèves comparables ont fait plus que toi sur cette période.`
+        : "Pas encore assez d'étudiants comparables pour afficher un classement fiable.";
   }
 
   return {
     title: "Classement anonyme",
     subtitle:
       cohortSize > 0
-        ? "Comparaison avec des etudiants de meme annee qui visent des ecoles proches."
-        : "Le classement s'activera vraiment des qu'il y aura assez d'etudiants comparables.",
+        ? "Comparaison avec des étudiants de meme annee qui visent des ecoles proches."
+        : "Le classement s'activera vraiment des qu'il y aura assez d'étudiants comparables.",
     windows
   };
 }
@@ -1110,17 +1110,19 @@ const getStudentProfileForRequest = cache((userId: string) => prisma.studentProf
 
 export async function getStudentShellData() {
   const { user } = await ensureDemoStudent();
-  const [profile, dueFlashcards] = await Promise.all([
-    getStudentProfileForRequest(user.id),
-    countDueFlashcards(user.id)
-  ]);
+  const profile = await getStudentProfileForRequest(user.id);
+  // Même périmètre que le tableau de bord et la page Flashcards : les matières du parcours actuel.
+  const dueFlashcards = await countDueFlashcards(
+    user.id,
+    profile ? getActiveSubjectCodes((profile.energyProfile as EnergyProfilePayload | null) ?? null) : undefined
+  );
 
   return {
     title: profile ? user.firstName : "Configuration",
     dueFlashcards,
     subtitle: profile
-      ? "Organisation, revisions et progression."
-      : "Configure ton profil pour demarrer."
+      ? "Organisation, révisions et progression."
+      : "Configure ton profil pour démarrer."
   };
 }
 
@@ -1552,7 +1554,7 @@ export async function getStudentProgressData() {
           grade.sourceType === "mock_exam"
             ? "Concours blanc"
             : grade.sourceType === "essay_feedback"
-              ? "Copie corrigee"
+              ? "Copie corrigée"
               : "Controle / devoir",
         semesterLabel: getSemesterLabel(grade.capturedAt)
       })),
@@ -1571,7 +1573,7 @@ export async function getStudentProgressData() {
 export async function getTeacherGradeEntryData() {
   const teacher = await requireRole([UserRole.TEACHER, UserRole.ADMIN]);
   const membership = await getCurrentUserClass(teacher.id);
-  if (!membership?.classId) return { students: [], subjects: [] };
+  if (!membership?.classId) return { students: [], subjects: [], recentGrades: [] };
 
   const [students, subjects] = await Promise.all([
     prisma.user.findMany({
@@ -1584,12 +1586,34 @@ export async function getTeacherGradeEntryData() {
     prisma.subject.findMany({ orderBy: { name: "asc" } })
   ]);
 
+  // Notes saisies par ce professeur dans sa prépa (pas l'activité des élèves).
+  const recentGrades = await prisma.studentGrade.findMany({
+    where: {
+      teacherName: `${teacher.firstName} ${teacher.lastName}`.trim(),
+      sourceType: { in: ["teacher_entry", "mock_exam"] },
+      student: { memberships: { some: { classId: membership.classId, roleInClass: "student" } } }
+    },
+    include: { student: true, subject: true },
+    orderBy: { capturedAt: "desc" },
+    take: 8
+  });
+
   return {
     students: students.map((student) => ({
       id: student.id,
       label: `${student.firstName} ${student.lastName}`.trim()
     })),
-    subjects: subjects.map((subject) => ({ id: subject.id, name: subject.name }))
+    subjects: subjects.map((subject) => ({ id: subject.id, name: subject.name })),
+    recentGrades: recentGrades.map((grade) => ({
+      id: grade.id,
+      student: `${grade.student.firstName} ${grade.student.lastName}`.trim(),
+      subject: grade.subject.name,
+      title: grade.title,
+      score: grade.score,
+      maxScore: grade.maxScore,
+      kind: grade.sourceType === "mock_exam" ? "Concours blanc" : "Contrôle / devoir",
+      dateLabel: grade.capturedAt.toLocaleDateString("fr-FR", { day: "numeric", month: "short", timeZone: "Europe/Paris" })
+    }))
   };
 }
 
@@ -1660,7 +1684,7 @@ export async function createTeacherStudentGrade(input: {
           subjectId: subject.id,
           sourceType: `grade:${gradeId}`,
           severityScore: input.score < 8 ? 0.9 : input.score < 10 ? 0.78 : 0.62,
-          label: `${subject.name} : resultat a consolider`,
+          label: `${subject.name} : résultat à consolider`,
           description: `${normalizedTitle} - ${input.score}/20.`,
           status: "ACTIVE",
           lastDetectedAt: capturedAt
@@ -1672,7 +1696,7 @@ export async function createTeacherStudentGrade(input: {
           studentId: student.id,
           subjectId: subject.id,
           title: `Reprendre ${normalizedTitle}`.slice(0, 180),
-          description: `Tache creee a partir de la note de ${input.score}/20 en ${subject.name}.`,
+          description: `Tache créée a partir de la note de ${input.score}/20 en ${subject.name}.`,
           taskType: "REVISION",
           dueAt: null,
           priorityScore: input.score < 8 ? 0.96 : input.score < 10 ? 0.88 : 0.76,

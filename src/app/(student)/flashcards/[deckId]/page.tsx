@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import { StatTile } from "@/components/ui/stat-tile";
 import { notFound } from "next/navigation";
 
 import { FlashcardBrowser } from "@/components/flashcards/flashcard-browser";
@@ -49,26 +50,10 @@ export default async function DeckDetailPage({
           title="Révisions du deck"
         >
           <div className="grid gap-3 md:grid-cols-4">
-            <div className="rounded-2xl bg-sand p-4 text-sm">
-              <p className="text-pine/60">Taux de réussite</p>
-              <p className="mt-2 font-display text-3xl text-ink">
-                {data.stats.retention > 0 ? `${data.stats.retention}%` : "--"}
-              </p>
-            </div>
-            <div className="rounded-2xl bg-sand p-4 text-sm">
-              <p className="text-pine/60">Cartes révisées</p>
-              <p className="mt-2 font-display text-3xl text-ink">
-                {data.stats.reviewedCards}/{data.stats.total}
-              </p>
-            </div>
-            <div className="rounded-2xl bg-sand p-4 text-sm">
-              <p className="text-pine/60">À revoir aujourd'hui</p>
-              <p className="mt-2 font-display text-3xl text-ink">{data.stats.due}</p>
-            </div>
-            <div className="rounded-2xl bg-sand p-4 text-sm">
-              <p className="text-pine/60">Nouvelles</p>
-              <p className="mt-2 font-display text-3xl text-ink">{data.stats.newCards}</p>
-            </div>
+            <StatTile label="Taux de réussite" value={data.stats.retention > 0 ? `${data.stats.retention}%` : "–"} />
+            <StatTile label="Cartes révisées" value={`${data.stats.reviewedCards}/${data.stats.total}`} />
+            <StatTile label="À revoir aujourd'hui" value={data.stats.due} />
+            <StatTile label="Nouvelles" value={data.stats.newCards} />
           </div>
         </SectionCard>
       </div>

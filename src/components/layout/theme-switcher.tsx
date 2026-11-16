@@ -42,7 +42,7 @@ const THEMES = [
   {
     id: "campus",
     label: "Campus",
-    helper: "App etudiante premium",
+    helper: "App étudiante premium",
     swatches: ["#0b1220", "#5b6cfa", "#eef4fa"]
   }
 ] as const;
@@ -72,7 +72,7 @@ export function ThemeSwitcher({ compact = false }: { compact?: boolean }) {
     <section className={`${compact ? "" : "mt-8"} rounded-[28px] border border-white/65 bg-white/50 p-4 backdrop-blur`}>
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-[0.24em] text-pine/60">Ambiance</p>
+          <p className="text-xs uppercase tracking-[0.24em] text-pine/75">Ambiance</p>
         </div>
       </div>
 

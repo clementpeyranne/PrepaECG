@@ -18,6 +18,8 @@
   --color-pine: 33 73 61;
   --color-moss: 99 138 97;
   --color-clay: 201 107 74;
+  --color-clay-deep: 147 71 44;
+  --color-clay-strong: 173 83 51;
   --color-mist: 221 231 221;
   --accent-primary: 201, 107, 74;
   --accent-secondary: 99, 138, 97;
@@ -39,6 +41,8 @@
 }
 
 html[data-theme="original"] {
+  --color-clay-deep: 147 71 44;
+  --color-clay-strong: 173 83 51;
   --color-sand: 247 241 231;
   --color-ink: 20 34 29;
   --color-pine: 33 73 61;
@@ -61,6 +65,8 @@ html[data-theme="original"] {
 }
 
 html[data-theme="capsule"] {
+  --color-clay-deep: 150 69 29;
+  --color-clay-strong: 174 80 34;
   --color-sand: 239 244 246;
   --color-ink: 18 31 40;
   --color-pine: 31 71 92;
@@ -83,6 +89,8 @@ html[data-theme="capsule"] {
 }
 
 html[data-theme="atelier"] {
+  --color-clay-deep: 161 56 37;
+  --color-clay-strong: 187 65 44;
   --color-sand: 249 239 229;
   --color-ink: 42 30 31;
   --color-pine: 104 48 55;
@@ -105,9 +113,11 @@ html[data-theme="atelier"] {
 }
 
 html[data-theme="night"] {
+  --color-clay-deep: 143 68 13;
+  --color-clay-strong: 169 80 16;
   --color-sand: 232 238 242;
   --color-ink: 17 25 36;
-  --color-pine: 59 98 130;
+  --color-pine: 38 64 84;
   --color-moss: 79 163 170;
   --color-clay: 240 154 92;
   --color-mist: 204 218 230;
@@ -127,9 +137,11 @@ html[data-theme="night"] {
 }
 
 html[data-theme="pulse"] {
+  --color-clay-deep: 173 12 91;
+  --color-clay-strong: 206 15 108;
   --color-sand: 245 238 250;
   --color-ink: 24 18 34;
-  --color-pine: 95 75 155;
+  --color-pine: 70 55 114;
   --color-moss: 176 95 208;
   --color-clay: 244 99 170;
   --color-mist: 235 224 244;
@@ -149,9 +161,11 @@ html[data-theme="pulse"] {
 }
 
 html[data-theme="velours"] {
+  --color-clay-deep: 121 81 43;
+  --color-clay-strong: 130 86 44;
   --color-sand: 243 238 228;
   --color-ink: 28 24 22;
-  --color-pine: 90 73 55;
+  --color-pine: 74 60 45;
   --color-moss: 161 132 94;
   --color-clay: 198 145 94;
   --color-mist: 228 220 205;
@@ -171,9 +185,11 @@ html[data-theme="velours"] {
 }
 
 html[data-theme="campus"] {
+  --color-clay-deep: 39 61 248;
+  --color-clay-strong: 58 72 222;
   --color-sand: 238 244 250;
   --color-ink: 17 24 37;
-  --color-pine: 56 80 145;
+  --color-pine: 45 64 116;
   --color-moss: 62 146 216;
   --color-clay: 91 108 250;
   --color-mist: 221 231 245;
@@ -439,6 +455,12 @@ h1, h2, h3, .font-display {
 .panel-surface,
 .panel-surface-strong {
   border-color: rgba(255, 255, 255, 0.78);
+  /* Surfaces claires dans toutes les ambiances : le texte reste foncé, même si la page est sombre. */
+  color: rgb(var(--color-ink));
+}
+
+.panel-dark {
+  color: rgb(var(--color-sand));
 }
 
 :where(.panel-dark) {
@@ -606,7 +628,8 @@ a[class*="rounded-full"]:active {
   position: relative;
   overflow: hidden;
   isolation: isolate;
-  background: linear-gradient(135deg, rgb(var(--color-clay)) 0%, color-mix(in srgb, rgb(var(--color-clay)) 72%, #ffb08a) 100%);
+  /* Accent foncé : texte blanc lisible (contraste ≥ 4,5:1) dans toutes les ambiances. */
+  background: linear-gradient(135deg, rgb(var(--color-clay-strong)) 0%, color-mix(in srgb, rgb(var(--color-clay-strong)) 82%, rgb(var(--color-clay))) 100%);
   box-shadow: 0 14px 34px rgba(var(--accent-primary), 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
@@ -1001,4 +1024,55 @@ html[data-theme="campus"] .aurora__grain {
 
 @keyframes grow-y {
   from { scale: 1 0; }
+}
+
+/* Texte posé directement sur le fond de page : suit la couleur de l'ambiance (claire ou sombre). */
+.canvas-text {
+  color: var(--foreground);
+}
+
+.canvas-muted {
+  color: color-mix(in srgb, var(--foreground) 76%, transparent);
+}
+
+/* Zone à défilement interne : fondu en bas pour signaler la suite. */
+.scroll-fade {
+  mask-image: linear-gradient(180deg, #000 calc(100% - 28px), transparent);
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--color-pine) / 0.25) transparent;
+}
+
+/* Zone à défilement interne : fondu en bas pour signaler la suite. */
+.scroll-fade {
+  mask-image: linear-gradient(180deg, #000 calc(100% - 28px), transparent);
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--color-pine) / 0.25) transparent;
+}
+
+/* --- Lisibilité de l'accent ----------------------------------------------------
+   L'accent vif sert aux fonds et décorations ; en texte sur fond clair, ou sous un texte
+   blanc, on utilise sa variante foncée (contraste ≥ 4,5:1 dans chaque ambiance). */
+.text-clay {
+  color: rgb(var(--color-clay-deep));
+}
+
+.panel-dark .text-clay {
+  color: rgb(var(--color-clay));
+}
+
+.panel-dark :is(.bg-white, .bg-sand, .panel-surface, .panel-surface-strong) .text-clay {
+  color: rgb(var(--color-clay-deep));
+}
+
+.bg-clay:is(.text-white, .text-sand) {
+  background-color: rgb(var(--color-clay-strong));
+}
+
+/* Accent posé directement sur le fond de page (clair ou sombre selon l'ambiance). */
+.canvas-accent {
+  color: rgb(var(--color-clay-deep));
+}
+
+html:is([data-theme="pulse"], [data-theme="velours"], [data-theme="campus"]) .canvas-accent {
+  color: color-mix(in srgb, rgb(var(--color-clay)) 70%, white);
 }

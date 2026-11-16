@@ -21,6 +21,9 @@ function getMetadataBase() {
   }
 }
 
+const themeBootstrap =
+  "try{var t=localStorage.getItem('prepa-theme');if(t&&/^(original|capsule|atelier|night|pulse|velours|campus)$/.test(t))document.documentElement.dataset.theme=t}catch(e){}";
+
 export const metadata: Metadata = {
   metadataBase: getMetadataBase(),
   title: "Prépatempo",
@@ -48,7 +51,11 @@ export default function RootLayout({
   children: ReactNode;
 }>) {
   return (
-    <html lang="fr" data-theme="original">
+    <html lang="fr" data-theme="original" suppressHydrationWarning>
+      <head>
+        {/* Applique l'ambiance choisie avant l'affichage, sur toutes les pages. */}
+        <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
+      </head>
       <body className="antialiased">
         <Aurora />
         <MotionEffects />

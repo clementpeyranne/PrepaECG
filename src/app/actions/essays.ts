@@ -88,8 +88,10 @@ export async function addTeacherEssayFeedbackAction(formData: FormData) {
   const result = await addTeacherEssayFeedback({
     essayId,
     submissionKey: getString(formData, "submissionKey"),
-    scoreMin: getNumberOrNull(formData, "scoreMin"),
-    scoreMax: getNumberOrNull(formData, "scoreMax"),
+    // Note unique (champ « score ») ou fourchette historique (scoreMin / scoreMax).
+    scoreMin: getNumberOrNull(formData, "score") ?? getNumberOrNull(formData, "scoreMin"),
+    scoreMax: getNumberOrNull(formData, "score") ?? getNumberOrNull(formData, "scoreMax"),
+    rubricId: getString(formData, "rubricId"),
     overview: getString(formData, "overview"),
     strengths: getString(formData, "strengths"),
     mistakes: getString(formData, "mistakes"),

@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import { StatTile } from "@/components/ui/stat-tile";
 import Link from "next/link";
 
 import { PageHeader } from "@/components/ui/page-header";
@@ -64,11 +65,7 @@ export default async function DashboardPage() {
         >
           <div className="grid gap-3 sm:grid-cols-2">
             {data.stats.map((stat) => (
-              <div key={stat.label} className="rounded-2xl bg-sand p-4">
-                <p className="text-xs uppercase tracking-[0.22em] text-pine/55">{stat.label}</p>
-                <p className="mt-3 font-display text-3xl">{stat.value}</p>
-                <p className="mt-2 text-sm text-pine/75">{stat.helper}</p>
-              </div>
+              <StatTile key={stat.label} label={stat.label} value={stat.value} helper={stat.helper} />
             ))}
           </div>
           <Link href="/progress" className="mt-4 inline-flex text-sm font-semibold text-pine underline decoration-pine/30 underline-offset-4">
@@ -93,7 +90,7 @@ export default async function DashboardPage() {
                 </div>
                 <p className="mt-2 font-medium text-ink">{session.title}</p>
                 <p className="mt-1 text-sm text-pine/75">{session.subject}</p>
-                <p className="mt-3 text-sm text-pine/70">{session.reason}</p>
+                <p className="mt-3 text-sm text-pine/80">{session.reason}</p>
               </div>
             ))}
           </div>

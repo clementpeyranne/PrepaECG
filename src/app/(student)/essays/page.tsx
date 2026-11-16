@@ -35,7 +35,7 @@ export default async function EssaysPage() {
                   <p className="mt-1 text-sm text-pine/75">
                     {essay.subject} - {essay.examType} - {essay.targetExam}
                   </p>
-                  <p className="mt-2 text-xs uppercase tracking-[0.18em] text-pine/55">
+                  <p className="mt-2 text-xs uppercase tracking-[0.18em] text-pine/75">
                     {essay.createdAtLabel} - {essay.latestFeedbackLabel} - {essay.latestScoreRange}
                   </p>
                 </div>

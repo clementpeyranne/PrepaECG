@@ -18,7 +18,7 @@ export function HeroScene() {
         <div className="scene__layer left-[4%] top-[16%] w-[90%] sm:left-[8%] sm:w-[76%]" style={{ transform: "translateZ(0px)" }}>
           <div className="float-a rounded-[28px] border border-white/15 bg-[linear-gradient(160deg,rgba(255,255,255,0.16),rgba(255,255,255,0.04))] p-5 shadow-[0_40px_100px_rgba(0,0,0,0.45)] backdrop-blur-xl">
             <div className="flex items-center justify-between">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-sand/60">Programme du jour</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-sand/70">Programme du jour</p>
               <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-sand/80">2 sur 3</span>
             </div>
             <div className="mt-4 space-y-2.5">
@@ -26,14 +26,14 @@ export function HeroScene() {
                 <div key={session.time} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.06] px-3 py-2.5">
                   <span
                     className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
-                      session.done ? "bg-moss text-white" : "border border-white/25 text-sand/50"
+                      session.done ? "bg-moss text-white" : "border border-white/25 text-sand/70"
                     }`}
                   >
                     {session.done ? <Check size={14} strokeWidth={3} /> : null}
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[13px] font-semibold text-white">{session.task}</p>
-                    <p className="text-[11px] text-sand/60">
+                    <p className="text-[11px] text-sand/70">
                       {session.time} · {session.subject}
                     </p>
                   </div>
@@ -89,7 +89,7 @@ export function HeroScene() {
                 strokeDashoffset="74"
               />
             </svg>
-            <p className="mt-2 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-pine/70">Semaine</p>
+            <p className="mt-2 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-pine/80">Semaine</p>
             <p className="text-center font-display text-lg font-semibold">13 h / 18 h</p>
           </div>
         </div>

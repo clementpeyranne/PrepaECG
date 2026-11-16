@@ -1115,7 +1115,7 @@ async function importExportPayload(
     return {
       decksImported: 0,
       cardsImported: 0,
-      error: "La matiere du deck n'a pas ete reconnue."
+      error: "La matière du deck n'a pas été reconnue."
     };
   }
 
@@ -1251,7 +1251,7 @@ async function readApkgAsExportPayload(
     if (!databaseBytes) {
       return {
         payloads: [],
-        warning: "Aucune base Anki n'a ete trouvee dans ce fichier `.apkg`."
+        warning: "Aucune base Anki n'a été trouvee dans ce fichier `.apkg`."
       };
     }
 
@@ -1400,7 +1400,7 @@ async function readApkgAsExportPayload(
       return {
         payloads: [],
         warning:
-          "Aucune carte exploitable n'a ete detectee dans ce deck Anki."
+          "Aucune carte exploitable n'a été detectee dans ce deck Anki."
       };
     }
 
@@ -1408,14 +1408,14 @@ async function readApkgAsExportPayload(
       payloads,
       warning:
         skippedNotes > 0
-          ? `${skippedNotes} cartes n'ont pas pu etre converties automatiquement.`
+          ? `${skippedNotes} cartes n'ont pas pu être converties automatiquement.`
           : undefined
     };
   } catch (error) {
     console.error("APKG import parsing failed", error);
     return {
       payloads: [],
-      warning: "Le fichier `.apkg` n'a pas pu etre lu correctement."
+      warning: "Le fichier `.apkg` n'a pas pu être lu correctement."
     };
   } finally {
     database?.close();
@@ -1450,7 +1450,7 @@ export const ensureDemoFlashcards = cache(async () => {
     {
       parentTitle: "Maths",
       title: "Lois usuelles",
-      description: "Definitions, formules et reflexes de probabilites",
+      description: "Definitions, formules et reflexes de probabilités",
       subjectCode: "MATHS",
       cards: [
         ["Definition d'une variable aleatoire discrete", "Une variable aleatoire discrete prend un nombre fini ou denombrable de valeurs."],
@@ -1466,7 +1466,7 @@ export const ensureDemoFlashcards = cache(async () => {
       subjectCode: "ESH",
       cards: [
         ["Solow", "Modele de croissance exogene avec progres technique exogene et rendements decroissants du capital."],
-        ["Romer", "Croissance endogene portee par les idees, la R&D et les externalites de connaissance."],
+        ["Romer", "Croissance endogene portee par les idées, la R&D et les externalites de connaissance."],
         ["Lucas", "Role central du capital humain dans la croissance endogene."],
         ["Schumpeter", "Innovation, destruction creatrice et dynamique capitaliste."]
       ]
@@ -1624,7 +1624,7 @@ export async function importSharedFlashcardDeck(shareCode: string) {
     source: "share" as const,
     decksImported: result.decksImported,
     cardsImported: result.cardsImported,
-    message: `${result.decksImported} decks et ${result.cardsImported} cartes ont ete importes.`
+    message: `${result.decksImported} decks et ${result.cardsImported} cartes ont été importes.`
   };
 }
 
@@ -1649,7 +1649,7 @@ export async function importFlashcardArchive(
         source: "apkg",
         decksImported: 0,
         cardsImported: 0,
-        message: "Le fichier envoye n'a pas pu etre verifie. Reessaie l'import."
+        message: "Le fichier envoye n'a pas pu être verifie. Réessaie l'import."
       };
     }
   }
@@ -1660,7 +1660,7 @@ export async function importFlashcardArchive(
       source: "json",
       decksImported: 0,
       cardsImported: 0,
-      message: "Aucun fichier n'a ete selectionne."
+      message: "Aucun fichier n'a été sélectionné."
     };
   }
 
@@ -1686,7 +1686,7 @@ export async function importFlashcardArchive(
         source: "json",
         decksImported: result.decksImported,
         cardsImported: result.cardsImported,
-        message: `${result.decksImported} decks et ${result.cardsImported} cartes ont ete importes.`
+        message: `${result.decksImported} decks et ${result.cardsImported} cartes ont été importes.`
       };
     }
 
@@ -1700,7 +1700,7 @@ export async function importFlashcardArchive(
           cardsImported: 0,
           message:
             apkgResult.warning ??
-            "Le fichier `.apkg` n'a pas pu etre importe avec le format actuellement gere."
+            "Le fichier `.apkg` n'a pas pu être importe avec le format actuellement gere."
         };
       }
 
@@ -1728,7 +1728,7 @@ export async function importFlashcardArchive(
               ? `${decksImported} decks et ${cardsImported} cartes importes. ${apkgResult.warning}`
               : `${decksImported} decks et ${cardsImported} cartes importes depuis Anki.`
             : apkgResult.warning ??
-              "Aucune carte n'a pu etre importee depuis ce fichier `.apkg`."
+              "Aucune carte n'a pu être importee depuis ce fichier `.apkg`."
       };
     }
 

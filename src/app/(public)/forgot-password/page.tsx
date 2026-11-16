@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { forgotPasswordAction } from "@/app/actions/auth";
-import { AuthBrand, AuthOrbs, AuthVisual } from "@/components/public/auth-visual";
+import { AuthBrand, AuthOrbs } from "@/components/public/auth-visual";
 import { PublicFooterLinks } from "@/components/public/public-footer-links";
 import { getPasswordResetMode } from "@/lib/app-config";
 import { getCurrentUser, getUserLandingPath } from "@/lib/auth";
@@ -39,10 +39,10 @@ export default async function ForgotPasswordPage({
     <main className="bg-app-gradient">
       <div className="mx-auto flex min-h-screen max-w-6xl items-center px-4 py-8 lg:px-8">
         <div className="stagger grid w-full gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-          <section className="panel-dark spotlight relative overflow-hidden rounded-[36px] p-8 text-sand shadow-panel lg:p-10">
+          <section className="order-2 lg:order-1 panel-dark spotlight relative overflow-hidden rounded-[36px] p-8 text-sand shadow-panel lg:p-10">
             <AuthOrbs />
             <AuthBrand />
-            <p className="text-xs uppercase tracking-[0.35em] text-sand/55">Récupération</p>
+            <p className="text-xs uppercase tracking-[0.35em] text-sand/70">Récupération</p>
             <h1 className="mt-4 font-display text-5xl leading-tight lg:text-6xl">
               Récupérer l'accès a ton compte.
             </h1>
@@ -59,11 +59,10 @@ export default async function ForgotPasswordPage({
                 : "Ne communique jamais ton mot de passe, même au support."}
             </div>
 
-            <AuthVisual />
           </section>
 
-          <section className="panel-surface-strong spotlight rounded-[32px] p-6 shadow-panel lg:p-8">
-            <p className="text-xs uppercase tracking-[0.25em] text-pine/55">Mot de passe</p>
+          <section className="order-1 lg:order-2 panel-surface-strong spotlight rounded-[32px] p-6 shadow-panel lg:p-8">
+            <p className="text-xs uppercase tracking-[0.25em] text-pine/75">Mot de passe</p>
             <h2 className="mt-3 font-display text-3xl text-ink">Réinitialiser</h2>
 
             {message ? (

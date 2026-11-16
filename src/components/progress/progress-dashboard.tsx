@@ -24,7 +24,7 @@ function MiniLineChart({
   subject: string;
 }) {
   if (points.length === 0) {
-    return <div className="rounded-2xl bg-sand px-4 py-5 text-sm text-pine/70">Pas encore de notes pour cette période.</div>;
+    return <div className="rounded-2xl bg-sand px-4 py-5 text-sm text-pine/80">Pas encore de notes pour cette période.</div>;
   }
 
   const width = 340;
@@ -105,13 +105,13 @@ export function ProgressDashboard({
                           {subject.status}
                         </span>
                       </div>
-                      {subject.count > 0 ? <p className="mt-2 text-sm text-pine/76">{subject.count} note{subject.count > 1 ? "s" : ""}{subject.count > 5 ? " · 5 dernières affichées" : ""}{subject.trendLabel ? ` · ${subject.trendLabel}` : ""}</p> : null}
+                      {subject.count > 0 ? <p className="mt-2 text-sm text-pine/85">{subject.count} note{subject.count > 1 ? "s" : ""}{subject.count > 5 ? " · 5 dernières affichées" : ""}{subject.trendLabel ? ` · ${subject.trendLabel}` : ""}</p> : null}
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-semibold text-clay">
                         {subject.average !== null ? `${subject.average.toFixed(1)}/20` : "--"}
                       </p>
-                      <p className="mt-1 text-xs text-pine/60">Moyenne de la période</p>
+                      <p className="mt-1 text-xs text-pine/75">Moyenne de la période</p>
                     </div>
                   </div>
                   <div className="mt-4">
@@ -130,12 +130,12 @@ export function ProgressDashboard({
           >
             <div className="mb-4 flex items-end justify-between gap-4 rounded-2xl bg-sand p-4">
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-pine/55">Moyenne de la période</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-pine/75">Moyenne de la période</p>
                 <p className="mt-2 font-display text-3xl text-ink">
                   {selectedAverage !== null ? `${selectedAverage.toFixed(1)}/20` : "--"}
                 </p>
               </div>
-              <p className="text-right text-sm text-pine/70">{filteredGrades.length} note{filteredGrades.length !== 1 ? "s" : ""}</p>
+              <p className="text-right text-sm text-pine/80">{filteredGrades.length} note{filteredGrades.length !== 1 ? "s" : ""}</p>
             </div>
             <div className="flex flex-wrap gap-3">
               {categories.map((category) => (
@@ -159,7 +159,7 @@ export function ProgressDashboard({
           >
             {filteredGrades.length === 0 ? <p className="text-sm text-pine/75">Pas encore de notes pour cette période.</p> : <div className="space-y-4">
               <div className="rounded-2xl bg-sand p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-pine/55">Points forts</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-pine/75">Points forts</p>
                 <div className="mt-3 space-y-2 text-sm leading-7 text-pine/82">
                   {visualReading.strongAreas.length > 0 ? (
                     visualReading.strongAreas.map((item) => <p key={item}>{item}</p>)
@@ -170,7 +170,7 @@ export function ProgressDashboard({
               </div>
 
               <div className="rounded-2xl bg-sand p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-pine/55">À suivre</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-pine/75">À suivre</p>
                 <div className="mt-3 space-y-2 text-sm leading-7 text-pine/82">
                   {visualReading.watchAreas.length > 0 ? (
                     visualReading.watchAreas.map((item) => <p key={item}>{item}</p>)
@@ -181,14 +181,14 @@ export function ProgressDashboard({
               </div>
 
               <div className="rounded-2xl bg-sand p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-pine/55">À consolider</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-pine/75">À consolider</p>
                 <div className="mt-3 space-y-2 text-sm leading-7 text-pine/82">
                   {visualReading.consolidateAreas.length === 0 ? <p>Aucun point à consolider mis en évidence pour cette période.</p> : visualReading.consolidateAreas.map((item) => (
                     <p key={item}>{item}</p>
                   ))}
                 </div>
               </div>
-              {subjectCharts.some((subject) => subject.count === 1) ? <p className="text-xs text-pine/65">Une seule note ne permet pas encore d’établir une tendance.</p> : null}
+              {subjectCharts.some((subject) => subject.count === 1) ? <p className="text-xs text-pine/75">Une seule note ne permet pas encore d’établir une tendance.</p> : null}
             </div>}
           </SectionCard>
         </div>
@@ -220,9 +220,9 @@ export function ProgressDashboard({
                       className="grid w-full grid-cols-[1.1fr_0.7fr_0.5fr_0.7fr] items-center px-4 py-4 text-left text-sm transition hover:bg-sand/50"
                     >
                       <p className="min-w-0 break-words font-medium text-ink">{grade.title}</p>
-                      <p className="min-w-0 break-words text-pine/76">{grade.subject}</p>
+                      <p className="min-w-0 break-words text-pine/85">{grade.subject}</p>
                       <p className="font-semibold text-clay">{grade.score.toFixed(1)}/20</p>
-                      <p className="text-pine/70">{grade.dateLabel}</p>
+                      <p className="text-pine/80">{grade.dateLabel}</p>
                     </button>
 
                     {isOpen ? (

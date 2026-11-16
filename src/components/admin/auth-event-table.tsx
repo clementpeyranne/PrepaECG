@@ -17,7 +17,7 @@ export function AuthEventTable({ events }: { events: AuthEventRow[] }) {
   return (
     <div className="overflow-x-auto rounded-[22px] border border-ink/8 bg-white/65">
       <table className="min-w-[820px] w-full text-left text-sm">
-        <thead className="border-b border-ink/8 bg-sand/70 text-xs uppercase tracking-[0.16em] text-pine/60">
+        <thead className="border-b border-ink/8 bg-sand/70 text-xs uppercase tracking-[0.16em] text-pine/75">
           <tr>
             <th className="px-4 py-3 font-semibold">Événement</th>
             <th className="px-4 py-3 font-semibold">Compte</th>
@@ -36,11 +36,11 @@ export function AuthEventTable({ events }: { events: AuthEventRow[] }) {
               </td>
               <td className="px-4 py-4">
                 <p className="font-medium text-ink">{event.account}</p>
-                {event.email ? <p className="mt-1 text-xs text-pine/60">{event.email}</p> : null}
+                {event.email ? <p className="mt-1 text-xs text-pine/75">{event.email}</p> : null}
               </td>
               <td className="px-4 py-4 text-pine/75">{event.device}</td>
-              <td className="px-4 py-4 font-mono text-xs text-pine/70">{event.source}</td>
-              <td className="px-4 py-4 text-pine/70">{event.occurredAt}</td>
+              <td className="px-4 py-4 font-mono text-xs text-pine/80">{event.source}</td>
+              <td className="px-4 py-4 text-pine/80">{event.occurredAt}</td>
             </tr>
           ))}
         </tbody>
