@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import type { Metadata, Viewport } from "next";
 
+import { Aurora } from "@/components/motion/aurora";
+import { MotionEffects } from "@/components/motion/motion-effects";
 import { InstallAppPrompt } from "@/components/pwa/install-app-prompt";
 import { RegisterServiceWorker } from "@/components/pwa/register-service-worker";
 import { getPublicAppUrlDetails } from "@/lib/app-config";
@@ -48,6 +50,8 @@ export default function RootLayout({
   return (
     <html lang="fr" data-theme="original">
       <body className="antialiased">
+        <Aurora />
+        <MotionEffects />
         <RegisterServiceWorker />
         <InstallAppPrompt />
         {children}

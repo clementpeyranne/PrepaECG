@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 
 import { logoutAction } from "@/app/actions/auth";
+import { BrandMark } from "@/components/brand/brand-mark";
 import { SidebarNav } from "@/components/navigation/sidebar-nav";
 import { ThemeSwitcher } from "@/components/layout/theme-switcher";
 import type { NavItem } from "@/lib/navigation";
@@ -24,9 +25,21 @@ export function AppShell({
   children
 }: AppShellProps) {
   const renderAccountCard = () => (
-    <div className="panel-dark hero-glow rounded-[24px] p-4 text-sand lg:rounded-[28px] lg:p-6">
+    <div className="panel-dark hero-glow spotlight rounded-[24px] p-4 text-sand lg:rounded-[28px] lg:p-5">
       <p className="text-xs uppercase tracking-[0.25em] text-sand/58">Compte</p>
-      {userLabel ? <p className="mt-4 text-sm font-semibold text-white">{userLabel}</p> : null}
+      {userLabel ? (
+        <div className="mt-4 flex items-center gap-3">
+          <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-clay to-moss text-sm font-semibold text-white shadow-[0_10px_24px_rgba(0,0,0,0.25)]">
+            {userLabel
+              .split(" ")
+              .filter(Boolean)
+              .slice(0, 2)
+              .map((part) => part[0]?.toUpperCase())
+              .join("")}
+          </span>
+          <p className="text-sm font-semibold text-white">{userLabel}</p>
+        </div>
+      ) : null}
       <div className="mt-4 flex flex-wrap gap-3">
         <Link
           href="/"
@@ -50,15 +63,21 @@ export function AppShell({
     <div className="min-h-screen bg-app-gradient text-ink">
       <div className="mx-auto flex min-h-screen max-w-[1660px] flex-col gap-6 px-4 py-4 lg:flex-row lg:px-6 lg:py-6">
         <aside className="panel-surface surface-grid w-full rounded-[32px] p-5 lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:w-[320px] lg:overflow-y-auto lg:p-6">
-          <div className="mb-8">
-            <div className="inline-flex rounded-full border border-white/70 bg-white/55 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-pine/70">
-              {audience === "student"
-                ? "Prépatempo"
-                : audience === "teacher"
-                  ? "Espace professeur"
-                  : "Administration"}
-            </div>
-            <h1 className="mt-4 font-display text-[2.15rem] tracking-[-0.04em] text-ink lg:text-[2.15rem]">
+          <div className="mb-6 lg:mb-8">
+            <Link href="/" className="flex items-center gap-3" aria-label="Prépatempo, accueil">
+              <BrandMark size={42} />
+              <span className="flex flex-col leading-tight">
+                <span className="font-display text-lg font-semibold tracking-[-0.03em] text-ink">Prépatempo</span>
+                <span className="text-[12px] font-medium text-pine/65">
+                  {audience === "student"
+                    ? "Ton rythme. Tes ambitions."
+                    : audience === "teacher"
+                      ? "Espace professeur"
+                      : "Administration"}
+                </span>
+              </span>
+            </Link>
+            <h1 className="mt-6 font-display text-[1.9rem] leading-tight tracking-[-0.04em] text-ink lg:text-[2rem]">
               {title}
             </h1>
             {subtitle ? (
@@ -77,7 +96,7 @@ export function AppShell({
           </div>
         </aside>
 
-        <main className="panel-surface-strong surface-grid flex-1 rounded-[32px] p-4 sm:p-5 lg:rounded-[36px] lg:p-8">
+        <main className="panel-surface-strong surface-grid min-w-0 flex-1 rounded-[32px] p-4 sm:p-5 lg:rounded-[36px] lg:p-8">
           {children}
 
           <div className="mt-5 space-y-5 lg:hidden">

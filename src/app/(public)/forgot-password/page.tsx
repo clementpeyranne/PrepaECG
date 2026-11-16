@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { forgotPasswordAction } from "@/app/actions/auth";
+import { AuthBrand, AuthOrbs, AuthVisual } from "@/components/public/auth-visual";
 import { PublicFooterLinks } from "@/components/public/public-footer-links";
 import { getPasswordResetMode } from "@/lib/app-config";
 import { getCurrentUser, getUserLandingPath } from "@/lib/auth";
@@ -37,8 +38,10 @@ export default async function ForgotPasswordPage({
   return (
     <main className="bg-app-gradient">
       <div className="mx-auto flex min-h-screen max-w-6xl items-center px-4 py-8 lg:px-8">
-        <div className="grid w-full gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-          <section className="panel-dark rounded-[36px] p-8 text-sand shadow-panel lg:p-10">
+        <div className="stagger grid w-full gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+          <section className="panel-dark spotlight relative overflow-hidden rounded-[36px] p-8 text-sand shadow-panel lg:p-10">
+            <AuthOrbs />
+            <AuthBrand />
             <p className="text-xs uppercase tracking-[0.35em] text-sand/55">Récupération</p>
             <h1 className="mt-4 font-display text-5xl leading-tight lg:text-6xl">
               Récupérer l'accès a ton compte.
@@ -55,9 +58,11 @@ export default async function ForgotPasswordPage({
                 ? "Ce lien est réservé aux essais en local, sans envoi d'email."
                 : "Ne communique jamais ton mot de passe, même au support."}
             </div>
+
+            <AuthVisual />
           </section>
 
-          <section className="rounded-[32px] border border-white/70 bg-white/82 p-6 shadow-panel lg:p-8">
+          <section className="panel-surface-strong spotlight rounded-[32px] p-6 shadow-panel lg:p-8">
             <p className="text-xs uppercase tracking-[0.25em] text-pine/55">Mot de passe</p>
             <h2 className="mt-3 font-display text-3xl text-ink">Réinitialiser</h2>
 
@@ -76,13 +81,13 @@ export default async function ForgotPasswordPage({
                   required
                   autoComplete="email"
                   placeholder="toi@exemple.fr"
-                  className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm outline-none transition focus:border-pine"
+                  className="w-full rounded-2xl border border-ink/10 bg-white/80 px-4 py-3.5 text-sm outline-none transition focus:border-pine"
                 />
               </label>
 
               <button
                 type="submit"
-                className="w-full rounded-full bg-ink px-5 py-3 text-sm font-semibold text-sand transition hover:bg-pine"
+                className="btn-primary w-full rounded-full px-5 py-3.5 text-sm font-semibold text-white"
               >
                 {emailEnabled ? "Recevoir le lien par email" : "Générer un lien"}
               </button>

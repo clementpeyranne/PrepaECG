@@ -42,6 +42,8 @@
     "prisma:migrate": "prisma migrate dev"
   },
   "dependencies": {
+    "@fontsource-variable/space-grotesk": "^5.3.0",
+    "@fontsource/ibm-plex-sans": "^5.3.0",
     "@prisma/client": "^6.0.0",
     "@supabase/supabase-js": "^2.104.0",
     "fflate": "^0.8.3",

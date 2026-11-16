@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { signupAction } from "@/app/actions/auth";
+import { AuthBrand, AuthOrbs, AuthVisual } from "@/components/public/auth-visual";
 import { PublicFooterLinks } from "@/components/public/public-footer-links";
 import { isDemoModeEnabled } from "@/lib/app-config";
 import { getCurrentUser, getUserLandingPath } from "@/lib/auth";
@@ -32,8 +33,8 @@ export default async function SignupPage({
   return (
     <main className="bg-app-gradient">
       <div className="mx-auto flex min-h-screen max-w-6xl items-center px-4 py-8 lg:px-8">
-        <div className="grid w-full gap-6 lg:grid-cols-[1fr_1fr]">
-          <section className="rounded-[36px] bg-white/82 p-6 shadow-panel lg:p-8">
+        <div className="stagger grid w-full gap-6 lg:grid-cols-[1fr_1fr]">
+          <section className="panel-surface-strong spotlight rounded-[36px] p-6 shadow-panel lg:p-8">
             <p className="text-xs uppercase tracking-[0.25em] text-pine/55">Inscription</p>
             <h1 className="mt-3 font-display text-3xl text-ink">Créer un compte</h1>
             <p className="mt-2 text-sm leading-7 text-pine/78">
@@ -52,14 +53,14 @@ export default async function SignupPage({
                   <span className="mb-2 block text-sm font-medium text-pine/80">Prénom</span>
                   <input
                     name="firstName"
-                    className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm outline-none transition focus:border-pine"
+                    className="w-full rounded-2xl border border-ink/10 bg-white/80 px-4 py-3.5 text-sm outline-none transition focus:border-pine"
                   />
                 </label>
                 <label className="block">
                   <span className="mb-2 block text-sm font-medium text-pine/80">Nom</span>
                   <input
                     name="lastName"
-                    className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm outline-none transition focus:border-pine"
+                    className="w-full rounded-2xl border border-ink/10 bg-white/80 px-4 py-3.5 text-sm outline-none transition focus:border-pine"
                   />
                 </label>
               </div>
@@ -72,7 +73,7 @@ export default async function SignupPage({
                   required
                   defaultValue={invitedEmail}
                   autoComplete="email"
-                  className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm outline-none transition focus:border-pine"
+                  className="w-full rounded-2xl border border-ink/10 bg-white/80 px-4 py-3.5 text-sm outline-none transition focus:border-pine"
                 />
               </label>
 
@@ -84,7 +85,7 @@ export default async function SignupPage({
                   minLength={8}
                   required
                   autoComplete="new-password"
-                  className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm outline-none transition focus:border-pine"
+                  className="w-full rounded-2xl border border-ink/10 bg-white/80 px-4 py-3.5 text-sm outline-none transition focus:border-pine"
                 />
               </label>
 
@@ -93,7 +94,7 @@ export default async function SignupPage({
                 <select
                   name="role"
                   defaultValue={invitation ? "teacher" : "student"}
-                  className="w-full rounded-2xl border border-ink/10 bg-sand px-4 py-3 text-sm outline-none transition focus:border-pine"
+                  className="w-full rounded-2xl border border-ink/10 bg-white/80 px-4 py-3.5 text-sm outline-none transition focus:border-pine"
                 >
                   <option value="student">Élève</option>
                   <option value="teacher">Professeur</option>
@@ -143,7 +144,7 @@ export default async function SignupPage({
 
               <button
                 type="submit"
-                className="w-full rounded-full bg-ink px-5 py-3 text-sm font-semibold text-sand transition hover:bg-pine"
+                className="btn-primary w-full rounded-full px-5 py-3.5 text-sm font-semibold text-white"
               >
                 Créer un compte
               </button>
@@ -160,10 +161,12 @@ export default async function SignupPage({
             <PublicFooterLinks className="mt-5" />
           </section>
 
-          <section className="rounded-[36px] bg-ink p-8 text-sand shadow-panel lg:p-10">
+          <section className="panel-dark spotlight relative overflow-hidden rounded-[36px] p-8 text-sand shadow-panel lg:p-10">
+            <AuthOrbs />
+            <AuthBrand />
             <p className="text-xs uppercase tracking-[0.35em] text-sand/55">Établissement</p>
-            <h2 className="mt-4 font-display text-5xl leading-tight">
-              Rejoindre la prépa.
+            <h2 className="mt-4 font-display text-5xl font-semibold leading-[1.02]">
+              Rejoindre la <span className="text-gradient-light">prépa.</span>
             </h2>
             <p className="mt-6 text-base leading-8 text-sand/78">
               Le code fourni par l’établissement permet de retrouver les cours et les professeurs
@@ -177,6 +180,8 @@ export default async function SignupPage({
                 <p>Les professeurs s’inscrivent sur invitation personnelle.</p>
               )}
             </div>
+
+            <AuthVisual />
           </section>
         </div>
       </div>

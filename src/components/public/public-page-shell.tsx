@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 
+import { AuthBrand, AuthOrbs } from "./auth-visual";
 import { PublicFooterLinks } from "./public-footer-links";
 import { getPublicSiteConfig } from "@/lib/public-site";
 
@@ -19,12 +20,16 @@ export function PublicPageShell({
 
   return (
     <main className="bg-app-gradient">
-      <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-4 py-6 lg:px-8">
-        <div className="panel-dark rounded-[34px] px-6 py-7 text-sand shadow-panel lg:px-8">
-          <div className="flex flex-wrap items-start justify-between gap-6">
+      <div className="stagger mx-auto flex min-h-screen max-w-5xl flex-col px-4 py-6 lg:px-8">
+        <div className="panel-dark spotlight relative overflow-hidden rounded-[34px] px-6 py-7 text-sand shadow-panel lg:px-10 lg:py-10">
+          <AuthOrbs />
+          <div className="relative flex flex-wrap items-start justify-between gap-6">
             <div className="max-w-3xl">
+              <AuthBrand />
               <p className="text-xs uppercase tracking-[0.35em] text-sand/55">{eyebrow}</p>
-              <h1 className="mt-4 font-display text-4xl leading-tight lg:text-6xl">{title}</h1>
+              <h1 className="mt-4 font-display text-4xl font-semibold leading-[1.04] lg:text-6xl">
+                <span className="text-gradient-light">{title}</span>
+              </h1>
               <p className="mt-5 max-w-2xl text-base leading-8 text-sand/78">{intro}</p>
             </div>
 
@@ -47,7 +52,7 @@ export function PublicPageShell({
           {children}
         </section>
 
-        <footer className="mt-6 flex flex-col gap-3 rounded-[24px] bg-white/70 px-5 py-4 shadow-panel">
+        <footer className="mt-6 flex flex-col gap-3 rounded-[24px] border border-white/60 bg-white/65 px-5 py-4 shadow-panel backdrop-blur">
           <PublicFooterLinks />
           <p className="text-sm text-pine/72">
             Besoin d'aide ? Écris à{" "}

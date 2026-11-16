@@ -22,9 +22,13 @@ export function SectionCard({
   };
 
   return (
-    <section className={`rounded-[26px] p-4 sm:p-5 lg:rounded-[30px] lg:p-6 ${accents[accent]}`}>
+    <section
+      data-tilt="2.5"
+      className={`spotlight reveal rounded-[26px] p-4 sm:p-5 lg:rounded-[30px] lg:p-6 ${accents[accent]}`}
+    >
       {eyebrow ? (
-        <div className="inline-flex rounded-full border border-current/10 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-current/60">
+        <div className="inline-flex items-center gap-2 rounded-full border border-current/10 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-current/60">
+          <span className="h-1.5 w-1.5 rounded-full bg-clay" />
           {eyebrow}
         </div>
       ) : null}
